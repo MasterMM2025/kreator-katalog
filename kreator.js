@@ -3,6 +3,16 @@ let jsonProducts = [];
 let selectedBanner = null;
 let uploadedImages = {}; // indeks -> base64
 
+// --- Mapowanie flag (możesz podmienić na swoje z repo)
+const flags = {
+  LT: "https://flagcdn.com/w80/lt.png",
+  UA: "https://flagcdn.com/w80/ua.png",
+  RO: "https://flagcdn.com/w80/ro.png",
+  PL: "https://flagcdn.com/w80/pl.png",
+  BG: "https://flagcdn.com/w80/bg.png"
+};
+
+// --- Zamiana obrazków na base64 ---
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -19,6 +29,7 @@ async function toBase64(url) {
   }
 }
 
+// --- Ładowanie JSON ---
 async function loadProducts() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/UKRAINA.json");
@@ -58,7 +69,6 @@ function handleFiles(files) {
     reader.onload = (e) => {
       const fileName = file.name.split('.')[0];
       uploadedImages[fileName] = e.target.result;
-      console.log(`Załadowano obraz dla indeksu: ${fileName}`);
     };
     reader.readAsDataURL(file);
   });
@@ -148,36 +158,7 @@ function selectBanner(id, data) {
   hideBannerModal();
 }
 
-function renderCatalog() {
-  const container = document.getElementById("catalog");
-  container.innerHTML = "";
-  if (products.length === 0) {
-    container.innerHTML = "<p>Brak produktów do wyświetlenia. Zaimportuj plik Excel.</p>";
-    return;
-  }
-  let pageDiv = document.createElement("div");
-  pageDiv.className = "page";
-  products.forEach((p, i) => {
-    const item = document.createElement("div");
-    item.className = "item";
-    const img = document.createElement('img');
-    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
-    const details = document.createElement('div');
-    details.className = "details";
-    details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
-    item.appendChild(img);
-    item.appendChild(details);
-    pageDiv.appendChild(item);
-    if ((i + 1) % 4 === 0) {
-      container.appendChild(pageDiv);
-      pageDiv = document.createElement("div");
-      pageDiv.className = "page";
-    }
-  });
-  if (products.length % 4 !== 0) container.appendChild(pageDiv);
-}
-
-/* Import Excel */
+/* --- Import Excel --- */
 function importExcel() {
   const file = document.getElementById('excelFile').files[0];
   if (!file) {
@@ -201,6 +182,7 @@ function importExcel() {
           if (header.includes('ean')) obj['ean'] = row[i] || '';
           if (header.includes('rank')) obj['ranking'] = row[i] || '';
           if (header.includes('cen')) obj['cena'] = row[i] || '';
+          if (header.includes('nazwa')) obj['nazwa'] = row[i] || '';
         });
         return obj;
       });
@@ -233,7 +215,37 @@ function importExcel() {
   else reader.readAsBinaryString(file);
 }
 
-/* 🔹 Rysowanie boxa w zależności od stylu */
+/* --- Podgląd katalogu na stronie --- */
+function renderCatalog() {
+  const container = document.getElementById("catalog");
+  container.innerHTML = "";
+  if (products.length === 0) {
+    container.innerHTML = "<p>Brak produktów do wyświetlenia. Zaimportuj plik Excel.</p>";
+    return;
+  }
+  let pageDiv = document.createElement("div");
+  pageDiv.className = "page";
+  products.forEach((p, i) => {
+    const item = document.createElement("div");
+    item.className = "item";
+    const img = document.createElement('img');
+    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
+    const details = document.createElement('div');
+    details.className = "details";
+    details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
+    item.appendChild(img);
+    item.appendChild(details);
+    pageDiv.appendChild(item);
+    if ((i + 1) % 4 === 0) {
+      container.appendChild(pageDiv);
+      pageDiv = document.createElement("div");
+      pageDiv.className = "page";
+    }
+  });
+  if (products.length % 4 !== 0) container.appendChild(pageDiv);
+}
+
+/* --- Rysowanie boxów --- */
 function drawBox(doc, x, y, w, h, style) {
   if (style === "3d") {
     doc.setFillColor(220, 220, 220);
@@ -244,11 +256,11 @@ function drawBox(doc, x, y, w, h, style) {
     doc.roundedRect(x, y, w, h, 5, 5, 'S');
   } else {
     doc.setFillColor(255, 255, 255);
-    doc.rect(x, y, w, h, 'F'); // bez ramki
+    doc.rect(x, y, w, h, 'F');
   }
 }
 
-/* 🔹 Funkcja budowania PDF */
+/* --- Generowanie PDF --- */
 async function buildPDF(jsPDF, save = true) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
 
@@ -257,25 +269,21 @@ async function buildPDF(jsPDF, save = true) {
   const bannerHeight = 85;
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   if (bannerImg) {
-    try {
-      doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-    } catch (e) {
-      console.error('Błąd dodawania banera:', e);
-    }
+    doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
   }
-
-  const marginTop = 20 + bannerHeight;
-  const marginBottom = 28;
-  const marginLeftRight = 14;
 
   const layout = document.querySelector('input[name="layout"]:checked').value;
   const frameStyle = document.querySelector('input[name="frameStyle"]:checked').value;
+  const selectedCountry = document.getElementById("countrySelect").value;
 
   let cols, rows;
   if (layout === "4") { cols = 2; rows = 2; }
   else if (layout === "8") { cols = 2; rows = 4; }
   else { cols = 2; rows = 8; }
 
+  const marginTop = 20 + bannerHeight;
+  const marginBottom = 40;
+  const marginLeftRight = 14;
   const boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
   const boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
 
@@ -288,135 +296,96 @@ async function buildPDF(jsPDF, save = true) {
 
   for (let i = 0; i < products.length; i++) {
     const p = products[i];
-
     drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
-    // --- Layout 4 (środkowy układ) ---
-    if (layout === "4") {
-      let imgSrc = uploadedImages[p.indeks] || p.img;
-      if (imgSrc) {
-        try {
-          const img = new Image();
-          img.src = imgSrc;
-          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-          const maxW = boxWidth - 40;
-          const maxH = boxHeight * 0.4;
-          let scale = Math.min(maxW / img.width, maxH / img.height);
-          let w = img.width * scale;
-          let h = img.height * scale;
-          let imgX = x + (boxWidth - w) / 2;
-          let imgY = y + 25;
-          doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
-        } catch (e) { console.error(e); }
-      }
-
-      let textY = y + boxHeight * 0.5;
-
-      doc.setFont("Arial", "bold");
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
-      lines.forEach(line => {
-        doc.text(line, x + boxWidth / 2, textY, { align: "center" });
-        textY += 14;
-      });
-      textY += 10;
-
-      doc.setFont("Arial", "normal"); doc.setFontSize(9);
-      doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
-
-      if (showRanking && p.ranking) {
-        textY += 18;
-        doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
-      }
-
-      if (showCena && p.cena) {
-        textY += 20;
-        doc.setFont("Arial", "bold"); doc.setFontSize(14);
-        doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
-      }
-
-      if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
-        try {
-          const barcodeCanvas = document.createElement('canvas');
-          JsBarcode(barcodeCanvas, p.ean, {
-            format: "EAN13", width: 2, height: 40,
-            displayValue: true, fontSize: 10, margin: 0
-          });
-          const barcodeImg = barcodeCanvas.toDataURL("image/png");
-          const bw = 140, bh = 40;
-          const bx = x + (boxWidth - bw) / 2;
-          const by = y + boxHeight - bh - 20;
-          doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
-        } catch (e) { console.error(e); }
-      }
-
-    } else {
-      // --- Layout 8 i 16 (stary układ) ---
-      let imgSrc = uploadedImages[p.indeks] || p.img;
-      if (imgSrc) {
-        try {
-          const img = new Image();
-          img.src = imgSrc;
-          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-          const maxW = 90;
-          const maxH = 60;
-          let scale = Math.min(maxW / img.width, maxH / img.height);
-          let w = img.width * scale;
-          let h = img.height * scale;
-          let imgX = x + 5 + (maxW - w) / 2;
-          let imgY = y + 8 + (maxH - h) / 2;
-          doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
-        } catch (e) { console.error('Błąd dodawania obrazka:', e); }
-      }
-
-      let textY = y + 20;
-      doc.setFont("Arial", "bold"); doc.setFontSize(8);
-      doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
-
-      textY += 25;
-      doc.setFont("Arial", "normal"); doc.setFontSize(7);
-      doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
-
-      textY += 12;
-      if (showRanking && p.ranking) {
-        doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
-        textY += 12;
-      }
-      if (showCena && p.cena) {
-        doc.setFont("Arial", "bold"); doc.setFontSize(12);
-        doc.text(`CENA: ${p.cena}`, x + 105, textY, { maxWidth: 150 });
-        textY += 16;
-      }
-
-      if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
-        try {
-          const barcodeCanvas = document.createElement('canvas');
-          JsBarcode(barcodeCanvas, p.ean, {
-            format: "EAN13", width: 1.6, height: 32,
-            displayValue: true, fontSize: 9, margin: 0
-          });
-          const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-          const bw = 85, bh = 32;
-          const bx = x + boxWidth - bw - 10;
-          const by = y + boxHeight - bh - 5;
-          doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
-        } catch (e) { console.error('Błąd generowania kodu kreskowego:', e); }
-      }
+    // obrazek
+    let imgSrc = uploadedImages[p.indeks] || p.img;
+    if (imgSrc) {
+      try {
+        const img = new Image();
+        img.src = imgSrc;
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+        const maxW = boxWidth * 0.6;
+        const maxH = boxHeight * 0.35;
+        let scale = Math.min(maxW / img.width, maxH / img.height);
+        let w = img.width * scale;
+        let h = img.height * scale;
+        let imgX = x + (boxWidth - w) / 2;
+        let imgY = y + 15;
+        doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+      } catch {}
     }
 
-    // --- Układ stron ---
+    // tekst
+    let textY = y + boxHeight * 0.55;
+    doc.setFont("Arial", "bold"); doc.setFontSize(9);
+    const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 20);
+    lines.forEach(line => {
+      doc.text(line, x + boxWidth / 2, textY, { align: "center" });
+      textY += 12;
+    });
+    textY += 5;
+
+    doc.setFont("Arial", "normal"); doc.setFontSize(8);
+    doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
+
+    if (showRanking && p.ranking) {
+      textY += 14;
+      doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
+    }
+
+    if (showCena && p.cena) {
+      textY += 18;
+      doc.setFont("Arial", "bold"); doc.setFontSize(12);
+      doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
+    }
+
+    if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+      try {
+        const barcodeCanvas = document.createElement('canvas');
+        JsBarcode(barcodeCanvas, p.ean, { format: "EAN13", width: 1.6, height: 32, displayValue: true, fontSize: 9, margin: 0 });
+        const barcodeImg = barcodeCanvas.toDataURL("image/png");
+        const bw = 120, bh = 32;
+        const bx = x + (boxWidth - bw) / 2;
+        const by = y + boxHeight - bh - 10;
+        doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+      } catch {}
+    }
+
+    // układ
     x += boxWidth + 6;
     if ((i + 1) % cols === 0) {
       x = marginLeftRight;
       y += boxHeight + 6;
     }
+
     if ((i + 1) % (rows * cols) === 0 && i + 1 < products.length) {
+      // flaga na każdej stronie
+      if (selectedCountry && flags[selectedCountry]) {
+        const flagImg = await toBase64(flags[selectedCountry]);
+        if (flagImg) {
+          const fw = 60, fh = 40;
+          const fx = (pageWidth - fw) / 2;
+          const fy = pageHeight - fh - 5;
+          doc.addImage(flagImg, "PNG", fx, fy, fw, fh);
+        }
+      }
       doc.addPage();
       if (bannerImg) {
         doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
       }
-      x = marginLeftRight;
-      y = marginTop;
+      x = marginLeftRight; y = marginTop;
+    }
+  }
+
+  // flaga na ostatniej stronie
+  if (selectedCountry && flags[selectedCountry]) {
+    const flagImg = await toBase64(flags[selectedCountry]);
+    if (flagImg) {
+      const fw = 60, fh = 40;
+      const fx = (pageWidth - fw) / 2;
+      const fy = pageHeight - fh - 5;
+      doc.addImage(flagImg, "PNG", fx, fy, fw, fh);
     }
   }
 
@@ -424,13 +393,12 @@ async function buildPDF(jsPDF, save = true) {
   return doc;
 }
 
-/* 🔹 Generowanie PDF */
+/* --- Funkcje przycisków --- */
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
 
-/* 🔹 Podgląd PDF */
 async function previewPDF() {
   const { jsPDF } = window.jspdf;
   const doc = await buildPDF(jsPDF, false);
@@ -440,4 +408,3 @@ async function previewPDF() {
 }
 
 loadProducts();
-
