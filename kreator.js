@@ -226,19 +226,30 @@ function importExcel() {
       products = newProducts;
       renderCatalog();
       document.getElementById('pdfButton').disabled = false;
+      document.getElementById('previewButton').disabled = false;
     }
   };
   if (file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
 }
 
-/* PDF generator */
-async function generatePDF() {
-  if (!products.length) {
-    alert('Najpierw zaimportuj dane z pliku Excel.');
-    return;
+/* 🔹 Rysowanie boxa w zależności od stylu */
+function drawBox(doc, x, y, w, h, style) {
+  if (style === "3d") {
+    doc.setFillColor(220, 220, 220);
+    doc.roundedRect(x + 2, y + 2, w, h, 5, 5, 'F');
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(x, y, w, h, 5, 5, 'F');
+    doc.setDrawColor(80, 80, 80);
+    doc.roundedRect(x, y, w, h, 5, 5, 'S');
+  } else {
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x, y, w, h, 'F'); // bez ramki
   }
-  const { jsPDF } = window.jspdf;
+}
+
+/* 🔹 Funkcja budowania PDF */
+async function buildPDF(jsPDF, save = true) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -258,15 +269,12 @@ async function generatePDF() {
   const marginLeftRight = 14;
 
   const layout = document.querySelector('input[name="layout"]:checked').value;
+  const frameStyle = document.querySelector('input[name="frameStyle"]:checked').value;
 
   let cols, rows;
-  if (layout === "4") {
-    cols = 2; rows = 2;
-  } else if (layout === "8") {
-    cols = 2; rows = 4;
-  } else {
-    cols = 2; rows = 8;
-  }
+  if (layout === "4") { cols = 2; rows = 2; }
+  else if (layout === "8") { cols = 2; rows = 4; }
+  else { cols = 2; rows = 8; }
 
   const boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
   const boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
@@ -281,15 +289,9 @@ async function generatePDF() {
   for (let i = 0; i < products.length; i++) {
     const p = products[i];
 
-    // Box
-    doc.setFillColor(220, 220, 220);
-    doc.roundedRect(x + 2, y + 2, boxWidth, boxHeight, 5, 5, 'F');
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(x, y, boxWidth, boxHeight, 5, 5, 'F');
-    doc.setDrawColor(80, 80, 80);
-    doc.roundedRect(x, y, boxWidth, boxHeight, 5, 5, 'S');
+    drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
-    // --- LAYOUT 4 ---
+    // --- Layout 4 (środkowy układ) ---
     if (layout === "4") {
       let imgSrc = uploadedImages[p.indeks] || p.img;
       if (imgSrc) {
@@ -312,17 +314,14 @@ async function generatePDF() {
 
       doc.setFont("Arial", "bold");
       doc.setFontSize(11);
-
       const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
       lines.forEach(line => {
         doc.text(line, x + boxWidth / 2, textY, { align: "center" });
         textY += 14;
       });
-
       textY += 10;
 
-      doc.setFont("Arial", "normal");
-      doc.setFontSize(9);
+      doc.setFont("Arial", "normal"); doc.setFontSize(9);
       doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
 
       if (showRanking && p.ranking) {
@@ -332,8 +331,7 @@ async function generatePDF() {
 
       if (showCena && p.cena) {
         textY += 20;
-        doc.setFont("Arial", "bold");
-        doc.setFontSize(14);
+        doc.setFont("Arial", "bold"); doc.setFontSize(14);
         doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
       }
 
@@ -353,7 +351,7 @@ async function generatePDF() {
       }
 
     } else {
-      // --- LAYOUT 8 i 16 ---
+      // --- Layout 8 i 16 (stary układ) ---
       let imgSrc = uploadedImages[p.indeks] || p.img;
       if (imgSrc) {
         try {
@@ -372,13 +370,11 @@ async function generatePDF() {
       }
 
       let textY = y + 20;
-      doc.setFont("Arial", "bold");
-      doc.setFontSize(8);
+      doc.setFont("Arial", "bold"); doc.setFontSize(8);
       doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
 
       textY += 25;
-      doc.setFont("Arial", "normal");
-      doc.setFontSize(7);
+      doc.setFont("Arial", "normal"); doc.setFontSize(7);
       doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
 
       textY += 12;
@@ -387,8 +383,7 @@ async function generatePDF() {
         textY += 12;
       }
       if (showCena && p.cena) {
-        doc.setFont("Arial", "bold");
-        doc.setFontSize(12);
+        doc.setFont("Arial", "bold"); doc.setFontSize(12);
         doc.text(`CENA: ${p.cena}`, x + 105, textY, { maxWidth: 150 });
         textY += 16;
       }
@@ -397,12 +392,8 @@ async function generatePDF() {
         try {
           const barcodeCanvas = document.createElement('canvas');
           JsBarcode(barcodeCanvas, p.ean, {
-            format: "EAN13",
-            width: 1.6,
-            height: 32,
-            displayValue: true,
-            fontSize: 9,
-            margin: 0
+            format: "EAN13", width: 1.6, height: 32,
+            displayValue: true, fontSize: 9, margin: 0
           });
           const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
           const bw = 85, bh = 32;
@@ -422,19 +413,32 @@ async function generatePDF() {
     if ((i + 1) % (rows * cols) === 0 && i + 1 < products.length) {
       doc.addPage();
       if (bannerImg) {
-        doc.addImage(
-          bannerImg,
-          bannerImg.includes('image/png') ? "PNG" : "JPEG",
-          0, 0, pageWidth, bannerHeight, undefined, "FAST"
-        );
+        doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
       }
       x = marginLeftRight;
       y = marginTop;
     }
   }
 
-  doc.save("katalog.pdf");
+  if (save) doc.save("katalog.pdf");
+  return doc;
+}
+
+/* 🔹 Generowanie PDF */
+async function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  await buildPDF(jsPDF, true);
+}
+
+/* 🔹 Podgląd PDF */
+async function previewPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = await buildPDF(jsPDF, false);
+  const blobUrl = doc.output("bloburl");
+  document.getElementById("pdfIframe").src = blobUrl;
+  document.getElementById("pdfPreview").style.display = "block";
 }
 
 loadProducts();
+
 
