@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Katalog produktów</title>
+  <!-- Wyłączenie żądania favikona (opcjonalne) -->
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="stylesheet" href="kreator.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h3>Opcje PDF</h3>
+    <label><input type="checkbox" id="showEan" checked> KOD EAN</label>
+    <label><input type="checkbox" id="showRanking" checked> RANKING</label>
+    <label><input type="checkbox" id="showCena" checked> CENA</label>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Panel -->
+    <div class="panel">
+      <h2>Import i ustawienia</h2>
+
+      <!-- Import pliku Excel -->
+      <div class="row">
+        <input type="file" id="excelFile" accept=".xls,.xlsx,.csv">
+        <button onclick="importExcel()">Import Excel</button>
+      </div>
+
+      <!-- Wybór banera -->
+      <div class="row">
+        <button onclick="showBannerModal()">Wybierz Baner</button>
+        <div id="bannerUpload" class="upload-banner">
+          <p>Przeciągnij baner tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <!-- Import zdjęć -->
+      <div class="row">
+        <div id="uploadArea" class="upload-area">
+          <p>Przeciągnij zdjęcia tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
+        </div>
+      </div>
+
+      <!-- Generowanie PDF -->
+      <div class="row bottom-row">
+        <button onclick="generatePDF()" disabled id="pdfButton">Generuj PDF</button>
+      </div>
+    </div>
+
+    <!-- Katalog produktów -->
+    <h1>Katalog produktów</h1>
+    <div id="catalog"></div>
+    <div id="debug"></div>
+
+    <!-- Modal wyboru banera -->
+    <div id="bannerModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideBannerModal()">&times;</span>
+        <h3>Wybierz baner</h3>
+        <div class="banner-options" id="bannerOptions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skrypty -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="kreator.js" defer></script>
+</body>
+</html>
