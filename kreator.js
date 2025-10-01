@@ -113,6 +113,7 @@ function showBannerModal() {
   document.getElementById('bannerModal').style.display = 'block';
   loadBanners();
 }
+
 function hideBannerModal() {
   document.getElementById('bannerModal').style.display = 'none';
 }
@@ -145,7 +146,7 @@ async function loadBanners() {
 function selectBanner(id, data) {
   selectedBanner = { id, data };
   document.querySelectorAll('.banner-preview').forEach(p => p.classList.remove('selected'));
-  event.target.classList.add('selected');
+  this.classList.add('selected');
   hideBannerModal();
 }
 
@@ -247,7 +248,11 @@ async function generatePDF() {
   const bannerHeight = 85;
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   if (bannerImg) {
-    doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+    try {
+      doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+    } catch (e) {
+      console.error('Błąd dodawania banera:', e);
+    }
   }
 
   const marginTop = 20 + bannerHeight;
@@ -279,17 +284,24 @@ async function generatePDF() {
     // Obrazek
     let imgSrc = uploadedImages[p.indeks] || p.img;
     if (imgSrc) {
-      const img = new Image();
-      img.src = imgSrc;
-      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-      const maxW = 90;
-      const maxH = 60;
-      let scale = Math.min(maxW / img.width, maxH / img.height);
-      let w = img.width * scale;
-      let h = img.height * scale;
-      let imgX = x + 5 + (maxW - w) / 2;
-      let imgY = y + 8 + (maxH - h) / 2;
-      doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+      try {
+        const img = new Image();
+        img.src = imgSrc;
+        await new Promise((res, rej) => { 
+          img.onload = res; 
+          img.onerror = () => rej(new Error('Błąd ładowania obrazka')); 
+        });
+        const maxW = 90;
+        const maxH = 60;
+        let scale = Math.min(maxW / img.width, maxH / img.height);
+        let w = img.width * scale;
+        let h = img.height * scale;
+        let imgX = x + 5 + (maxW - w) / 2;
+        let imgY = y + 8 + (maxH - h) / 2;
+        doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+      } catch (e) {
+        console.error('Błąd dodawania obrazka:', e);
+      }
     }
 
     // Tekst
@@ -317,22 +329,26 @@ async function generatePDF() {
 
     // Kod kreskowy
     if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
-      const barcodeCanvas = document.createElement('canvas');
-      JsBarcode(barcodeCanvas, p.ean, {
-        format: "EAN13",
-        width: 1.6,
-        height: 32,
-        displayValue: true,
-        fontSize: 9,
-        margin: 0,
-        lineColor: "#000000",
-        background: "#FFFFFF"
-      });
-      const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-      const bw = 85, bh = 32;
-      const bx = x + boxWidth - bw - 10;
-      const by = y + boxHeight - bh - 5;
-      doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+      try {
+        const barcodeCanvas = document.createElement('canvas');
+        JsBarcode(barcodeCanvas, p.ean, {
+          format: "EAN13",
+          width: 1.6,
+          height: 32,
+          displayValue: true,
+          fontSize: 9,
+          margin: 0,
+          lineColor: "#000000",
+          background: "#FFFFFF"
+        });
+        const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
+        const bw = 85, bh = 32;
+        const bx = x + boxWidth - bw - 10;
+        const by = y + boxHeight - bh - 5;
+        doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+      } catch (e) {
+        console.error('Błąd generowania kodu kreskowego:', e);
+      }
     }
 
     // Układ
