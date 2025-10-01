@@ -92,20 +92,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Własny baner
-  const bannerInput = document.getElementById("bannerInput");
-  const uploadBanner = document.getElementById("uploadBanner");
-  if (bannerInput && uploadBanner) {
-    bannerInput.addEventListener("change", (e) => {
+  const bannerFileInput = document.getElementById("bannerFileInput");
+  const bannerUpload = document.getElementById("bannerUpload");
+  if (bannerFileInput && bannerUpload) {
+    bannerFileInput.addEventListener("change", (e) => {
       if (e.target.files.length > 0) loadCustomBanner(e.target.files[0]);
     });
-    uploadBanner.addEventListener("dragover", (e) => { e.preventDefault(); uploadBanner.classList.add("dragover"); });
-    uploadBanner.addEventListener("dragleave", () => uploadBanner.classList.remove("dragover"));
-    uploadBanner.addEventListener("drop", (e) => {
+    bannerUpload.addEventListener("dragover", (e) => { e.preventDefault(); bannerUpload.classList.add("dragover"); });
+    bannerUpload.addEventListener("dragleave", () => bannerUpload.classList.remove("dragover"));
+    bannerUpload.addEventListener("drop", (e) => {
       e.preventDefault();
-      uploadBanner.classList.remove("dragover");
+      bannerUpload.classList.remove("dragover");
       if (e.dataTransfer.files.length > 0) loadCustomBanner(e.dataTransfer.files[0]);
     });
-    uploadBanner.addEventListener("click", () => bannerInput.click());
+    bannerUpload.addEventListener("click", () => bannerFileInput.click());
   }
 });
 
