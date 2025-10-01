@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Katalog produktów</title>
-  <!-- Wyłączenie żądania favikona (opcjonalne) -->
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <link rel="stylesheet" href="kreator.css">
 </head>
@@ -15,6 +14,15 @@
     <label><input type="checkbox" id="showEan" checked> KOD EAN</label>
     <label><input type="checkbox" id="showRanking" checked> RANKING</label>
     <label><input type="checkbox" id="showCena" checked> CENA</label>
+
+    <h3>Układ modułów</h3>
+    <label><input type="radio" name="layout" value="4"> 4 moduły</label>
+    <label><input type="radio" name="layout" value="8"> 8 modułów</label>
+    <label><input type="radio" name="layout" value="16" checked> 16 modułów</label>
+
+    <h3>Wygląd ramek</h3>
+    <label><input type="radio" name="frameStyle" value="3d" checked> Z ramką 3D</label>
+    <label><input type="radio" name="frameStyle" value="none"> Bez ramek</label>
   </div>
 
   <!-- Main Content -->
@@ -49,7 +57,14 @@
       <!-- Generowanie PDF -->
       <div class="row bottom-row">
         <button onclick="generatePDF()" disabled id="pdfButton">Generuj PDF</button>
+        <button onclick="previewPDF()" disabled id="previewButton">Podgląd PDF</button>
       </div>
+    </div>
+
+    <!-- Podgląd PDF -->
+    <div id="pdfPreview" style="margin-top:15px; display:none;">
+      <h3>Podgląd PDF</h3>
+      <iframe id="pdfIframe" width="100%" height="600px" style="border:1px solid #ccc;"></iframe>
     </div>
 
     <!-- Katalog produktów -->
