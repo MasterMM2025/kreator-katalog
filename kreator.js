@@ -2,6 +2,7 @@ let products = [];
 let jsonProducts = [];
 let selectedBanner = null;
 let uploadedImages = {}; // indeks -> base64
+
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -17,6 +18,7 @@ async function toBase64(url) {
     return null;
   }
 }
+
 async function loadProducts() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/UKRAINA.json");
@@ -48,6 +50,7 @@ async function loadProducts() {
     document.getElementById('debug').innerText = "Błąd ładowania JSON: " + error.message;
   }
 }
+
 /* Drag & Drop zdjęcia produktów */
 function handleFiles(files) {
   [...files].forEach(file => {
@@ -60,6 +63,7 @@ function handleFiles(files) {
     reader.readAsDataURL(file);
   });
 }
+
 /* Drag & Drop własny baner */
 function loadCustomBanner(file) {
   const reader = new FileReader();
@@ -69,6 +73,7 @@ function loadCustomBanner(file) {
   };
   reader.readAsDataURL(file);
 }
+
 /* Inicjalizacja */
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
@@ -84,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     uploadArea.addEventListener("click", () => imageInput.click());
   }
+
   const bannerFileInput = document.getElementById("bannerFileInput");
   const bannerUpload = document.getElementById("bannerUpload");
   if (bannerFileInput && bannerUpload) {
@@ -99,32 +105,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     bannerUpload.addEventListener("click", () => bannerFileInput.click());
   }
-  // 🔹 Dodajemy select do sidebaru w JS
-  const sidebar = document.querySelector(".sidebar");
-  if (sidebar) {
-    const h3 = document.createElement("h3");
-    h3.innerText = "Kraj pochodzenia";
-    sidebar.appendChild(h3);
-    const select = document.createElement("select");
-    select.id = "countrySelect";
-    select.innerHTML = `
-      <option value="">Brak</option>
-      <option value="LT">Litwa</option>
-      <option value="UA">Ukraina</option>
-      <option value="RO">Rumunia</option>
-      <option value="PL">Polska</option>
-      <option value="BG">Bułgaria</option>
-    `;
-    sidebar.appendChild(select);
-  }
 });
+
 function showBannerModal() {
   document.getElementById('bannerModal').style.display = 'block';
   loadBanners();
 }
+
 function hideBannerModal() {
   document.getElementById('bannerModal').style.display = 'none';
 }
+
 async function loadBanners() {
   const bannerOptions = document.getElementById('bannerOptions');
   bannerOptions.innerHTML = '';
@@ -149,12 +140,14 @@ async function loadBanners() {
     }
   }
 }
+
 function selectBanner(id, data) {
   selectedBanner = { id, data };
   document.querySelectorAll('.banner-preview').forEach(p => p.classList.remove('selected'));
   this.classList.add('selected');
   hideBannerModal();
 }
+
 function renderCatalog() {
   const container = document.getElementById("catalog");
   container.innerHTML = "";
@@ -183,6 +176,7 @@ function renderCatalog() {
   });
   if (products.length % 4 !== 0) container.appendChild(pageDiv);
 }
+
 /* Import Excel */
 function importExcel() {
   const file = document.getElementById('excelFile').files[0];
@@ -237,6 +231,7 @@ function importExcel() {
   if (file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
 }
+
 /* PDF generator */
 async function generatePDF() {
   if (!products.length) {
@@ -245,6 +240,7 @@ async function generatePDF() {
   }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
@@ -256,10 +252,13 @@ async function generatePDF() {
       console.error('Błąd dodawania banera:', e);
     }
   }
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
+
   const layout = document.querySelector('input[name="layout"]:checked').value;
+
   let cols, rows;
   if (layout === "4") {
     cols = 2; rows = 2;
@@ -268,15 +267,20 @@ async function generatePDF() {
   } else {
     cols = 2; rows = 8;
   }
+
   const boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
   const boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
+
   const showEan = document.getElementById('showEan').checked;
   const showRanking = document.getElementById('showRanking').checked;
   const showCena = document.getElementById('showCena').checked;
+
   let x = marginLeftRight;
   let y = marginTop;
+
   for (let i = 0; i < products.length; i++) {
     const p = products[i];
+
     // Box
     doc.setFillColor(220, 220, 220);
     doc.roundedRect(x + 2, y + 2, boxWidth, boxHeight, 5, 5, 'F');
@@ -284,6 +288,7 @@ async function generatePDF() {
     doc.roundedRect(x, y, boxWidth, boxHeight, 5, 5, 'F');
     doc.setDrawColor(80, 80, 80);
     doc.roundedRect(x, y, boxWidth, boxHeight, 5, 5, 'S');
+
     // --- LAYOUT 4 ---
     if (layout === "4") {
       let imgSrc = uploadedImages[p.indeks] || p.img;
@@ -302,28 +307,36 @@ async function generatePDF() {
           doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
         } catch (e) { console.error(e); }
       }
+
       let textY = y + boxHeight * 0.5;
+
       doc.setFont("Arial", "bold");
       doc.setFontSize(11);
+
       const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
       lines.forEach(line => {
         doc.text(line, x + boxWidth / 2, textY, { align: "center" });
         textY += 14;
       });
+
       textY += 10;
+
       doc.setFont("Arial", "normal");
       doc.setFontSize(9);
       doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
+
       if (showRanking && p.ranking) {
         textY += 18;
         doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
       }
+
       if (showCena && p.cena) {
         textY += 20;
         doc.setFont("Arial", "bold");
         doc.setFontSize(14);
         doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
       }
+
       if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
         try {
           const barcodeCanvas = document.createElement('canvas');
@@ -338,6 +351,7 @@ async function generatePDF() {
           doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
         } catch (e) { console.error(e); }
       }
+
     } else {
       // --- LAYOUT 8 i 16 ---
       let imgSrc = uploadedImages[p.indeks] || p.img;
@@ -356,14 +370,17 @@ async function generatePDF() {
           doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
         } catch (e) { console.error('Błąd dodawania obrazka:', e); }
       }
+
       let textY = y + 20;
       doc.setFont("Arial", "bold");
       doc.setFontSize(8);
       doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
+
       textY += 25;
       doc.setFont("Arial", "normal");
       doc.setFontSize(7);
       doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
+
       textY += 12;
       if (showRanking && p.ranking) {
         doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
@@ -375,6 +392,7 @@ async function generatePDF() {
         doc.text(`CENA: ${p.cena}`, x + 105, textY, { maxWidth: 150 });
         textY += 16;
       }
+
       if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
         try {
           const barcodeCanvas = document.createElement('canvas');
@@ -394,6 +412,7 @@ async function generatePDF() {
         } catch (e) { console.error('Błąd generowania kodu kreskowego:', e); }
       }
     }
+
     // --- Układ stron ---
     x += boxWidth + 6;
     if ((i + 1) % cols === 0) {
@@ -413,6 +432,9 @@ async function generatePDF() {
       y = marginTop;
     }
   }
+
   doc.save("katalog.pdf");
 }
+
 loadProducts();
+
