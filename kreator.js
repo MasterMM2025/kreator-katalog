@@ -319,23 +319,27 @@ function drawBox(doc, x, y, w, h, style) {
   }
 }
 
-async function buildPDF(jsPDF, save = true) {
+async function buildPDF(jsPDF, save = true, maxPages = Infinity) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
   let pageNumber = 1;
+  let pagesGenerated = 0;
+
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
       if (products.length > 0) {
         doc.addPage();
+        pageNumber++;
       }
     } catch (e) {
       console.error('Błąd dodawania okładki:', e);
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
+
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
@@ -360,6 +364,7 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -371,9 +376,22 @@ async function buildPDF(jsPDF, save = true) {
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
+
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
+        if (y + boxHeight + 6 > pageHeight - marginBottom) {
+          if (++pagesGenerated >= maxPages) return;
+          doc.addPage();
+          pageNumber++;
+          if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+          if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+          doc.setFont("Arial", "bold");
+          doc.setFontSize(12);
+          doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+          x = marginLeftRight;
+          y = marginTop;
+        }
         const p = products[productIndex];
         const edit = productEdits[productIndex] || {
           font: 'Arial',
@@ -408,18 +426,6 @@ async function buildPDF(jsPDF, save = true) {
         }
         if (isLarge) {
           let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          if (textY + (showCena ? 74 : 22) > pageHeight - marginBottom) {
-            doc.addPage();
-            pageNumber++;
-            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(12);
-            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-            x = marginLeftRight;
-            y = marginTop;
-            textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -489,6 +495,7 @@ async function buildPDF(jsPDF, save = true) {
           }
           let textY = y + 20;
           if (textY + (showCena ? 60 : 36) > pageHeight - marginBottom) {
+            if (++pagesGenerated >= maxPages) return;
             doc.addPage();
             pageNumber++;
             if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -555,6 +562,7 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
+
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -620,6 +628,7 @@ async function buildPDF(jsPDF, save = true) {
       }
       // Przejście na nową stronę po każdym pełnym układzie 4-2-4
       if (productIndex < products.length) {
+        if (++pagesGenerated >= maxPages) break;
         doc.addPage();
         pageNumber++;
         if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -632,6 +641,7 @@ async function buildPDF(jsPDF, save = true) {
       }
     }
     if (productIndex < products.length && y + boxHeight + 6 > pageHeight - marginBottom) {
+      if (++pagesGenerated >= maxPages) break;
       doc.addPage();
       pageNumber++;
       if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -654,180 +664,7 @@ async function generatePDF() {
 
 async function previewPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const bannerHeight = 85;
-  let pageNumber = 1;
-
-  // Dodanie okładki, jeśli istnieje
-  if (selectedCover) {
-    try {
-      doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      if (products.length > 0) {
-        doc.addPage();
-        pageNumber++;
-      }
-    } catch (e) {
-      console.error('Błąd dodawania okładki:', e);
-      document.getElementById('debug').innerText = "Błąd dodawania okładki";
-    }
-  }
-
-  // Generowanie wszystkich stron z produktami dla podglądu
-  if (products.length > 0) {
-    const bannerImg = selectedBanner ? selectedBanner.data : null;
-    const backgroundImg = selectedBackground ? selectedBackground.data : null;
-    let productIndex = 0;
-    while (productIndex < products.length) {
-      if (backgroundImg) {
-        try {
-          doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-        } catch (e) {
-          console.error('Błąd dodawania tła:', e);
-          document.getElementById('debug').innerText = "Błąd dodawania tła";
-        }
-      }
-      if (bannerImg) {
-        try {
-          doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-        } catch (e) {
-          console.error('Błąd dodawania banera:', e);
-          document.getElementById('debug').innerText = "Błąd dodawania banera";
-        }
-      }
-      doc.setFont("Arial", "bold");
-      doc.setFontSize(12);
-      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-      const marginTop = 20 + bannerHeight;
-      const marginBottom = 28;
-      const marginLeftRight = 14;
-      let x = marginLeftRight;
-      let y = marginTop;
-      const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
-        for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
-          for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
-            if (y + boxHeight + 6 > pageHeight - marginBottom) {
-              doc.addPage();
-              pageNumber++;
-              if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-              if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-              doc.setFont("Arial", "bold");
-              doc.setFontSize(12);
-              doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-              x = marginLeftRight;
-              y = marginTop;
-            }
-            const p = products[productIndex];
-            const edit = productEdits[productIndex] || {
-              font: 'Arial',
-              fontColor: '#000000',
-              indeksFont: 'Arial',
-              indeksFontColor: '#000000',
-              rankingFont: 'Arial',
-              rankingFontColor: '#000000',
-              cenaFont: 'Arial',
-              cenaFontColor: '#000000',
-              priceCurrency: globalCurrency,
-              priceFontSize: 'medium'
-            };
-            drawBox(doc, x, y, boxWidth, boxHeight, "3d");
-            let imgSrc = uploadedImages[p.indeks] || p.img;
-            if (imgSrc) {
-              try {
-                const img = new Image();
-                img.src = imgSrc;
-                await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-                const maxW = isLarge ? (boxWidth - 40) : 90;
-                const maxH = isLarge ? (boxHeight * 0.4) : 60;
-                let scale = Math.min(maxW / img.width, maxH / img.height);
-                let w = img.width * scale;
-                let h = img.height * scale;
-                let imgX = isLarge ? (x + (boxWidth - w) / 2) : (x + 5 + (maxW - w) / 2);
-                let imgY = isLarge ? (y + 25) : (y + 8 + (maxH - h) / 2);
-                doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
-              } catch (e) {
-                console.error('Błąd dodawania obrazka:', e);
-              }
-            }
-            if (isLarge) {
-              let textY = y + boxHeight * 0.5;
-              doc.setFont(edit.font, "bold");
-              doc.setFontSize(11);
-              doc.setTextColor(0, 0, 0);
-              const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
-              lines.forEach(line => {
-                doc.text(line, x + boxWidth / 2, textY, { align: "center" });
-                textY += 14;
-              });
-              textY += 10;
-              doc.setFont(edit.indeksFont, "normal");
-              doc.setFontSize(9);
-              doc.text(`Indeks: ${p.indeks || '-'}` , x + boxWidth / 2, textY, { align: "center" });
-              if (showCena && p.cena) {
-                textY += 20;
-                doc.setFont(edit.cenaFont, "bold");
-                doc.setFontSize(14);
-                const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-                doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
-              }
-            } else {
-              let textY = y + 20;
-              doc.setFont(edit.font, "bold");
-              doc.setFontSize(8);
-              doc.setTextColor(0, 0, 0);
-              doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
-              textY += 25;
-              doc.setFont(edit.indeksFont, "normal");
-              doc.setFontSize(7);
-              doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
-              if (showCena && p.cena) {
-                textY += 16;
-                doc.setFont(edit.cenaFont, "bold");
-                doc.setFontSize(12);
-                const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-                doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
-              }
-            }
-            x += boxWidth + 6;
-            productIndex++;
-          }
-        }
-        x = marginLeftRight;
-        y += boxHeight + 6;
-      };
-      const marginTop = 20 + bannerHeight;
-      const marginBottom = 28;
-      const marginLeftRight = 14;
-      let x = marginLeftRight;
-      let y = marginTop;
-      // Sekcja 1: 2x2 (4 moduły)
-      let cols = 2;
-      let rows = 2;
-      let boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      let boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-      let isLarge = false;
-      await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
-      if (productIndex < products.length) {
-        cols = 2;
-        rows = 1;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
-        isLarge = true;
-        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
-      // Sekcja 3: 2x2 (4 moduły)
-      if (productIndex < products.length) {
-        cols = 2;
-        rows = 2;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-        isLarge = false;
-        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
-    }
-  }
+  const doc = await buildPDF(jsPDF, false, 5); // Ograniczenie do 5 stron dla podglądu
   const blobUrl = doc.output("bloburl");
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
