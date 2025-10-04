@@ -15,7 +15,6 @@
     <label><input type="checkbox" id="showEan" checked> KOD EAN</label>
     <label><input type="checkbox" id="showRanking" checked> RANKING</label>
     <label><input type="checkbox" id="showCena" checked> CENA</label>
-
     <h3>Układ modułów</h3>
     <select id="layoutSelect">
       <option value="1">1 moduł</option>
@@ -25,27 +24,25 @@
       <option value="16" selected>16 modułów</option>
       <option value="4-2-4">4-2-4 moduły</option>
     </select>
-
     <h3>Wygląd ramek</h3>
     <label><input type="radio" name="frameStyle" value="3d" checked> Z ramką 3D</label>
     <label><input type="radio" name="frameStyle" value="none"> Bez ramek</label>
   </div>
-
   <!-- Main Content -->
   <div class="main-content">
     <!-- Panel -->
     <div class="panel improved-panel">
       <h2><i class="fas fa-cogs"></i> Import i ustawienia</h2>
-
       <!-- Import pliku Excel -->
       <div class="import-row">
         <div class="file-section">
-          <input type="file" id="excelFile" accept=".xls,.xlsx,.csv">
-          <span id="fileLabel">Nie wybrano pliku</span>
+          <label for="excelFile" class="file-label-wrapper">
+            <span id="fileLabel">Nie wybrano pliku</span>
+          </label>
+          <input type="file" id="excelFile" accept=".xls,.xlsx,.csv" style="display:none;">
         </div>
         <button class="btn-primary" onclick="importExcel()"><i class="fas fa-file-import"></i> Import Excel</button>
       </div>
-
       <!-- Wybór banera -->
       <div class="upload-block">
         <div class="banner-wrapper">
@@ -58,7 +55,13 @@
           </div>
         </div>
       </div>
-
+      <!-- Import tła -->
+      <div class="upload-block">
+        <div id="backgroundUpload" class="upload-zone">
+          <p>Przeciągnij tło tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="backgroundFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
       <!-- Import okładki -->
       <div class="upload-block">
         <div id="coverUpload" class="upload-zone">
@@ -66,7 +69,6 @@
           <input type="file" id="coverFileInput" accept="image/*" style="display:none;">
         </div>
       </div>
-
       <!-- Import zdjęć -->
       <div class="upload-block">
         <div id="uploadArea" class="upload-zone">
@@ -74,7 +76,6 @@
           <input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
         </div>
       </div>
-
       <!-- Generowanie PDF -->
       <div class="pdf-buttons">
         <button onclick="generatePDF()" disabled id="pdfButton" class="btn-primary">
@@ -85,30 +86,24 @@
         </button>
       </div>
     </div>
-
     <!-- Podgląd PDF -->
-    <div id="pdfPreview" style="margin-top:15px; display:none;">
-      <h3>Podgląd PDF</h3>
-      <iframe id="pdfIframe" width="100%" height="600px" style="border:1px solid #ccc;"></iframe>
+    <div id="pdfPreview" class="pdf-preview">
+      <h3><i class="fas fa-file-pdf"></i> Podgląd PDF</h3>
+      <iframe id="pdfIframe" style="width: 100%; max-height: 80vh; border: 1px solid #ccc;"></iframe>
     </div>
-
     <!-- Katalog produktów -->
     <h1>Katalog produktów</h1>
-    <div id="catalog"></div>
     <div id="debug"></div>
-
+    <div id="catalog"></div>
     <!-- Modal wyboru banera -->
     <div id="bannerModal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="hideBannerModal()">&times;</span>
         <h3>Wybierz baner</h3>
-        <div class="banner-options" id="bannerOptions">
-          <!-- Twoje miniatury banerów ładują się tutaj przez JS -->
-        </div>
+        <div class="banner-options" id="bannerOptions"></div>
       </div>
     </div>
   </div>
-
   <!-- Skrypty -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -117,4 +112,3 @@
   <script src="kreator.js" defer></script>
 </body>
 </html>
-
