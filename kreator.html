@@ -12,9 +12,9 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <h3>Opcje PDF</h3>
-    <label><input type="checkbox" id="showEan" checked> KOD EAN</label>
-    <label><input type="checkbox" id="showRanking" checked> RANKING</label>
-    <label><input type="checkbox" id="showCena" checked> CENA</label>
+    <label><input type="checkbox" id="showEan" checked> Kod EAN</label>
+    <label><input type="checkbox" id="showRanking" checked> Ranking</label>
+    <label><input type="checkbox" id="showCena" checked> Cena</label>
     <h3>Układ modułów</h3>
     <select id="layoutSelect">
       <option value="1">1 moduł</option>
@@ -41,13 +41,13 @@
           </label>
           <input type="file" id="excelFile" accept=".xls,.xlsx,.csv" style="display:none;">
         </div>
-        <button class="btn-primary" onclick="importExcel()"><i class="fas fa-file-import"></i> Import Excel</button>
+        <button class="btn-primary" onclick="importExcel()"><i class="fas fa-file-import"></i> Importuj Excel</button>
       </div>
       <!-- Wybór banera -->
       <div class="upload-block">
         <div class="banner-wrapper">
           <button id="chooseBannerBtn" onclick="showBannerModal()" class="btn-banner">
-            <i class="fas fa-image"></i> Wybierz Baner
+            <i class="fas fa-image"></i> Wybierz baner
           </button>
           <div id="bannerUpload" class="upload-zone">
             <p>Przeciągnij baner tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
