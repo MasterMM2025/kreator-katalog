@@ -7,7 +7,7 @@ body {
     color: #333;
     font-size: 14px;
   }
-  
+ 
   /* Left Sidebar */
   .sidebar {
     width: 180px;
@@ -24,7 +24,7 @@ body {
     gap: 10px;
     box-shadow: 2px 0 4px rgba(0,0,0,0.1);
   }
-  
+ 
   .sidebar h3 {
     font-size: 16px;
     margin: 0 0 10px;
@@ -32,7 +32,7 @@ body {
     border-bottom: 1px solid rgba(255,255,255,0.2);
     padding-bottom: 6px;
   }
-  
+ 
   .sidebar label {
     font-size: 12px;
     display: flex;
@@ -42,15 +42,70 @@ body {
     border-radius: 4px;
     transition: background 0.2s ease;
   }
-  
+ 
   .sidebar label:hover {
     background: rgba(255,255,255,0.1);
   }
-  
+ 
   .sidebar input[type="checkbox"] {
     margin-right: 6px;
   }
-  
+ 
+  /* Dropdown */
+  .dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+ 
+  .dropdown-btn {
+    width: 100%;
+    padding: 8px;
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+ 
+  .dropdown-btn::after {
+    content: '▼';
+    font-size: 10px;
+  }
+ 
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 100%;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    top: 100%;
+    left: 0;
+  }
+ 
+  .dropdown-content label {
+    color: #333;
+    padding: 8px 12px;
+    display: block;
+    margin: 0;
+  }
+ 
+  .dropdown-content label:hover {
+    background-color: #f1f1f1;
+  }
+ 
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+ 
   /* Main content */
   .main-content {
     margin-left: 200px;
@@ -60,13 +115,13 @@ body {
     flex-direction: column;
     gap: 15px;
   }
-  
+ 
   h1 {
     font-size: 18px;
     color: #2c3e50;
     margin: 0 0 10px;
   }
-  
+ 
   /* Panel ustawień */
   .panel {
     background: #fff;
@@ -74,14 +129,14 @@ body {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
-  
+ 
   /* Rzędy */
   .row {
     display: flex;
     gap: 8px;
     align-items: center;
   }
-  
+ 
   /* Przyciski */
   button {
     padding: 8px 12px;
@@ -95,17 +150,17 @@ body {
     transition: background 0.2s ease, transform 0.2s ease;
     min-width: 80px;
   }
-  
+ 
   button:hover:not(:disabled) {
     background-color: #217dbb;
     transform: translateY(-1px);
   }
-  
+ 
   button:disabled {
     background-color: #95a5a6;
     cursor: not-allowed;
   }
-  
+ 
   /* Dropzone – identyczne rozmiary */
   .upload-area,
   .upload-banner {
@@ -121,13 +176,13 @@ body {
     transition: background 0.2s ease, border-color 0.2s ease;
     margin-top: 5px;
   }
-  
+ 
   .upload-area.dragover,
   .upload-banner.dragover {
     background: #ecf6fc;
     border-color: #2980b9;
   }
-  
+ 
   .upload-area p,
   .upload-banner p {
     font-size: 12px;
@@ -136,21 +191,21 @@ body {
     line-height: 1.3;
     text-align: center;
   }
-  
+ 
   .file-label {
     color: #2980b9;
     font-weight: bold;
     cursor: pointer;
     text-decoration: underline;
   }
-  
+ 
   /* Generuj PDF */
   .bottom-row {
     margin-top: 12px;
     display: flex;
     justify-content: flex-start;
   }
-  
+ 
   /* Katalog produktów */
   #catalog {
     display: grid;
@@ -158,7 +213,7 @@ body {
     gap: 15px;
     margin-bottom: 20px;
   }
-  
+ 
   .item {
     border: 1px solid #ddd;
     padding: 10px;
@@ -172,44 +227,44 @@ body {
     height: 250px;
     transition: transform 0.2s ease;
   }
-  
+ 
   .item:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
-  
+ 
   .item img {
     width: 100px;
     height: 100px;
     object-fit: contain;
     margin-bottom: 8px;
   }
-  
+ 
   .details {
     text-align: center;
     font-size: 12px;
     line-height: 1.3;
     color: #333;
   }
-  
+ 
   .details .name {
     font-weight: 500;
     color: #2c3e50;
     margin-bottom: 4px;
   }
-  
+ 
   .details .index {
     font-size: 10px;
     color: #555;
   }
-  
+ 
   /* Debug */
   #debug {
     margin-top: 10px;
     color: red;
     font-size: 11px;
   }
-  
+ 
   /* Modal */
   .modal {
     display: none;
@@ -224,26 +279,26 @@ body {
     padding: 12px;
     overflow-y: auto;
   }
-  
+ 
   .modal-content {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-  
+ 
   .close {
     font-size: 16px;
     cursor: pointer;
     color: #333;
     align-self: flex-end;
   }
-  
+ 
   .banner-options {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  
+ 
   .banner-preview {
     width: 100px;
     height: 30px;
@@ -253,12 +308,12 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  
+ 
   .banner-preview:hover {
     border-color: #3498db;
     box-shadow: 0 0 5px rgba(52,152,219,0.6);
   }
-  
+ 
   .banner-preview.selected {
     border-color: #3498db;
     box-shadow: 0 0 7px rgba(52,152,219,0.8);
