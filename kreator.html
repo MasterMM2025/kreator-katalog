@@ -15,9 +15,15 @@
     <label><input type="checkbox" id="showRanking" checked> RANKING</label>
     <label><input type="checkbox" id="showCena" checked> CENA</label>
     <h3>Układ modułów</h3>
-    <label><input type="radio" name="layout" value="4"> 4 moduły</label>
-    <label><input type="radio" name="layout" value="8"> 8 modułów</label>
-    <label><input type="radio" name="layout" value="16" checked> 16 modułów</label>
+    <div class="dropdown">
+      <button class="dropdown-btn">Wybierz układ</button>
+      <div class="dropdown-content">
+        <label><input type="radio" name="layout" value="4"> 4 moduły</label>
+        <label><input type="radio" name="layout" value="8"> 8 modułów</label>
+        <label><input type="radio" name="layout" value="16" checked> 16 modułów</label>
+        <label><input type="radio" name="layout" value="4-2-4"> 4-2-4 moduły</label>
+      </div>
+    </div>
     <h3>Wygląd ramek</h3>
     <label><input type="radio" name="frameStyle" value="3d" checked> Z ramką 3D</label>
     <label><input type="radio" name="frameStyle" value="none"> Bez ramek</label>
