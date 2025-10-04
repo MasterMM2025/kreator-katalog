@@ -4,6 +4,7 @@ let selectedBanner = null;
 let selectedCover = null;
 let selectedBackground = null;
 let uploadedImages = {};
+let productEdits = {};
 
 async function toBase64(url) {
   try {
@@ -114,6 +115,121 @@ function loadCustomCover(file) {
   reader.readAsDataURL(file);
 }
 
+function showEditModal(productIndex) {
+  const product = products[productIndex];
+  const edit = productEdits[productIndex] || {
+    font: 'Arial',
+    fontColor: '#000000',
+    priceCurrency: 'EUR',
+    priceFontSize: 'medium'
+  };
+  const showRanking = document.getElementById('showRanking')?.checked || false;
+  const showCena = document.getElementById('showCena')?.checked || false;
+
+  const editForm = document.getElementById('editForm');
+  editForm.innerHTML = `
+    <div class="edit-field">
+      <label>Zdjęcie:</label>
+      <img src="${uploadedImages[product.indeks] || product.img || 'https://dummyimage.com/120x84/eee/000&text=brak'}" style="width:100px;height:100px;object-fit:contain;margin-bottom:10px;">
+      <input type="file" id="editImage" accept="image/*">
+    </div>
+    <div class="edit-field">
+      <label>Nazwa:</label>
+      <input type="text" id="editNazwa" value="${product.nazwa || ''}">
+      <select id="editNazwaFont">
+        <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editNazwaColor" value="${edit.fontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Indeks:</label>
+      <input type="text" id="editIndeks" value="${product.indeks || ''}">
+      <select id="editIndeksFont">
+        <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editIndeksColor" value="${edit.fontColor}">
+    </div>
+    ${showRanking ? `
+      <div class="edit-field">
+        <label>Ranking:</label>
+        <input type="text" id="editRanking" value="${product.ranking || ''}">
+        <select id="editRankingFont">
+          <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
+          <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+          <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        </select>
+        <input type="color" id="editRankingColor" value="${edit.fontColor}">
+      </div>
+    ` : ''}
+    ${showCena ? `
+      <div class="edit-field">
+        <label>Cena:</label>
+        <input type="text" id="editCena" value="${product.cena || ''}">
+        <select id="editCenaFont">
+          <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
+          <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+          <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        </select>
+        <input type="color" id="editCenaColor" value="${edit.fontColor}">
+        <select id="editCenaCurrency">
+          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
+          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+        </select>
+        <select id="editCenaFontSize">
+          <option value="small" ${edit.priceFontSize === 'small' ? 'selected' : ''}>Mały</option>
+          <option value="medium" ${edit.priceFontSize === 'medium' ? 'selected' : ''}>Średni</option>
+          <option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option>
+        </select>
+      </div>
+    ` : ''}
+    <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
+  `;
+  document.getElementById('editModal').style.display = 'block';
+}
+
+function hideEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+}
+
+function saveEdit(productIndex) {
+  const product = products[productIndex];
+  const editImage = document.getElementById('editImage').files[0];
+  if (editImage) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages[product.indeks] = e.target.result;
+      renderCatalog();
+    };
+    reader.readAsDataURL(editImage);
+  }
+  product.nazwa = document.getElementById('editNazwa').value;
+  product.indeks = document.getElementById('editIndeks').value;
+  if (document.getElementById('showRanking')?.checked) {
+    product.ranking = document.getElementById('editRanking')?.value || '';
+  }
+  if (document.getElementById('showCena')?.checked) {
+    product.cena = document.getElementById('editCena')?.value || '';
+  }
+  productEdits[productIndex] = {
+    font: document.getElementById('editNazwaFont').value,
+    fontColor: document.getElementById('editNazwaColor').value,
+    indeksFont: document.getElementById('editIndeksFont').value,
+    indeksFontColor: document.getElementById('editIndeksColor').value,
+    rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
+    rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
+    cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
+    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
+    priceCurrency: document.getElementById('editCenaCurrency')?.value || 'EUR',
+    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
+  };
+  renderCatalog();
+  hideEditModal();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
   const uploadArea = document.getElementById("uploadArea");
@@ -156,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bannerUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       bannerUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomBanner(e.target.files[0]);
+      if (e.dataTransfer.files.length > 0) loadCustomBanner(e.dataTransfer.files[0]);
     });
     bannerUpload.addEventListener("click", () => bannerFileInput.click());
   }
@@ -176,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
     backgroundUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       backgroundUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomBackground(e.target.files[0]);
+      if (e.dataTransfer.files.length > 0) loadCustomBackground(e.dataTransfer.files[0]);
     });
     backgroundUpload.addEventListener("click", () => backgroundFileInput.click());
   }
@@ -196,7 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
     coverUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       coverUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomCover(e.target.files[0]);
+      if (e.dataTransfer.files.length > 0) loadCustomCover(e.dataTransfer.files[0]);
     });
     coverUpload.addEventListener("click", () => coverFileInput.click());
   }
@@ -283,8 +399,13 @@ function renderCatalog() {
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
+    const editButton = document.createElement('button');
+    editButton.className = 'btn-primary edit-button';
+    editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
+    editButton.onclick = () => showEditModal(i);
     item.appendChild(img);
     item.appendChild(details);
+    item.appendChild(editButton);
     pageDiv.appendChild(item);
     if ((i + 1) % itemsPerPage === 0) {
       container.appendChild(pageDiv);
@@ -362,6 +483,7 @@ function importExcel() {
     console.log("Nowe produkty:", newProducts);
     if (newProducts.length) {
       products = newProducts;
+      productEdits = {};
       renderCatalog();
       document.getElementById('pdfButton').disabled = false;
       document.getElementById('previewButton').disabled = false;
@@ -399,13 +521,12 @@ async function buildPDF(jsPDF, save = true) {
   const bannerHeight = 85;
   let pageNumber = 1;
 
-  // Add page number to cover page
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      doc.setFont("Arial", "normal");
-      doc.setFontSize(10);
-      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 20, { align: "right" });
+      doc.setFont("Arial", "bold");
+      doc.setFontSize(12);
+      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
       if (products.length > 0) {
         doc.addPage();
         pageNumber++;
@@ -436,9 +557,9 @@ async function buildPDF(jsPDF, save = true) {
         document.getElementById('debug').innerText = "Błąd dodawania banera";
       }
     }
-    doc.setFont("Arial", "normal");
-    doc.setFontSize(10);
-    doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 20, { align: "right" });
+    doc.setFont("Arial", "bold");
+    doc.setFontSize(12);
+    doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
 
   const marginTop = 20 + bannerHeight;
@@ -457,6 +578,18 @@ async function buildPDF(jsPDF, save = true) {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
         const p = products[productIndex];
+        const edit = productEdits[productIndex] || {
+          font: 'Arial',
+          fontColor: '#000000',
+          indeksFont: 'Arial',
+          indeksFontColor: '#000000',
+          rankingFont: 'Arial',
+          rankingFontColor: '#000000',
+          cenaFont: 'Arial',
+          cenaFontColor: '#000000',
+          priceCurrency: 'EUR',
+          priceFontSize: 'medium'
+        };
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
         let imgSrc = uploadedImages[p.indeks] || p.img;
         if (isLarge) {
@@ -478,26 +611,33 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          doc.setFont("Arial", "bold");
+          doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
+          doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           lines.forEach(line => {
             doc.text(line, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 18 : 14;
           });
           textY += sectionCols === 1 ? 14 : 10;
-          doc.setFont("Arial", "normal");
+          doc.setFont(edit.indeksFont, "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
+          doc.setTextColor(parseInt(edit.indeksFontColor.substring(1, 3), 16), parseInt(edit.indeksFontColor.substring(3, 5), 16), parseInt(edit.indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           if (showRanking && p.ranking) {
             textY += sectionCols === 1 ? 22 : 18;
+            doc.setFont(edit.rankingFont, "normal");
+            doc.setTextColor(parseInt(edit.rankingFontColor.substring(1, 3), 16), parseInt(edit.rankingFontColor.substring(3, 5), 16), parseInt(edit.rankingFontColor.substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showCena && p.cena) {
             textY += sectionCols === 1 ? 74 : 20;
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(sectionCols === 1 ? 20 : 14);
-            doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.setFont(edit.cenaFont, "bold");
+            const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
+            doc.setFontSize(priceFontSize);
+            doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
+            const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+            doc.text(`CENA: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
@@ -539,22 +679,29 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont("Arial", "bold");
+          doc.setFont(edit.font, "bold");
           doc.setFontSize(8);
+          doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
-          doc.setFont("Arial", "normal");
+          doc.setFont(edit.indeksFont, "normal");
           doc.setFontSize(7);
+          doc.setTextColor(parseInt(edit.indeksFontColor.substring(1, 3), 16), parseInt(edit.indeksFontColor.substring(3, 5), 16), parseInt(edit.indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
           textY += 12;
           if (showRanking && p.ranking) {
+            doc.setFont(edit.rankingFont, "normal");
+            doc.setTextColor(parseInt(edit.rankingFontColor.substring(1, 3), 16), parseInt(edit.rankingFontColor.substring(3, 5), 16), parseInt(edit.rankingFontColor.substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
             textY += 12;
           }
           if (showCena && p.cena) {
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(12);
-            doc.text(`CENA: ${p.cena}`, x + 105, textY, { maxWidth: 150 });
+            doc.setFont(edit.cenaFont, "bold");
+            const priceFontSize = edit.priceFontSize === 'small' ? 10 : edit.priceFontSize === 'medium' ? 12 : 14;
+            doc.setFontSize(priceFontSize);
+            doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
+            const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+            doc.text(`CENA: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
@@ -664,9 +811,9 @@ async function buildPDF(jsPDF, save = true) {
           document.getElementById('debug').innerText = "Błąd dodawania banera";
         }
       }
-      doc.setFont("Arial", "normal");
-      doc.setFontSize(10);
-      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 20, { align: "right" });
+      doc.setFont("Arial", "bold");
+      doc.setFontSize(12);
+      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
       x = marginLeftRight;
       y = marginTop;
     }
@@ -695,4 +842,7 @@ window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
 window.showBannerModal = showBannerModal;
 window.hideBannerModal = hideBannerModal;
+window.showEditModal = showEditModal;
+window.hideEditModal = hideEditModal;
+window.saveEdit = saveEdit;
 loadProducts();
