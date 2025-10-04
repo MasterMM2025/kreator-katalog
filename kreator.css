@@ -383,26 +383,28 @@ button:disabled {
   border: 1px solid #ccc;
 }
 
-/* Modal wyboru banera */
+/* Modal wyboru banera i edycji produktu */
 .modal {
   display: none;
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 260px;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  max-height: 80vh;
   background: #fff;
-  box-shadow: -3px 0 8px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   z-index: 1000;
-  padding: 15px;
+  padding: 20px;
   overflow-y: auto;
+  border-radius: 12px;
   transition: transform 0.3s ease;
 }
 
 .modal-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
 }
 
 .close {
@@ -454,7 +456,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   height: 250px;
   transition: transform 0.2s ease;
 }
@@ -496,11 +498,48 @@ button:disabled {
   color: #555;
 }
 
+.edit-button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  min-width: 100px;
+}
+
 /* Debug */
 #debug {
   margin-top: 10px;
   color: #e53e3e;
   font-size: 11px;
+}
+
+/* Styl dla pól edycji w modalu */
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.edit-field label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.edit-field input[type="text"],
+.edit-field select,
+.edit-field input[type="color"] {
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-field input[type="color"] {
+  padding: 2px;
+  height: 30px;
 }
 
 /* Responsywność */
@@ -590,9 +629,9 @@ button:disabled {
   }
 
   .modal {
-    width: 100%;
-    right: 0;
-    border-radius: 0;
+    width: 90%;
+    max-width: 400px;
+    max-height: 70vh;
   }
 }
 
@@ -650,5 +689,17 @@ button:disabled {
 
   #pdfIframe {
     height: 400px;
+  }
+
+  .modal {
+    width: 95%;
+    max-width: 350px;
+  }
+
+  .edit-field input[type="text"],
+  .edit-field select,
+  .edit-field input[type="color"] {
+    font-size: 0.8rem;
+    padding: 6px;
   }
 }
