@@ -678,18 +678,6 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          if (textY + (showCena ? 74 : 22) > pageHeight - marginBottom) {
-            doc.addPage();
-            pageNumber++;
-            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(12);
-            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-            x = marginLeftRight;
-            y = marginTop;
-            textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -758,18 +746,6 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          if (textY + (showCena ? 60 : 36) > pageHeight - marginBottom) {
-            doc.addPage();
-            pageNumber++;
-            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(12);
-            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-            x = marginLeftRight;
-            y = marginTop;
-            textY = y + 20;
-          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(8);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -863,56 +839,44 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
-      // Sekcja 1: 2x2 (4 moduły)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
-      if (productIndex < products.length) {
-        cols = 2;
-        rows = 1;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
-        isLarge = true;
-        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
-      // Sekcja 3: 2x2 (4 moduły)
-      if (productIndex < products.length) {
-        cols = 2;
-        rows = 2;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-        isLarge = false;
-        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
-      // Sprawdzenie, czy są jeszcze produkty po zakończeniu sekcji 4-2-4
-      if (productIndex < products.length) {
-        doc.addPage();
-        pageNumber++;
-        if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-        if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-        doc.setFont("Arial", "bold");
-        doc.setFontSize(12);
-        doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-        x = marginLeftRight;
-        y = marginTop;
-        // Kontynuacja z domyślnym układem (np. 2x8) dla pozostałych produktów
-        cols = 2;
-        rows = 8;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-        isLarge = false;
-        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
+      cols = 2;
+      rows = 1;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
+      isLarge = true;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      cols = 2;
+      rows = 2;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      isLarge = false;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     }
-    if (productIndex < products.length && y + boxHeight + 6 > pageHeight - marginBottom) {
+    if (productIndex < products.length) {
       doc.addPage();
       pageNumber++;
-      if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+      if (backgroundImg) {
+        try {
+          doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+        } catch (e) {
+          console.error('Błąd dodawania tła:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania tła";
+        }
+      }
+      if (bannerImg) {
+        try {
+          doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+        } catch (e) {
+          console.error('Błąd dodawania banera:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania banera";
+        }
+      }
       doc.setFont("Arial", "bold");
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
