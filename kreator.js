@@ -57,7 +57,7 @@ async function loadProducts() {
   }
 }
 
-function handleFiles(files) {
+function handleFiles(files, callback) {
   if (!files || files.length === 0) {
     console.error("Brak plików do załadowania");
     document.getElementById('debug').innerText = "Brak zdjęć do załadowania";
@@ -66,54 +66,37 @@ function handleFiles(files) {
   [...files].forEach(file => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const fileName = file.name.split('.')[0];
-      uploadedImages[fileName] = e.target.result;
-      console.log(`Załadowano obraz dla indeksu: ${fileName}`);
-      document.getElementById('debug').innerText = `Załadowano obraz: ${fileName}`;
-      renderCatalog();
+      callback(file, e.target.result);
+      document.getElementById('debug').innerText = `Załadowano plik: ${file.name}`;
     };
     reader.onerror = () => {
       console.error(`Błąd ładowania pliku: ${file.name}`);
-      document.getElementById('debug').innerText = `Błąd ładowania obrazu: ${file.name}`;
+      document.getElementById('debug').innerText = `Błąd ładowania pliku: ${file.name}`;
     };
     reader.readAsDataURL(file);
   });
 }
 
-function loadCustomBanner(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    selectedBanner = { id: "custom", data: e.target.result };
-    document.getElementById("debug").innerText = "Załadowano własny baner.";
-  };
-  reader.onerror = () => {
-    document.getElementById('debug').innerText = "Błąd ładowania banera.";
-  };
-  reader.readAsDataURL(file);
+function loadCustomBanner(file, data) {
+  selectedBanner = { id: "custom", data };
+  console.log("Załadowano baner:", file.name);
 }
 
-function loadCustomBackground(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    selectedBackground = { id: "customBackground", data: e.target.result };
-    document.getElementById("debug").innerText = "Załadowano własne tło.";
-  };
-  reader.onerror = () => {
-    document.getElementById('debug').innerText = "Błąd ładowania tła.";
-  };
-  reader.readAsDataURL(file);
+function loadCustomBackground(file, data) {
+  selectedBackground = { id: "customBackground", data };
+  console.log("Załadowano tło:", file.name);
 }
 
-function loadCustomCover(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    selectedCover = { id: "customCover", data: e.target.result };
-    document.getElementById("debug").innerText = "Załadowano własną okładkę.";
-  };
-  reader.onerror = () => {
-    document.getElementById('debug').innerText = "Błąd ładowania okładki.";
-  };
-  reader.readAsDataURL(file);
+function loadCustomCover(file, data) {
+  selectedCover = { id: "customCover", data };
+  console.log("Załadowano okładkę:", file.name);
+}
+
+function loadCustomImages(file, data) {
+  const fileName = file.name.split('.')[0];
+  uploadedImages[fileName] = data;
+  console.log(`Załadowano obraz dla indeksu: ${fileName}`);
+  renderCatalog();
 }
 
 function showEditModal(productIndex) {
@@ -242,8 +225,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadArea = document.getElementById("uploadArea");
   if (imageInput && uploadArea) {
     imageInput.addEventListener("change", (e) => {
-      console.log("Zmiana w imageInput, pliki:", e.target.files.length);
-      handleFiles(e.target.files);
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w imageInput, pliki:", e.target.files.length);
+        handleFiles(e.target.files, loadCustomImages);
+      }
     });
     uploadArea.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -255,10 +240,12 @@ document.addEventListener("DOMContentLoaded", () => {
     uploadArea.addEventListener("drop", (e) => {
       e.preventDefault();
       uploadArea.classList.remove("dragover");
-      console.log("Drop plików:", e.dataTransfer.files.length);
-      handleFiles(e.dataTransfer.files);
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop zdjęć:", e.dataTransfer.files.length);
+        handleFiles(e.dataTransfer.files, loadCustomImages);
+      }
     });
-    uploadArea.addEventListener("click", (e) => {
+    uploadArea.querySelector('.file-label').addEventListener("click", (e) => {
       e.preventDefault();
       imageInput.click();
     });
@@ -273,7 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bannerFileInput.addEventListener("change", (e) => {
       if (e.target.files.length > 0) {
         console.log("Zmiana w bannerFileInput, pliki:", e.target.files.length);
-        loadCustomBanner(e.target.files[0]);
+        handleFiles(e.target.files, loadCustomBanner);
       }
     });
     bannerUpload.addEventListener("dragover", (e) => {
@@ -288,10 +275,10 @@ document.addEventListener("DOMContentLoaded", () => {
       bannerUpload.classList.remove("dragover");
       if (e.dataTransfer.files.length > 0) {
         console.log("Drop banera:", e.dataTransfer.files.length);
-        loadCustomBanner(e.dataTransfer.files[0]);
+        handleFiles(e.dataTransfer.files, loadCustomBanner);
       }
     });
-    bannerUpload.addEventListener("click", (e) => {
+    bannerUpload.querySelector('.file-label').addEventListener("click", (e) => {
       e.preventDefault();
       bannerFileInput.click();
     });
@@ -306,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
     backgroundFileInput.addEventListener("change", (e) => {
       if (e.target.files.length > 0) {
         console.log("Zmiana w backgroundFileInput, pliki:", e.target.files.length);
-        loadCustomBackground(e.target.files[0]);
+        handleFiles(e.target.files, loadCustomBackground);
       }
     });
     backgroundUpload.addEventListener("dragover", (e) => {
@@ -321,10 +308,10 @@ document.addEventListener("DOMContentLoaded", () => {
       backgroundUpload.classList.remove("dragover");
       if (e.dataTransfer.files.length > 0) {
         console.log("Drop tła:", e.dataTransfer.files.length);
-        loadCustomBackground(e.dataTransfer.files[0]);
+        handleFiles(e.dataTransfer.files, loadCustomBackground);
       }
     });
-    backgroundUpload.addEventListener("click", (e) => {
+    backgroundUpload.querySelector('.file-label').addEventListener("click", (e) => {
       e.preventDefault();
       backgroundFileInput.click();
     });
@@ -339,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
     coverFileInput.addEventListener("change", (e) => {
       if (e.target.files.length > 0) {
         console.log("Zmiana w coverFileInput, pliki:", e.target.files.length);
-        loadCustomCover(e.target.files[0]);
+        handleFiles(e.target.files, loadCustomCover);
       }
     });
     coverUpload.addEventListener("dragover", (e) => {
@@ -354,10 +341,10 @@ document.addEventListener("DOMContentLoaded", () => {
       coverUpload.classList.remove("dragover");
       if (e.dataTransfer.files.length > 0) {
         console.log("Drop okładki:", e.dataTransfer.files.length);
-        loadCustomCover(e.dataTransfer.files[0]);
+        handleFiles(e.dataTransfer.files, loadCustomCover);
       }
     });
-    coverUpload.addEventListener("click", (e) => {
+    coverUpload.querySelector('.file-label').addEventListener("click", (e) => {
       e.preventDefault();
       coverFileInput.click();
     });
@@ -366,10 +353,29 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi okładki";
   }
 
+  const excelFileInput = document.getElementById("excelFile");
+  const fileLabelWrapper = document.querySelector(".file-label-wrapper");
+  if (excelFileInput && fileLabelWrapper) {
+    excelFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w excelFileInput, plik:", e.target.files[0].name);
+        importExcel();
+      }
+    });
+    fileLabelWrapper.addEventListener("click", (e) => {
+      e.preventDefault();
+      excelFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: excelFileInput lub fileLabelWrapper");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi importu Excel";
+  }
+
   const currencySelect = document.getElementById('currencySelect');
   if (currencySelect) {
     currencySelect.addEventListener('change', (e) => {
       globalCurrency = e.target.value;
+      console.log("Zmieniono walutę na:", globalCurrency);
       renderCatalog();
     });
   }
