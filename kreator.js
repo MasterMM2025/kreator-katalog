@@ -2,6 +2,7 @@ let products = [];
 let jsonProducts = [];
 let selectedBanner = null;
 let selectedCover = null;
+let selectedBackground = null;
 let uploadedImages = {};
 
 async function toBase64(url) {
@@ -89,6 +90,18 @@ function loadCustomBanner(file) {
   reader.readAsDataURL(file);
 }
 
+function loadCustomBackground(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    selectedBackground = { id: "customBackground", data: e.target.result };
+    document.getElementById("debug").innerText = "Załadowano własne tło.";
+  };
+  reader.onerror = () => {
+    document.getElementById('debug').innerText = "Błąd ładowania tła.";
+  };
+  reader.readAsDataURL(file);
+}
+
 function loadCustomCover(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -143,9 +156,29 @@ document.addEventListener("DOMContentLoaded", () => {
     bannerUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       bannerUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomBanner(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length > 0) loadCustomBanner(e.target.files[0]);
     });
     bannerUpload.addEventListener("click", () => bannerFileInput.click());
+  }
+  const backgroundFileInput = document.getElementById("backgroundFileInput");
+  const backgroundUpload = document.getElementById("backgroundUpload");
+  if (backgroundFileInput && backgroundUpload) {
+    backgroundFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) loadCustomBackground(e.target.files[0]);
+    });
+    backgroundUpload.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      backgroundUpload.classList.add("dragover");
+    });
+    backgroundUpload.addEventListener("dragleave", () => {
+      backgroundUpload.classList.remove("dragover");
+    });
+    backgroundUpload.addEventListener("drop", (e) => {
+      e.preventDefault();
+      backgroundUpload.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) loadCustomBackground(e.target.files[0]);
+    });
+    backgroundUpload.addEventListener("click", () => backgroundFileInput.click());
   }
   const coverFileInput = document.getElementById("coverFileInput");
   const coverUpload = document.getElementById("coverUpload");
@@ -163,7 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
     coverUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       coverUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomCover(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length > 0) loadCustomCover(e.target.files[0]);
     });
     coverUpload.addEventListener("click", () => coverFileInput.click());
   }
@@ -364,24 +397,50 @@ async function buildPDF(jsPDF, save = true) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
+  let pageNumber = 1;
+
+  // Add page number to cover page
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      if (products.length > 0) doc.addPage();
+      doc.setFont("Arial", "normal");
+      doc.setFontSize(10);
+      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 20, { align: "right" });
+      if (products.length > 0) {
+        doc.addPage();
+        pageNumber++;
+      }
     } catch (e) {
       console.error('Błąd dodawania okładki:', e);
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
+
   const bannerImg = selectedBanner ? selectedBanner.data : null;
-  if (bannerImg && products.length > 0) {
-    try {
-      doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-    } catch (e) {
-      console.error('Błąd dodawania banera:', e);
-      document.getElementById('debug').innerText = "Błąd dodawania banera";
+  const backgroundImg = selectedBackground ? selectedBackground.data : null;
+
+  if (products.length > 0) {
+    if (backgroundImg) {
+      try {
+        doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+      } catch (e) {
+        console.error('Błąd dodawania tła:', e);
+        document.getElementById('debug').innerText = "Błąd dodawania tła";
+      }
     }
+    if (bannerImg) {
+      try {
+        doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+      } catch (e) {
+        console.error('Błąd dodawania banera:', e);
+        document.getElementById('debug').innerText = "Błąd dodawania banera";
+      }
+    }
+    doc.setFont("Arial", "normal");
+    doc.setFontSize(10);
+    doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 20, { align: "right" });
   }
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -435,9 +494,9 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showCena && p.cena) {
-            textY += sectionCols === 1 ? 74 : 20; // Większe przesunięcie dla Modułu 1
+            textY += sectionCols === 1 ? 74 : 20;
             doc.setFont("Arial", "bold");
-            doc.setFontSize(sectionCols === 1 ? 20 : 14); // Większa czcionka dla Modułu 1
+            doc.setFontSize(sectionCols === 1 ? 20 : 14);
             doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
@@ -588,9 +647,26 @@ async function buildPDF(jsPDF, save = true) {
     }
     if (productIndex < products.length) {
       doc.addPage();
-      if (bannerImg) {
-        doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+      pageNumber++;
+      if (backgroundImg) {
+        try {
+          doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+        } catch (e) {
+          console.error('Błąd dodawania tła:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania tła";
+        }
       }
+      if (bannerImg) {
+        try {
+          doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+        } catch (e) {
+          console.error('Błąd dodawania banera:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania banera";
+        }
+      }
+      doc.setFont("Arial", "normal");
+      doc.setFontSize(10);
+      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 20, { align: "right" });
       x = marginLeftRight;
       y = marginTop;
     }
