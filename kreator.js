@@ -8,6 +8,40 @@ let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
+// Funkcja do skalowania obrazu dla podglądu HTML
+function resizeImageForPreview(base64Image) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxWidth = 50; // Zmniejszamy maksymalną szerokość do 50px dla podglądu
+      const maxHeight = 50; // Zmniejszamy maksymalną wysokość do 50px
+      let width = img.width;
+      let height = img.height;
+
+      // Skalowanie proporcjonalne
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.7)); // Kompresja JPEG z jakością 70%
+    };
+    img.src = base64Image;
+  });
+}
+
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -460,11 +494,16 @@ function renderCatalog() {
   else if (layout === "2") itemsPerPage = 2;
   let pageDiv = document.createElement("div");
   pageDiv.className = "page";
-  products.forEach((p, i) => {
+  products.forEach(async (p, i) => {
     const item = document.createElement("div");
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
-    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
+    // Skalowanie obrazu dla podglądu HTML
+    const previewImgSrc = p.img ? await resizeImageForPreview(p.img) : (uploadedImages[p.indeks] ? await resizeImageForPreview(uploadedImages[p.indeks]) : 'https://dummyimage.com/120x84/eee/000&text=brak');
+    img.src = previewImgSrc;
+    img.style.width = '100px';
+    img.style.height = '100px';
+    img.style.objectFit = 'contain';
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
@@ -658,7 +697,7 @@ async function buildPDF(jsPDF, save = true) {
           priceFontSize: 'medium'
         };
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
-        let imgSrc = uploadedImages[p.indeks] || p.img;
+        let imgSrc = uploadedImages[p.indeks] || p.img; // Używamy oryginalnego obrazu dla PDF
         if (imgSrc) {
           try {
             const img = new Image();
@@ -677,54 +716,63 @@ async function buildPDF(jsPDF, save = true) {
           }
         }
         if (isLarge) {
-          let textY = y + boxHeight * 0.6;
-          if (textY + (showCena ? 74 : 22) > y + boxHeight) {
-            textY = y + boxHeight * 0.6; // Resetowanie pozycji tekstu w dużym module
+          let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
+          if (textY + (showCena ? 74 : 22) > pageHeight - marginBottom) {
+            doc.addPage();
+            pageNumber++;
+            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+            doc.setFont("Arial", "bold");
+            doc.setFontSize(12);
+            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+            x = marginLeftRight;
+            y = marginTop;
+            textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
           }
           doc.setFont(edit.font, "bold");
-          doc.setFontSize(14);
+          doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
-          const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 80);
+          const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           lines.forEach(line => {
             doc.text(line, x + boxWidth / 2, textY, { align: "center" });
-            textY += 18;
+            textY += sectionCols === 1 ? 18 : 14;
           });
-          textY += 14;
+          textY += sectionCols === 1 ? 14 : 10;
           doc.setFont(edit.indeksFont, "normal");
-          doc.setFontSize(11);
+          doc.setFontSize(sectionCols === 1 ? 11 : 9);
           doc.setTextColor(parseInt(edit.indeksFontColor.substring(1, 3), 16), parseInt(edit.indeksFontColor.substring(3, 5), 16), parseInt(edit.indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           if (showRanking && p.ranking) {
-            textY += 22;
+            textY += sectionCols === 1 ? 22 : 18;
             doc.setFont(edit.rankingFont, "normal");
             doc.setTextColor(parseInt(edit.rankingFontColor.substring(1, 3), 16), parseInt(edit.rankingFontColor.substring(3, 5), 16), parseInt(edit.rankingFontColor.substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showCena && p.cena) {
-            textY += 20; // Dodatkowy odstęp dla ceny
+            textY += sectionCols === 1 ? 74 : 20;
             doc.setFont(edit.cenaFont, "bold");
-            const priceFontSize = edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24;
+            const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 10, textY, { align: "left" }); // Cena po lewej
+            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, p.ean, {
                 format: "EAN13",
-                width: 2,
-                height: 40,
+                width: sectionCols === 1 ? 3 : 2,
+                height: sectionCols === 1 ? 50 : 40,
                 displayValue: true,
-                fontSize: 10,
+                fontSize: sectionCols === 1 ? 12 : 10,
                 margin: 0
               });
               const barcodeImg = barcodeCanvas.toDataURL("image/png");
-              const bw = 140;
-              const bh = 40;
-              const bx = x + boxWidth - bw - 10; // Kod kreskowy po prawej
-              const by = y + boxHeight - bh - 15; // Obniżenie kodu kreskowego
+              const bw = sectionCols === 1 ? 180 : 140;
+              const bh = sectionCols === 1 ? 50 : 40;
+              const bx = x + (boxWidth - bw) / 2;
+              const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
               doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
             } catch (e) {
               console.error('Błąd generowania kodu kreskowego:', e);
@@ -790,7 +838,7 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN16",
+                format: "EAN13",
                 width: 1.6,
                 height: 32,
                 displayValue: true,
@@ -854,51 +902,56 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
-      // Sekcja 1: 2x2 (4 produkty, wielkość jak w module 16)
+      // Sekcja 1: 2x2 (4 moduły)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.5 - (rows - 1) * 6) / 4; // 50% wysokości dla 2 rzędów, dostosowane do 16
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Sekcja 2: 2x1 (2 produkty, wielkość jak w module 4)
+      // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
       if (productIndex < products.length) {
         cols = 2;
         rows = 1;
         boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.25 - (rows - 1) * 6) / 1; // 25% wysokości, dostosowane do 4
+        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
         isLarge = true;
         y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       }
-      // Sekcja 3: 2x2 (4 produkty, wielkość jak w module 16)
+      // Sekcja 3: 2x2 (4 moduły)
       if (productIndex < products.length) {
         cols = 2;
         rows = 2;
         boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.25 - (rows - 1) * 6) / 4; // 25% wysokości, dostosowane do 16
+        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+        isLarge = false;
+        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      }
+      // Sprawdzenie, czy są jeszcze produkty po zakończeniu sekcji 4-2-4
+      if (productIndex < products.length) {
+        doc.addPage();
+        pageNumber++;
+        if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+        if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+        doc.setFont("Arial", "bold");
+        doc.setFontSize(12);
+        doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+        x = marginLeftRight;
+        y = marginTop;
+        // Kontynuacja z domyślnym układem (np. 2x8) dla pozostałych produktów
+        cols = 2;
+        rows = 8;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
         isLarge = false;
         y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       }
     }
-    if (productIndex < products.length) {
+    if (productIndex < products.length && y + boxHeight + 6 > pageHeight - marginBottom) {
       doc.addPage();
       pageNumber++;
-      if (backgroundImg) {
-        try {
-          doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-        } catch (e) {
-          console.error('Błąd dodawania tła:', e);
-          document.getElementById('debug').innerText = "Błąd dodawania tła";
-        }
-      }
-      if (bannerImg) {
-        try {
-          doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-        } catch (e) {
-          console.error('Błąd dodawania banera:', e);
-          document.getElementById('debug').innerText = "Błąd dodawania banera";
-        }
-      }
+      if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+      if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
       doc.setFont("Arial", "bold");
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
