@@ -621,7 +621,6 @@ async function buildPDF(jsPDF, save = true) {
     if (bannerImg) {
       try {
         doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-      }SILENCE
       } catch (e) {
         console.error('Błąd dodawania banera:', e);
         document.getElementById('debug').innerText = "Błąd dodawania banera";
