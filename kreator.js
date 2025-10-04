@@ -140,7 +140,7 @@ function showEditModal(productIndex) {
       <select id="editIndeksFont">
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
@@ -545,13 +545,31 @@ function importExcel() {
       const indeks = row['indeks'] || row[0];
       if (indeks) {
         const matched = jsonProducts.find(p => p.indeks === indeks.toString());
+        let barcodeImg = null;
+        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
+          try {
+            const barcodeCanvas = document.createElement('canvas');
+            JsBarcode(barcodeCanvas, row['ean'], {
+              format: "EAN13",
+              width: 1.6,
+              height: 32,
+              displayValue: true,
+              fontSize: 9,
+              margin: 0
+            });
+            barcodeImg = barcodeCanvas.toDataURL("image/png");
+          } catch (e) {
+            console.error('Błąd generowania kodu kreskowego:', e);
+          }
+        }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
           ean: row['ean'] || (matched ? matched.ean : ''),
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
           cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
-          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null)
+          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
+          barcode: barcodeImg
         });
       }
     });
@@ -678,18 +696,6 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          if (textY + (showCena ? 74 : 22) > pageHeight - marginBottom) {
-            doc.addPage();
-            pageNumber++;
-            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(12);
-            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-            x = marginLeftRight;
-            y = marginTop;
-            textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
-          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -710,33 +716,23 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showCena && p.cena) {
-            textY += 20; // Zwiększony odstęp dla ceny
+            textY += sectionCols === 1 ? 74 : 20;
             doc.setFont(edit.cenaFont, "bold");
             const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 10, textY, { align: "left" }); // Przesunięcie ceny w lewo
+            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
-          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+          if (showEan && p.ean && p.barcode) {
             try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13",
-                width: sectionCols === 1 ? 3 : 2,
-                height: sectionCols === 1 ? 50 : 40,
-                displayValue: true,
-                fontSize: sectionCols === 1 ? 12 : 10,
-                margin: 0
-              });
-              const barcodeImg = barcodeCanvas.toDataURL("image/png");
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
-              const bx = x + boxWidth - bw - 10; // Kod kreskowy po prawej
-              const by = y + boxHeight - bh - 10; // Nieznaczne obniżenie kodu kreskowego
-              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+              const bx = x + (boxWidth - bw) / 2;
+              const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd dodawania kodu kreskowego:', e);
             }
           }
         } else {
@@ -758,18 +754,6 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          if (textY + (showCena ? 60 : 36) > pageHeight - marginBottom) {
-            doc.addPage();
-            pageNumber++;
-            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-            doc.setFont("Arial", "bold");
-            doc.setFontSize(12);
-            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-            x = marginLeftRight;
-            y = marginTop;
-            textY = y + 20;
-          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(8);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -795,25 +779,15 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
-          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+          if (showEan && p.ean && p.barcode) {
             try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13",
-                width: 1.6,
-                height: 32,
-                displayValue: true,
-                fontSize: 9,
-                margin: 0
-              });
-              const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
               const bw = 85;
               const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd dodawania kodu kreskowego:', e);
             }
           }
         }
@@ -863,31 +837,24 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
-      // Sekcja 1: 2x2 (4 moduły)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Sekcja 2: 2x1 (2 moduły oparte na module 8)
-      if (productIndex < products.length) {
-        cols = 2;
-        rows = 1;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / 4; // Bazuje na module 8 (2x4)
-        isLarge = true;
-        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
-      // Sekcja 3: 2x2 (4 moduły)
-      if (productIndex < products.length) {
-        cols = 2;
-        rows = 2;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-        isLarge = false;
-        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
+      cols = 2;
+      rows = 1;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
+      isLarge = true;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      cols = 2;
+      rows = 2;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      isLarge = false;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     }
     if (productIndex < products.length) {
       doc.addPage();
@@ -932,7 +899,6 @@ async function previewPDF() {
   document.getElementById("pdfPreview").style.display = "block";
 }
 
-// Upewnij się, że funkcje są globalne dla atrybutów onclick
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -941,5 +907,4 @@ window.hideBannerModal = hideBannerModal;
 window.showEditModal = showEditModal;
 window.hideEditModal = hideEditModal;
 window.saveEdit = saveEdit;
-
 loadProducts();
