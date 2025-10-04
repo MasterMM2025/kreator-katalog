@@ -695,6 +695,7 @@ async function generatePDF() {
 
 async function previewPDF() {
   const { jsPDF } = window.jspdf;
+  const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA'; // Dodanie definicji priceLabel
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
