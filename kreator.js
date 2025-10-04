@@ -3,6 +3,7 @@ let jsonProducts = [];
 let selectedBanner = null;
 let selectedCover = null;
 let uploadedImages = {};
+
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -18,6 +19,7 @@ async function toBase64(url) {
     return null;
   }
 }
+
 async function loadProducts() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/UKRAINA.json");
@@ -51,6 +53,7 @@ async function loadProducts() {
     console.error("Błąd loadProducts:", error);
   }
 }
+
 function handleFiles(files) {
   if (!files || files.length === 0) {
     console.error("Brak plików do załadowania");
@@ -64,7 +67,7 @@ function handleFiles(files) {
       uploadedImages[fileName] = e.target.result;
       console.log(`Załadowano obraz dla indeksu: ${fileName}`);
       document.getElementById('debug').innerText = `Załadowano obraz: ${fileName}`;
-      renderCatalog(); // Odśwież katalog po załadowaniu zdjęcia
+      renderCatalog();
     };
     reader.onerror = () => {
       console.error(`Błąd ładowania pliku: ${file.name}`);
@@ -73,6 +76,7 @@ function handleFiles(files) {
     reader.readAsDataURL(file);
   });
 }
+
 function loadCustomBanner(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -84,6 +88,7 @@ function loadCustomBanner(file) {
   };
   reader.readAsDataURL(file);
 }
+
 function loadCustomCover(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -95,6 +100,7 @@ function loadCustomCover(file) {
   };
   reader.readAsDataURL(file);
 }
+
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
   const uploadArea = document.getElementById("uploadArea");
@@ -162,6 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
     coverUpload.addEventListener("click", () => coverFileInput.click());
   }
 });
+
 function showBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
@@ -172,12 +179,14 @@ function showBannerModal() {
     document.getElementById('debug').innerText = "Błąd: Brak modalu banera";
   }
 }
+
 function hideBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
     bannerModal.style.display = 'none';
   }
 }
+
 async function loadBanners() {
   const bannerOptions = document.getElementById('bannerOptions');
   if (!bannerOptions) {
@@ -207,12 +216,14 @@ async function loadBanners() {
     }
   }
 }
+
 function selectBanner(id, data) {
   selectedBanner = { id, data };
   document.querySelectorAll('.banner-preview').forEach(p => p.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
   hideBannerModal();
 }
+
 function renderCatalog() {
   const container = document.getElementById("catalog");
   if (!container) {
@@ -225,11 +236,15 @@ function renderCatalog() {
     container.innerHTML = "<p>Brak produktów do wyświetlenia. Zaimportuj plik Excel.</p>";
     return;
   }
+  const layout = document.getElementById('layoutSelect')?.value || "16";
+  let itemsPerPage = 4;
+  if (layout === "1") itemsPerPage = 1;
+  else if (layout === "2") itemsPerPage = 2;
   let pageDiv = document.createElement("div");
   pageDiv.className = "page";
   products.forEach((p, i) => {
     const item = document.createElement("div");
-    item.className = "item";
+    item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
     img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
     const details = document.createElement('div');
@@ -238,14 +253,15 @@ function renderCatalog() {
     item.appendChild(img);
     item.appendChild(details);
     pageDiv.appendChild(item);
-    if ((i + 1) % 4 === 0) {
+    if ((i + 1) % itemsPerPage === 0) {
       container.appendChild(pageDiv);
       pageDiv = document.createElement("div");
       pageDiv.className = "page";
     }
   });
-  if (products.length % 4 !== 0) container.appendChild(pageDiv);
+  if (products.length % itemsPerPage !== 0) container.appendChild(pageDiv);
 }
+
 function importExcel() {
   const file = document.getElementById('excelFile').files[0];
   if (!file) {
@@ -328,6 +344,7 @@ function importExcel() {
   if (file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
 }
+
 function drawBox(doc, x, y, w, h, style) {
   if (style === "3d") {
     doc.setFillColor(220, 220, 220);
@@ -341,6 +358,7 @@ function drawBox(doc, x, y, w, h, style) {
     doc.rect(x, y, w, h, 'F');
   }
 }
+
 async function buildPDF(jsPDF, save = true) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -367,7 +385,7 @@ async function buildPDF(jsPDF, save = true) {
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
-  const layout = document.querySelector('input[name="layout"]:checked')?.value || "16";
+  const layout = document.getElementById('layoutSelect')?.value || "16";
   const frameStyle = document.querySelector('input[name="frameStyle"]:checked')?.value || "3d";
   const showEan = document.getElementById('showEan')?.checked || false;
   const showRanking = document.getElementById('showRanking')?.checked || false;
@@ -382,61 +400,68 @@ async function buildPDF(jsPDF, save = true) {
         const p = products[productIndex];
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
         let imgSrc = uploadedImages[p.indeks] || p.img;
-        if (isLarge) { // Layout like module 4
+        if (isLarge) { // Layout for modules 1, 2, or 4
           if (imgSrc) {
             try {
               const img = new Image();
               img.src = imgSrc;
               await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-              const maxW = boxWidth - 40;
-              const maxH = boxHeight * 0.4;
+              const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
+              const maxH = boxHeight * (sectionCols === 1 ? 0.5 : 0.4);
               let scale = Math.min(maxW / img.width, maxH / img.height);
               let w = img.width * scale;
               let h = img.height * scale;
               let imgX = x + (boxWidth - w) / 2;
-              let imgY = y + 25;
+              let imgY = y + (sectionCols === 1 ? 40 : 25);
               doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
-          let textY = y + boxHeight * 0.5;
+          let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
           doc.setFont("Arial", "bold");
-          doc.setFontSize(11);
-          const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
+          doc.setFontSize(sectionCols === 1 ? 14 : 11);
+          const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           lines.forEach(line => {
             doc.text(line, x + boxWidth / 2, textY, { align: "center" });
-            textY += 14;
+            textY += sectionCols === 1 ? 18 : 14;
           });
-          textY += 10;
-          doc.setFont("Arial", "normal"); doc.setFontSize(9);
+          textY += sectionCols === 1 ? 14 : 10;
+          doc.setFont("Arial", "normal"); 
+          doc.setFontSize(sectionCols === 1 ? 11 : 9);
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           if (showRanking && p.ranking) {
-            textY += 18;
+            textY += sectionCols === 1 ? 22 : 18;
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showCena && p.cena) {
-            textY += 20;
-            doc.setFont("Arial", "bold"); doc.setFontSize(14);
+            textY += sectionCols === 1 ? 24 : 20;
+            doc.setFont("Arial", "bold"); 
+            doc.setFontSize(sectionCols === 1 ? 16 : 14);
             doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13", width: 2, height: 40,
-                displayValue: true, fontSize: 10, margin: 0
+                format: "EAN13", 
+                width: sectionCols === 1 ? 3 : 2, 
+                height: sectionCols === 1 ? 50 : 40,
+                displayValue: true, 
+                fontSize: sectionCols === 1 ? 12 : 10, 
+                margin: 0
               });
               const barcodeImg = barcodeCanvas.toDataURL("image/png");
-              const bw = 140, bh = 40;
+              const bw = sectionCols === 1 ? 180 : 140;
+              const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
-              const by = y + boxHeight - bh - 20;
+              const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
               doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
             } catch (e) {
               console.error('Błąd generowania kodu kreskowego:', e);
             }
           }
-        } else { // Layout like module 16
+        } else { // Layout for modules 8, 16, or parts of 4-2-4
           if (imgSrc) {
             try {
               const img = new Image();
@@ -455,10 +480,12 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont("Arial", "bold"); doc.setFontSize(8);
+          doc.setFont("Arial", "bold"); 
+          doc.setFontSize(8);
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
-          doc.setFont("Arial", "normal"); doc.setFontSize(7);
+          doc.setFont("Arial", "normal"); 
+          doc.setFontSize(7);
           doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
           textY += 12;
           if (showRanking && p.ranking) {
@@ -466,7 +493,8 @@ async function buildPDF(jsPDF, save = true) {
             textY += 12;
           }
           if (showCena && p.cena) {
-            doc.setFont("Arial", "bold"); doc.setFontSize(12);
+            doc.setFont("Arial", "bold"); 
+            doc.setFontSize(12);
             doc.text(`CENA: ${p.cena}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
@@ -474,11 +502,16 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13", width: 1.6, height: 32,
-                displayValue: true, fontSize: 9, margin: 0
+                format: "EAN13", 
+                width: 1.6, 
+                height: 32,
+                displayValue: true, 
+                fontSize: 9, 
+                margin: 0
               });
               const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-              const bw = 85, bh = 32;
+              const bw = 85;
+              const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
               doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
@@ -493,43 +526,70 @@ async function buildPDF(jsPDF, save = true) {
       x = marginLeftRight;
       y += boxHeight + 6;
     }
-    return y; // Return the new y position after this section
+    return y;
   };
 
   while (productIndex < products.length) {
-    if (layout === "4") {
-      cols = 2; rows = 2;
+    let cols, rows, boxWidth, boxHeight, isLarge;
+    if (layout === "1") {
+      cols = 1; 
+      rows = 1;
+      boxWidth = pageWidth - marginLeftRight * 2;
+      boxHeight = pageHeight - marginTop - marginBottom;
+      isLarge = true;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+    } else if (layout === "2") {
+      cols = 2; 
+      rows = 1;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = pageHeight - marginTop - marginBottom;
+      isLarge = true;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+    } else if (layout === "4") {
+      cols = 2; 
+      rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, true);
+      isLarge = true;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "8") {
-      cols = 2; rows = 4;
+      cols = 2; 
+      rows = 4;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, false);
+      isLarge = false;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "16") {
-      cols = 2; rows = 8;
+      cols = 2; 
+      rows = 8;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, false);
+      isLarge = false;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
       // First section: 4 windows (2x2, like module 16)
-      cols = 2; rows = 2;
+      cols = 2; 
+      rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows; // 30% height for first section
-      y = await drawSection(cols, rows, boxWidth, boxHeight, false);
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      isLarge = false;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       
       // Second section: 2 windows (2x1, like module 4)
-      cols = 2; rows = 1;
+      cols = 2; 
+      rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows; // 40% height for middle section
-      y = await drawSection(cols, rows, boxWidth, boxHeight, true);
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
+      isLarge = true;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       
       // Third section: 4 windows (2x2, like module 16)
-      cols = 2; rows = 2;
+      cols = 2; 
+      rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows; // 30% height for last section
-      y = await drawSection(cols, rows, boxWidth, boxHeight, false);
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      isLarge = false;
+      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     }
     if (productIndex < products.length) {
       doc.addPage();
@@ -544,10 +604,12 @@ async function buildPDF(jsPDF, save = true) {
   if (save) doc.save("katalog.pdf");
   return doc;
 }
+
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
+
 async function previewPDF() {
   const { jsPDF } = window.jspdf;
   const doc = await buildPDF(jsPDF, false);
@@ -555,6 +617,7 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
+
 // Upewnij się, że funkcje są globalne dla atrybutów onclick
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
