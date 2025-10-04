@@ -697,7 +697,7 @@ async function buildPDF(jsPDF, save = true) {
           priceFontSize: 'medium'
         };
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
-        let imgSrc = uploadedImages[p.indeks] || p.img; // Używamy oryginalnego obrazu dla PDF
+        let imgSrc = uploadedImages[p.indeks] || p.img;
         if (imgSrc) {
           try {
             const img = new Image();
@@ -927,7 +927,7 @@ async function buildPDF(jsPDF, save = true) {
         isLarge = false;
         y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       }
-      // Sprawdzenie, czy są jeszcze produkty po zakończeniu sekcji 4-2-4
+      // Przejście na nową stronę po każdym pełnym układzie 4-2-4
       if (productIndex < products.length) {
         doc.addPage();
         pageNumber++;
@@ -938,13 +938,6 @@ async function buildPDF(jsPDF, save = true) {
         doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
         x = marginLeftRight;
         y = marginTop;
-        // Kontynuacja z domyślnym układem (np. 2x8) dla pozostałych produktów
-        cols = 2;
-        rows = 8;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-        isLarge = false;
-        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       }
     }
     if (productIndex < products.length && y + boxHeight + 6 > pageHeight - marginBottom) {
