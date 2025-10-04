@@ -933,15 +933,22 @@ async function previewPDF() {
   const bannerHeight = 85;
   let pageNumber = 1;
 
-  // Generowanie tylko pierwszej strony dla szybkiego podglądu
+  // Dodanie okładki, jeśli istnieje
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+      if (products.length > 0) {
+        doc.addPage();
+        pageNumber++;
+      }
     } catch (e) {
       console.error('Błąd dodawania okładki:', e);
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
-  } else if (products.length > 0) {
+  }
+
+  // Generowanie pierwszej strony z produktami
+  if (products.length > 0) {
     const bannerImg = selectedBanner ? selectedBanner.data : null;
     const backgroundImg = selectedBackground ? selectedBackground.data : null;
     if (backgroundImg) {
@@ -970,7 +977,7 @@ async function previewPDF() {
     let y = marginTop;
     let productIndex = 0;
     const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
-      for (let row = 0; row < sectionRows && productIndex < Math.min(products.length, 10); row++) { // Ograniczamy do 10 produktów (pierwsza strona)
+      for (let row = 0; row < sectionRows && productIndex < Math.min(products.length, 10); row++) {
         for (let col = 0; col < sectionCols && productIndex < Math.min(products.length, 10); col++) {
           const p = products[productIndex];
           const edit = productEdits[productIndex] || {
@@ -985,7 +992,7 @@ async function previewPDF() {
             priceCurrency: globalCurrency,
             priceFontSize: 'medium'
           };
-          drawBox(doc, x, y, boxWidth, boxHeight, "3d"); // Używamy domyślnej ramki 3D dla podglądu
+          drawBox(doc, x, y, boxWidth, boxHeight, "3d");
           let imgSrc = uploadedImages[p.indeks] || p.img;
           if (imgSrc) {
             try {
@@ -1008,7 +1015,7 @@ async function previewPDF() {
             let textY = y + boxHeight * 0.5;
             doc.setFont(edit.font, "bold");
             doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0); // Proste kolory dla podglądu
+            doc.setTextColor(0, 0, 0);
             const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
             lines.forEach(line => {
               doc.text(line, x + boxWidth / 2, textY, { align: "center" });
@@ -1050,38 +1057,35 @@ async function previewPDF() {
         y += boxHeight + 6;
       }
     };
-    // Generowanie tylko pierwszej strony dla podglądu
+    const marginTop = 20 + bannerHeight;
+    const marginBottom = 28;
+    const marginLeftRight = 14;
+    let x = marginLeftRight;
+    let y = marginTop;
+    // Sekcja 1: 2x2 (4 moduły)
+    let cols = 2;
+    let rows = 2;
+    let boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+    let boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+    let isLarge = false;
+    await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+    // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
     if (productIndex < products.length) {
-      const marginTop = 20 + bannerHeight;
-      const marginBottom = 28;
-      const marginLeftRight = 14;
-      let x = marginLeftRight;
-      let y = marginTop;
-      // Sekcja 1: 2x2 (4 moduły)
-      let cols = 2;
-      let rows = 2;
-      let boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      let boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-      let isLarge = false;
+      cols = 2;
+      rows = 1;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
+      isLarge = true;
       await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
-      if (productIndex < Math.min(products.length, 10)) {
-        cols = 2;
-        rows = 1;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
-        isLarge = true;
-        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
-      // Sekcja 3: 2x2 (4 moduły)
-      if (productIndex < Math.min(products.length, 10)) {
-        cols = 2;
-        rows = 2;
-        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-        isLarge = false;
-        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      }
+    }
+    // Sekcja 3: 2x2 (4 moduły)
+    if (productIndex < products.length) {
+      cols = 2;
+      rows = 2;
+      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      isLarge = false;
+      await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     }
   }
   const blobUrl = doc.output("bloburl");
