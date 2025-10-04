@@ -400,7 +400,7 @@ async function buildPDF(jsPDF, save = true) {
         const p = products[productIndex];
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
         let imgSrc = uploadedImages[p.indeks] || p.img;
-        if (isLarge) { // Layout for modules 1, 2, or 4
+        if (isLarge) {
           if (imgSrc) {
             try {
               const img = new Image();
@@ -427,7 +427,7 @@ async function buildPDF(jsPDF, save = true) {
             textY += sectionCols === 1 ? 18 : 14;
           });
           textY += sectionCols === 1 ? 14 : 10;
-          doc.setFont("Arial", "normal"); 
+          doc.setFont("Arial", "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           if (showRanking && p.ranking) {
@@ -435,20 +435,20 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showCena && p.cena) {
-            textY += sectionCols === 1 ? 24 : 20;
-            doc.setFont("Arial", "bold"); 
-            doc.setFontSize(sectionCols === 1 ? 16 : 14);
+            textY += sectionCols === 1 ? 74 : 20; // Większe przesunięcie dla Modułu 1
+            doc.setFont("Arial", "bold");
+            doc.setFontSize(sectionCols === 1 ? 20 : 14); // Większa czcionka dla Modułu 1
             doc.text(`CENA: ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13", 
-                width: sectionCols === 1 ? 3 : 2, 
+                format: "EAN13",
+                width: sectionCols === 1 ? 3 : 2,
                 height: sectionCols === 1 ? 50 : 40,
-                displayValue: true, 
-                fontSize: sectionCols === 1 ? 12 : 10, 
+                displayValue: true,
+                fontSize: sectionCols === 1 ? 12 : 10,
                 margin: 0
               });
               const barcodeImg = barcodeCanvas.toDataURL("image/png");
@@ -461,7 +461,7 @@ async function buildPDF(jsPDF, save = true) {
               console.error('Błąd generowania kodu kreskowego:', e);
             }
           }
-        } else { // Layout for modules 8, 16, or parts of 4-2-4
+        } else {
           if (imgSrc) {
             try {
               const img = new Image();
@@ -480,11 +480,11 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont("Arial", "bold"); 
+          doc.setFont("Arial", "bold");
           doc.setFontSize(8);
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
-          doc.setFont("Arial", "normal"); 
+          doc.setFont("Arial", "normal");
           doc.setFontSize(7);
           doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
           textY += 12;
@@ -493,7 +493,7 @@ async function buildPDF(jsPDF, save = true) {
             textY += 12;
           }
           if (showCena && p.cena) {
-            doc.setFont("Arial", "bold"); 
+            doc.setFont("Arial", "bold");
             doc.setFontSize(12);
             doc.text(`CENA: ${p.cena}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
@@ -502,11 +502,11 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13", 
-                width: 1.6, 
+                format: "EAN13",
+                width: 1.6,
                 height: 32,
-                displayValue: true, 
-                fontSize: 9, 
+                displayValue: true,
+                fontSize: 9,
                 margin: 0
               });
               const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
@@ -532,59 +532,54 @@ async function buildPDF(jsPDF, save = true) {
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
-      cols = 1; 
+      cols = 1;
       rows = 1;
       boxWidth = pageWidth - marginLeftRight * 2;
       boxHeight = pageHeight - marginTop - marginBottom;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "2") {
-      cols = 2; 
+      cols = 2;
       rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = pageHeight - marginTop - marginBottom;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4") {
-      cols = 2; 
+      cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "8") {
-      cols = 2; 
+      cols = 2;
       rows = 4;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "16") {
-      cols = 2; 
+      cols = 2;
       rows = 8;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
-      // First section: 4 windows (2x2, like module 16)
-      cols = 2; 
+      cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      
-      // Second section: 2 windows (2x1, like module 4)
-      cols = 2; 
+      cols = 2;
       rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      
-      // Third section: 4 windows (2x2, like module 16)
-      cols = 2; 
+      cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
