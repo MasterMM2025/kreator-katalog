@@ -8,24 +8,17 @@ let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
-async function toBase64(url, maxWidth = 300, maxHeight = 300) {
+async function toBase64(url) {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
     const blob = await response.blob();
-    const img = new Image();
-    img.src = URL.createObjectURL(blob);
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL(blob.type, 0.8);
   } catch {
     return null;
   }
@@ -45,7 +38,7 @@ async function loadProducts() {
       ];
       let base64Img = null;
       for (const url of urls) {
-        base64Img = await toBase64(url, 300, 300);
+        base64Img = await toBase64(url);
         if (base64Img) break;
       }
       return {
@@ -86,37 +79,13 @@ function handleFiles(files, callback) {
 }
 
 function loadCustomBanner(file, data) {
-  const img = new Image();
-  img.src = data;
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const maxWidth = 595;
-    const maxHeight = 85;
-    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    selectedBanner = { id: "custom", data: canvas.toDataURL('image/jpeg', 0.8) };
-    console.log("Załadowano baner:", file.name);
-  };
+  selectedBanner = { id: "custom", data };
+  console.log("Załadowano baner:", file.name);
 }
 
 function loadCustomBackground(file, data) {
-  const img = new Image();
-  img.src = data;
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const maxWidth = 595;
-    const maxHeight = 842;
-    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    selectedBackground = { id: "customBackground", data: canvas.toDataURL('image/jpeg', 0.8) };
-    console.log("Załadowano tło:", file.name);
-  };
+  selectedBackground = { id: "customBackground", data };
+  console.log("Załadowano tło:", file.name);
 }
 
 function loadCustomCover(file, data) {
@@ -126,21 +95,9 @@ function loadCustomCover(file, data) {
 
 function loadCustomImages(file, data) {
   const fileName = file.name.split('.')[0];
-  const img = new Image();
-  img.src = data;
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const maxWidth = 300;
-    const maxHeight = 300;
-    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    uploadedImages[fileName] = canvas.toDataURL('image/jpeg', 0.8);
-    console.log(`Załadowano obraz dla indeksu: ${fileName}`);
-    renderCatalog();
-  };
+  uploadedImages[fileName] = data;
+  console.log(`Załadowano obraz dla indeksu: ${fileName}`);
+  renderCatalog();
 }
 
 function showEditModal(productIndex) {
@@ -235,20 +192,8 @@ function saveEdit(productIndex) {
   if (editImage) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const maxWidth = 300;
-        const maxHeight = 300;
-        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        uploadedImages[product.indeks] = canvas.toDataURL('image/jpeg', 0.8);
-        renderCatalog();
-      };
+      uploadedImages[product.indeks] = e.target.result;
+      renderCatalog();
     };
     reader.readAsDataURL(editImage);
   }
@@ -475,7 +420,7 @@ async function loadBanners() {
     ];
     let base64Banner = null;
     for (const url of urls) {
-      base64Banner = await toBase64(url, 595, 85);
+      base64Banner = await toBase64(url);
       if (base64Banner) break;
     }
     if (base64Banner) {
@@ -600,31 +545,13 @@ function importExcel() {
       const indeks = row['indeks'] || row[0];
       if (indeks) {
         const matched = jsonProducts.find(p => p.indeks === indeks.toString());
-        let barcodeImg = null;
-        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
-          try {
-            const barcodeCanvas = document.createElement('canvas');
-            JsBarcode(barcodeCanvas, row['ean'], {
-              format: "EAN13",
-              width: 1.6,
-              height: 32,
-              displayValue: true,
-              fontSize: 9,
-              margin: 0
-            });
-            barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-          } catch (e) {
-            console.error('Błąd generowania kodu kreskowego:', e);
-          }
-        }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
           ean: row['ean'] || (matched ? matched.ean : ''),
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
           cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
-          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
-          barcode: barcodeImg
+          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null)
         });
       }
     });
@@ -735,16 +662,34 @@ async function buildPDF(jsPDF, save = true) {
         if (isLarge) {
           if (imgSrc) {
             try {
+              const img = new Image();
+              img.src = imgSrc;
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
               const maxH = boxHeight * (sectionCols === 1 ? 0.5 : 0.4);
-              const imgX = x + (boxWidth - maxW) / 2;
-              const imgY = y + (sectionCols === 1 ? 40 : 25);
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, maxW, maxH, undefined, "FAST");
+              let scale = Math.min(maxW / img.width, maxH / img.height);
+              let w = img.width * scale;
+              let h = img.height * scale;
+              let imgX = x + (boxWidth - w) / 2;
+              let imgY = y + (sectionCols === 1 ? 40 : 25);
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
           let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
+          if (textY + (showCena ? 74 : 22) > pageHeight - marginBottom) {
+            doc.addPage();
+            pageNumber++;
+            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+            doc.setFont("Arial", "bold");
+            doc.setFontSize(12);
+            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+            x = marginLeftRight;
+            y = marginTop;
+            textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
+          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -771,32 +716,60 @@ async function buildPDF(jsPDF, save = true) {
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY - 20, { align: "center" }); // Przesunięcie ceny w górę
           }
-          if (showEan && p.ean && p.barcode) {
+          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
+              const barcodeCanvas = document.createElement('canvas');
+              JsBarcode(barcodeCanvas, p.ean, {
+                format: "EAN13",
+                width: sectionCols === 1 ? 3 : 2,
+                height: sectionCols === 1 ? 50 : 40,
+                displayValue: true,
+                fontSize: sectionCols === 1 ? 12 : 10,
+                margin: 0
+              });
+              const barcodeImg = barcodeCanvas.toDataURL("image/png");
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
-              const bx = x + (boxWidth - bw) / 2;
-              const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              const bx = x + boxWidth - bw - 10; // Przesunięcie kodu kreskowego w prawo
+              const by = y + boxHeight - bh - 5;
+              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd dodawania kodu kreskowego:', e);
+              console.error('Błąd generowania kodu kreskowego:', e);
             }
           }
         } else {
           if (imgSrc) {
             try {
+              const img = new Image();
+              img.src = imgSrc;
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = 90;
               const maxH = 60;
-              const imgX = x + 5;
-              const imgY = y + 8;
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, maxW, maxH, undefined, "FAST");
+              let scale = Math.min(maxW / img.width, maxH / img.height);
+              let w = img.width * scale;
+              let h = img.height * scale;
+              let imgX = x + 5 + (maxW - w) / 2;
+              let imgY = y + 8 + (maxH - h) / 2;
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
           let textY = y + 20;
+          if (textY + (showCena ? 60 : 36) > pageHeight - marginBottom) {
+            doc.addPage();
+            pageNumber++;
+            if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+            if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+            doc.setFont("Arial", "bold");
+            doc.setFontSize(12);
+            doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+            x = marginLeftRight;
+            y = marginTop;
+            textY = y + 20;
+          }
           doc.setFont(edit.font, "bold");
           doc.setFontSize(8);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -822,15 +795,25 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
-          if (showEan && p.ean && p.barcode) {
+          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
+              const barcodeCanvas = document.createElement('canvas');
+              JsBarcode(barcodeCanvas, p.ean, {
+                format: "EAN13",
+                width: 1.6,
+                height: 32,
+                displayValue: true,
+                fontSize: 9,
+                margin: 0
+              });
+              const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
               const bw = 85;
               const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd dodawania kodu kreskowego:', e);
+              console.error('Błąd generowania kodu kreskowego:', e);
             }
           }
         }
@@ -880,24 +863,31 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
+      // Sekcja 1: 2x2 (4 moduły, rozmiar jak w module 16)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / 4; // Mniejszy rozmiar jak w module 16
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      cols = 2;
-      rows = 1;
-      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
-      isLarge = true;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      cols = 2;
-      rows = 2;
-      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-      isLarge = false;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      // Sekcja 2: 2x1 (2 moduły, rozmiar jak w module 4)
+      if (productIndex < products.length) {
+        cols = 2;
+        rows = 1;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / 2; // Rozmiar jak w module 4
+        isLarge = true;
+        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      }
+      // Sekcja 3: 2x2 (4 moduły, rozmiar jak w module 16)
+      if (productIndex < products.length) {
+        cols = 2;
+        rows = 2;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / 4; // Mniejszy rozmiar jak w module 16
+        isLarge = false;
+        y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      }
     }
     if (productIndex < products.length) {
       doc.addPage();
@@ -942,6 +932,7 @@ async function previewPDF() {
   document.getElementById("pdfPreview").style.display = "block";
 }
 
+// Upewnij się, że funkcje są globalne dla atrybutów onclick
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -950,4 +941,5 @@ window.hideBannerModal = hideBannerModal;
 window.showEditModal = showEditModal;
 window.hideEditModal = hideEditModal;
 window.saveEdit = saveEdit;
+
 loadProducts();
