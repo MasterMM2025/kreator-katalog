@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
-
 body {
   font-family: 'Poppins', Arial, sans-serif;
   margin: 0;
@@ -8,7 +7,6 @@ body {
   color: #2d3748;
   font-size: 14px;
 }
-
 /* Sidebar */
 .sidebar {
   width: 180px;
@@ -27,11 +25,9 @@ body {
   border-radius: 0 8px 8px 0;
   transition: transform 0.3s ease;
 }
-
 .sidebar:hover {
   transform: translateX(4px);
 }
-
 .sidebar h3 {
   font-size: 15px;
   font-weight: 500;
@@ -41,11 +37,9 @@ body {
   color: #e2e8f0;
   transition: color 0.2s ease;
 }
-
 .sidebar h3:hover {
   color: #ffffff;
 }
-
 .sidebar label {
   font-size: 13px;
   display: flex;
@@ -56,12 +50,10 @@ body {
   transition: background 0.2s ease, transform 0.2s ease;
   text-transform: none;
 }
-
 .sidebar label:hover {
   background: rgba(255, 255, 255, 0.1);
   transform: translateX(2px);
 }
-
 .sidebar input[type="checkbox"],
 .sidebar input[type="radio"] {
   appearance: none;
@@ -74,12 +66,10 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .sidebar input[type="checkbox"]:checked {
   background-color: #3182ce;
   border-color: #3182ce;
 }
-
 .sidebar input[type="checkbox"]:checked::after {
   content: '\f00c';
   font-family: 'Font Awesome 6 Free';
@@ -91,16 +81,13 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
 }
-
 .sidebar input[type="radio"] {
   border-radius: 50%;
 }
-
 .sidebar input[type="radio"]:checked {
   background-color: #3182ce;
   border-color: #3182ce;
 }
-
 .sidebar input[type="radio"]:checked::after {
   content: '';
   width: 8px;
@@ -112,7 +99,6 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
 }
-
 .sidebar select {
   font-size: 13px;
   padding: 8px 10px;
@@ -129,22 +115,18 @@ body {
   background-repeat: no-repeat;
   background-position: right 10px center;
 }
-
 .sidebar select option {
   background: #2d3748;
   color: #ffffff;
 }
-
 .sidebar select:hover {
   background: rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 6px rgba(49, 130, 206, 0.3);
 }
-
 .sidebar select:focus {
   outline: none;
   box-shadow: 0 0 8px rgba(49, 130, 206, 0.5);
 }
-
 /* Main content */
 .main-content {
   margin-left: 200px;
@@ -154,7 +136,6 @@ body {
   flex-direction: column;
   gap: 25px;
 }
-
 h1 {
   font-size: 1.4rem;
   color: #1a202c;
@@ -162,7 +143,6 @@ h1 {
   font-weight: 600;
   text-transform: none;
 }
-
 /* Panel importu */
 .improved-panel {
   background: linear-gradient(135deg, #ffffff, #f7f7f7);
@@ -178,12 +158,10 @@ h1 {
   margin: 0 auto;
   transition: transform 0.3s ease;
 }
-
 .improved-panel:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
-
 .improved-panel h2 {
   color: #2d3748;
   font-size: 1.3rem;
@@ -196,11 +174,9 @@ h1 {
   transition: color 0.2s ease;
   text-transform: none;
 }
-
 .improved-panel h2:hover {
   color: #2b6cb0;
 }
-
 /* Import pliku Excel */
 .import-row {
   display: flex;
@@ -208,7 +184,6 @@ h1 {
   gap: 15px;
   flex-wrap: wrap;
 }
-
 .file-section {
   flex: 1;
   display: flex;
@@ -216,11 +191,9 @@ h1 {
   gap: 15px;
   position: relative;
 }
-
 .file-section input[type="file"] {
   display: none;
 }
-
 .file-label-wrapper {
   font-size: 0.9rem;
   color: #4a5568;
@@ -237,20 +210,17 @@ h1 {
   align-items: center;
   justify-content: center;
 }
-
 .file-label-wrapper:hover {
   border-color: #3182ce;
   box-shadow: 0 0 8px rgba(49, 130, 206, 0.3);
   transform: scale(1.01);
 }
-
 /* Upload */
 .upload-block {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
-
 .upload-zone {
   width: 100%;
   height: 80px;
@@ -264,7 +234,6 @@ h1 {
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
-
 .upload-zone:hover,
 .upload-zone.dragover {
   background: rgba(236, 246, 252, 0.95);
@@ -272,7 +241,6 @@ h1 {
   box-shadow: 0 0 10px rgba(49, 130, 206, 0.3);
   transform: scale(1.02);
 }
-
 .upload-zone p {
   font-size: 0.85rem;
   color: #4a5568;
@@ -280,7 +248,6 @@ h1 {
   text-align: center;
   text-transform: none;
 }
-
 .file-label {
   color: #2b6cb0;
   font-weight: 600;
@@ -288,11 +255,9 @@ h1 {
   text-decoration: underline;
   transition: color 0.2s ease;
 }
-
 .file-label:hover {
   color: #1c4a7a;
 }
-
 /* Buttons */
 button {
   padding: 10px 16px;
@@ -306,33 +271,28 @@ button {
   align-items: center;
   gap: 8px;
 }
-
 .btn-primary {
   background-color: #3182ce;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(49, 130, 206, 0.3);
   min-width: 140px;
 }
-
 .btn-primary:hover:not(:disabled) {
   background-color: #2b6cb0;
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(49, 130, 206, 0.4);
 }
-
 .btn-secondary {
   background-color: #718096;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(113, 128, 150, 0.3);
   min-width: 140px;
 }
-
 .btn-secondary:hover:not(:disabled) {
   background-color: #5a667a;
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(113, 128, 150, 0.4);
 }
-
 .btn-banner {
   background-color: #2b6cb0;
   color: #ffffff;
@@ -340,19 +300,16 @@ button {
   width: 160px;
   box-shadow: 0 2px 6px rgba(49, 130, 206, 0.3);
 }
-
 .btn-banner:hover {
   background-color: #1c4a7a;
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(49, 130, 206, 0.4);
 }
-
 button:disabled {
   background-color: #a0aec0;
   cursor: not-allowed;
   box-shadow: none;
 }
-
 /* PDF buttons */
 .pdf-buttons {
   margin-top: 20px;
@@ -360,13 +317,11 @@ button:disabled {
   gap: 15px;
   flex-wrap: wrap;
 }
-
 /* Podgląd PDF */
 #pdfPreview {
   margin-top: 15px;
   display: none;
 }
-
 #pdfPreview h3 {
   font-size: 1.2rem;
   color: #2d3748;
@@ -376,13 +331,11 @@ button:disabled {
   gap: 8px;
   text-transform: none;
 }
-
 #pdfIframe {
   width: 100%;
   height: 600px;
   border: 1px solid #ccc;
 }
-
 /* Modal wyboru banera i edycji produktu */
 .modal {
   display: none;
@@ -400,26 +353,22 @@ button:disabled {
   border-radius: 12px;
   transition: transform 0.3s ease;
 }
-
 .modal-content {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
-
 .close {
   font-size: 18px;
   cursor: pointer;
   color: #2d3748;
   align-self: flex-end;
 }
-
 .banner-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .banner-preview {
   width: 100%;
   height: 50px;
@@ -429,17 +378,14 @@ button:disabled {
   cursor: pointer;
   transition: all 0.3s ease;
 }
-
 .banner-preview:hover {
   border-color: #3182ce;
   box-shadow: 0 0 8px rgba(49,130,206,0.3);
 }
-
 .banner-preview.selected {
   border-color: #3182ce;
   box-shadow: 0 0 10px rgba(49,130,206,0.5);
 }
-
 /* Katalog produktów */
 #catalog {
   display: grid;
@@ -447,7 +393,6 @@ button:disabled {
   gap: 15px;
   margin-bottom: 20px;
 }
-
 .item {
   border: 1px solid #ddd;
   padding: 10px;
@@ -460,58 +405,48 @@ button:disabled {
   height: 250px;
   transition: transform 0.2s ease;
 }
-
 .item:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-
 .item img {
   width: 100px;
   height: 100px;
   object-fit: contain;
   margin-bottom: 8px;
 }
-
 .item-large {
   height: 350px;
 }
-
 .item-large img {
   width: 150px;
   height: 150px;
 }
-
 .details {
   text-align: center;
   font-size: 12px;
   color: #333;
 }
-
 .details .name {
   font-weight: 500;
   color: #2c3e50;
 }
-
 .details .index {
   font-size: 10px;
   color: #555;
 }
-
 .edit-button {
   margin-top: 8px;
   padding: 8px 12px;
   font-size: 0.8rem;
   min-width: 100px;
 }
-
 /* Debug */
 #debug {
   margin-top: 10px;
   color: #e53e3e;
   font-size: 11px;
 }
-
 /* Styl dla pól edycji w modalu */
 .edit-field {
   display: flex;
@@ -519,13 +454,11 @@ button:disabled {
   gap: 8px;
   margin-bottom: 10px;
 }
-
 .edit-field label {
   font-size: 0.9rem;
   font-weight: 500;
   color: #2d3748;
 }
-
 .edit-field input[type="text"],
 .edit-field select,
 .edit-field input[type="color"] {
@@ -536,12 +469,10 @@ button:disabled {
   width: 100%;
   box-sizing: border-box;
 }
-
 .edit-field input[type="color"] {
   padding: 2px;
   height: 30px;
 }
-
 /* Responsywność */
 @media (max-width: 768px) {
   .sidebar {
@@ -551,37 +482,30 @@ button:disabled {
     border-radius: 0;
     padding: 15px;
   }
-
   .main-content {
     margin-left: 0;
     width: 100%;
     padding: 15px;
   }
-
   .improved-panel {
     padding: 20px;
     max-width: 100%;
   }
-
   .import-row {
     flex-direction: column;
     gap: 12px;
   }
-
   .file-label-wrapper {
     font-size: 0.85rem;
     padding: 8px;
     min-width: 0;
   }
-
   .upload-zone {
     height: 70px;
   }
-
   .upload-zone p {
     font-size: 0.8rem;
   }
-
   .btn-banner,
   .btn-primary,
   .btn-secondary {
@@ -591,111 +515,88 @@ button:disabled {
     padding: 8px 12px;
     font-size: 0.85rem;
   }
-
   .pdf-buttons {
     flex-direction: column;
     gap: 12px;
   }
-
   #catalog {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 12px;
   }
-
   .item {
     height: 220px;
   }
-
   .item img {
     width: 90px;
     height: 90px;
   }
-
   .item-large {
     height: 320px;
   }
-
   .item-large img {
     width: 140px;
     height: 140px;
   }
-
   #pdfPreview h3 {
     font-size: 1.1rem;
   }
-
   #pdfIframe {
     height: 500px;
   }
-
   .modal {
     width: 90%;
     max-width: 400px;
     max-height: 70vh;
   }
 }
-
 @media (max-width: 480px) {
   .improved-panel {
     padding: 15px;
   }
-
   .file-label-wrapper {
     font-size: 0.8rem;
     padding: 6px;
   }
-
   .upload-zone {
     height: 60px;
   }
-
   .upload-zone p {
     font-size: 0.75rem;
   }
-
   .btn-banner,
   .btn-primary,
   .btn-secondary {
     padding: 6px 10px;
     font-size: 0.8rem;
   }
-
   #catalog {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 10px;
   }
-
   .item {
     height: 200px;
   }
-
   .item img {
     width: 80px;
     height: 80px;
   }
-
   .item-large {
     height: 300px;
   }
-
   .item-large img {
     width: 130px;
     height: 130px;
   }
-
   #pdfPreview h3 {
     font-size: 1rem;
   }
-
   #pdfIframe {
     height: 400px;
   }
-
   .modal {
     width: 95%;
     max-width: 350px;
   }
-
   .edit-field input[type="text"],
   .edit-field select,
   .edit-field input[type="color"] {
