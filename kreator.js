@@ -8,17 +8,24 @@ let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
-async function toBase64(url) {
+async function toBase64(url, maxWidth = 300, maxHeight = 300) {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
     const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+    const img = new Image();
+    img.src = URL.createObjectURL(blob);
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
     });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL(blob.type, 0.8);
   } catch {
     return null;
   }
@@ -38,7 +45,7 @@ async function loadProducts() {
       ];
       let base64Img = null;
       for (const url of urls) {
-        base64Img = await toBase64(url);
+        base64Img = await toBase64(url, 300, 300);
         if (base64Img) break;
       }
       return {
@@ -79,13 +86,37 @@ function handleFiles(files, callback) {
 }
 
 function loadCustomBanner(file, data) {
-  selectedBanner = { id: "custom", data };
-  console.log("Załadowano baner:", file.name);
+  const img = new Image();
+  img.src = data;
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const maxWidth = 595;
+    const maxHeight = 85;
+    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    selectedBanner = { id: "custom", data: canvas.toDataURL('image/jpeg', 0.8) };
+    console.log("Załadowano baner:", file.name);
+  };
 }
 
 function loadCustomBackground(file, data) {
-  selectedBackground = { id: "customBackground", data };
-  console.log("Załadowano tło:", file.name);
+  const img = new Image();
+  img.src = data;
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const maxWidth = 595;
+    const maxHeight = 842;
+    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    selectedBackground = { id: "customBackground", data: canvas.toDataURL('image/jpeg', 0.8) };
+    console.log("Załadowano tło:", file.name);
+  };
 }
 
 function loadCustomCover(file, data) {
@@ -95,9 +126,21 @@ function loadCustomCover(file, data) {
 
 function loadCustomImages(file, data) {
   const fileName = file.name.split('.')[0];
-  uploadedImages[fileName] = data;
-  console.log(`Załadowano obraz dla indeksu: ${fileName}`);
-  renderCatalog();
+  const img = new Image();
+  img.src = data;
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const maxWidth = 300;
+    const maxHeight = 300;
+    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    uploadedImages[fileName] = canvas.toDataURL('image/jpeg', 0.8);
+    console.log(`Załadowano obraz dla indeksu: ${fileName}`);
+    renderCatalog();
+  };
 }
 
 function showEditModal(productIndex) {
@@ -192,8 +235,20 @@ function saveEdit(productIndex) {
   if (editImage) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      uploadedImages[product.indeks] = e.target.result;
-      renderCatalog();
+      const img = new Image();
+      img.src = e.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const maxWidth = 300;
+        const maxHeight = 300;
+        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        uploadedImages[product.indeks] = canvas.toDataURL('image/jpeg', 0.8);
+        renderCatalog();
+      };
     };
     reader.readAsDataURL(editImage);
   }
@@ -420,7 +475,7 @@ async function loadBanners() {
     ];
     let base64Banner = null;
     for (const url of urls) {
-      base64Banner = await toBase64(url);
+      base64Banner = await toBase64(url, 595, 85);
       if (base64Banner) break;
     }
     if (base64Banner) {
@@ -545,13 +600,31 @@ function importExcel() {
       const indeks = row['indeks'] || row[0];
       if (indeks) {
         const matched = jsonProducts.find(p => p.indeks === indeks.toString());
+        let barcodeImg = null;
+        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
+          try {
+            const barcodeCanvas = document.createElement('canvas');
+            JsBarcode(barcodeCanvas, row['ean'], {
+              format: "EAN13",
+              width: 1.6,
+              height: 32,
+              displayValue: true,
+              fontSize: 9,
+              margin: 0
+            });
+            barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
+          } catch (e) {
+            console.error('Błąd generowania kodu kreskowego:', e);
+          }
+        }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
           ean: row['ean'] || (matched ? matched.ean : ''),
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
           cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
-          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null)
+          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
+          barcode: barcodeImg
         });
       }
     });
@@ -662,17 +735,11 @@ async function buildPDF(jsPDF, save = true) {
         if (isLarge) {
           if (imgSrc) {
             try {
-              const img = new Image();
-              img.src = imgSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
               const maxH = boxHeight * (sectionCols === 1 ? 0.5 : 0.4);
-              let scale = Math.min(maxW / img.width, maxH / img.height);
-              let w = img.width * scale;
-              let h = img.height * scale;
-              let imgX = x + (boxWidth - w) / 2;
-              let imgY = y + (sectionCols === 1 ? 40 : 25);
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+              const imgX = x + (boxWidth - maxW) / 2;
+              const imgY = y + (sectionCols === 1 ? 40 : 25);
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, maxW, maxH, undefined, "FAST");
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
@@ -706,41 +773,25 @@ async function buildPDF(jsPDF, save = true) {
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
-          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+          if (showEan && p.ean && p.barcode) {
             try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13",
-                width: sectionCols === 1 ? 3 : 2,
-                height: sectionCols === 1 ? 50 : 40,
-                displayValue: true,
-                fontSize: sectionCols === 1 ? 12 : 10,
-                margin: 0
-              });
-              const barcodeImg = barcodeCanvas.toDataURL("image/png");
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
               const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
-              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd dodawania kodu kreskowego:', e);
             }
           }
         } else {
           if (imgSrc) {
             try {
-              const img = new Image();
-              img.src = imgSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = 90;
               const maxH = 60;
-              let scale = Math.min(maxW / img.width, maxH / img.height);
-              let w = img.width * scale;
-              let h = img.height * scale;
-              let imgX = x + 5 + (maxW - w) / 2;
-              let imgY = y + 8 + (maxH - h) / 2;
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+              const imgX = x + 5;
+              const imgY = y + 8;
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, maxW, maxH, undefined, "FAST");
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
@@ -771,25 +822,15 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
-          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+          if (showEan && p.ean && p.barcode) {
             try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13",
-                width: 1.6,
-                height: 32,
-                displayValue: true,
-                fontSize: 9,
-                margin: 0
-              });
-              const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
               const bw = 85;
               const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd dodawania kodu kreskowego:', e);
             }
           }
         }
@@ -901,7 +942,6 @@ async function previewPDF() {
   document.getElementById("pdfPreview").style.display = "block";
 }
 
-// Upewnij się, że funkcje są globalne dla atrybutów onclick
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -910,5 +950,4 @@ window.hideBannerModal = hideBannerModal;
 window.showEditModal = showEditModal;
 window.hideEditModal = hideEditModal;
 window.saveEdit = saveEdit;
-
 loadProducts();
