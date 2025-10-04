@@ -258,16 +258,23 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Drop plików:", e.dataTransfer.files.length);
       handleFiles(e.dataTransfer.files);
     });
-    uploadArea.addEventListener("click", () => imageInput.click());
+    uploadArea.addEventListener("click", (e) => {
+      e.preventDefault();
+      imageInput.click();
+    });
   } else {
     console.error("Nie znaleziono elementów: imageInput lub uploadArea");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi zdjęć";
   }
+
   const bannerFileInput = document.getElementById("bannerFileInput");
   const bannerUpload = document.getElementById("bannerUpload");
   if (bannerFileInput && bannerUpload) {
     bannerFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) loadCustomBanner(e.target.files[0]);
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w bannerFileInput, pliki:", e.target.files.length);
+        loadCustomBanner(e.target.files[0]);
+      }
     });
     bannerUpload.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -279,15 +286,28 @@ document.addEventListener("DOMContentLoaded", () => {
     bannerUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       bannerUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomBanner(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop banera:", e.dataTransfer.files.length);
+        loadCustomBanner(e.dataTransfer.files[0]);
+      }
     });
-    bannerUpload.addEventListener("click", () => bannerFileInput.click());
+    bannerUpload.addEventListener("click", (e) => {
+      e.preventDefault();
+      bannerFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: bannerFileInput lub bannerUpload");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi banera";
   }
+
   const backgroundFileInput = document.getElementById("backgroundFileInput");
   const backgroundUpload = document.getElementById("backgroundUpload");
   if (backgroundFileInput && backgroundUpload) {
     backgroundFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) loadCustomBackground(e.target.files[0]);
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w backgroundFileInput, pliki:", e.target.files.length);
+        loadCustomBackground(e.target.files[0]);
+      }
     });
     backgroundUpload.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -299,15 +319,28 @@ document.addEventListener("DOMContentLoaded", () => {
     backgroundUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       backgroundUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomBackground(e.target.files[0]);
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop tła:", e.dataTransfer.files.length);
+        loadCustomBackground(e.dataTransfer.files[0]);
+      }
     });
-    backgroundUpload.addEventListener("click", () => backgroundFileInput.click());
+    backgroundUpload.addEventListener("click", (e) => {
+      e.preventDefault();
+      backgroundFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: backgroundFileInput lub backgroundUpload");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi tła";
   }
+
   const coverFileInput = document.getElementById("coverFileInput");
   const coverUpload = document.getElementById("coverUpload");
   if (coverFileInput && coverUpload) {
     coverFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) loadCustomCover(e.target.files[0]);
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w coverFileInput, pliki:", e.target.files.length);
+        loadCustomCover(e.target.files[0]);
+      }
     });
     coverUpload.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -319,10 +352,20 @@ document.addEventListener("DOMContentLoaded", () => {
     coverUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       coverUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomCover(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop okładki:", e.dataTransfer.files.length);
+        loadCustomCover(e.dataTransfer.files[0]);
+      }
     });
-    coverUpload.addEventListener("click", () => coverFileInput.click());
+    coverUpload.addEventListener("click", (e) => {
+      e.preventDefault();
+      coverFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: coverFileInput lub coverUpload");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi okładki";
   }
+
   const currencySelect = document.getElementById('currencySelect');
   if (currencySelect) {
     currencySelect.addEventListener('change', (e) => {
@@ -853,4 +896,17 @@ async function previewPDF() {
   const { jsPDF } = window.jspdf;
   const doc = await buildPDF(jsPDF, false);
   const blobUrl = doc.output("bloburl");
-  document.getElementById("pdfIframe").src =
+  document.getElementById("pdfIframe").src = blobUrl;
+  document.getElementById("pdfPreview").style.display = "block";
+}
+
+// Upewnij się, że funkcje są globalne dla atrybutów onclick
+window.importExcel = importExcel;
+window.generatePDF = generatePDF;
+window.previewPDF = previewPDF;
+window.showBannerModal = showBannerModal;
+window.hideBannerModal = hideBannerModal;
+window.showEditModal = showEditModal;
+window.hideEditModal = hideEditModal;
+window.saveEdit = saveEdit;
+loadProducts();
