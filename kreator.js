@@ -6,6 +6,7 @@ let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
 let globalCurrency = 'EUR';
+let globalLanguage = 'pl';
 
 async function toBase64(url) {
   try {
@@ -115,7 +116,7 @@ function showEditModal(productIndex) {
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-
+  const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
     <div class="edit-field">
@@ -157,7 +158,7 @@ function showEditModal(productIndex) {
     ` : ''}
     ${showCena ? `
       <div class="edit-field">
-        <label>Cena:</label>
+        <label>${priceLabel}:</label>
         <input type="text" id="editCena" value="${product.cena || ''}">
         <select id="editCenaFont">
           <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
@@ -253,7 +254,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: imageInput lub uploadArea");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi zdjęć";
   }
-
   const bannerFileInput = document.getElementById("bannerFileInput");
   const bannerUpload = document.getElementById("bannerUpload");
   if (bannerFileInput && bannerUpload) {
@@ -286,7 +286,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: bannerFileInput lub bannerUpload");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi banera";
   }
-
   const backgroundFileInput = document.getElementById("backgroundFileInput");
   const backgroundUpload = document.getElementById("backgroundUpload");
   if (backgroundFileInput && backgroundUpload) {
@@ -319,7 +318,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: backgroundFileInput lub backgroundUpload");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi tła";
   }
-
   const coverFileInput = document.getElementById("coverFileInput");
   const coverUpload = document.getElementById("coverUpload");
   if (coverFileInput && coverUpload) {
@@ -352,7 +350,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: coverFileInput lub coverUpload");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi okładki";
   }
-
   const excelFileInput = document.getElementById("excelFile");
   const fileLabelWrapper = document.querySelector(".file-label-wrapper");
   if (excelFileInput && fileLabelWrapper) {
@@ -370,12 +367,19 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: excelFileInput lub fileLabelWrapper");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi importu Excel";
   }
-
   const currencySelect = document.getElementById('currencySelect');
   if (currencySelect) {
     currencySelect.addEventListener('change', (e) => {
       globalCurrency = e.target.value;
       console.log("Zmieniono walutę na:", globalCurrency);
+      renderCatalog();
+    });
+  }
+  const languageSelect = document.getElementById('languageSelect');
+  if (languageSelect) {
+    languageSelect.addEventListener('change', (e) => {
+      globalLanguage = e.target.value;
+      console.log("Zmieniono język na:", globalLanguage);
       renderCatalog();
     });
   }
@@ -450,6 +454,7 @@ function renderCatalog() {
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
+  const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   let itemsPerPage = 4;
   if (layout === "1") itemsPerPage = 1;
   else if (layout === "2") itemsPerPage = 2;
@@ -467,7 +472,7 @@ function renderCatalog() {
       const edit = productEdits[i] || {};
       const currency = edit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
-      details.innerHTML += `<br>Cena: ${p.cena} ${currencySymbol}`;
+      details.innerHTML += `<br>${priceLabel}: ${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
@@ -590,26 +595,20 @@ async function buildPDF(jsPDF, save = true) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
   let pageNumber = 1;
-
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      doc.setFont("Arial", "bold");
-      doc.setFontSize(12);
-      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
       if (products.length > 0) {
         doc.addPage();
-        pageNumber++;
       }
     } catch (e) {
       console.error('Błąd dodawania okładki:', e);
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
-
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
-
+  const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
   if (products.length > 0) {
     if (backgroundImg) {
       try {
@@ -631,7 +630,6 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
-
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -643,7 +641,6 @@ async function buildPDF(jsPDF, save = true) {
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
-
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -707,7 +704,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`CENA: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
             try {
@@ -771,7 +768,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`CENA: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
@@ -804,7 +801,6 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
-
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -888,7 +884,6 @@ async function buildPDF(jsPDF, save = true) {
       y = marginTop;
     }
   }
-
   if (save) doc.save("katalog.pdf");
   return doc;
 }
@@ -915,4 +910,5 @@ window.hideBannerModal = hideBannerModal;
 window.showEditModal = showEditModal;
 window.hideEditModal = hideEditModal;
 window.saveEdit = saveEdit;
+
 loadProducts();
