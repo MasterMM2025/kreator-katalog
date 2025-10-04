@@ -8,40 +8,6 @@ let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
-// Funkcja do skalowania obrazu dla podglądu HTML
-function resizeImageForPreview(base64Image) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const maxWidth = 50; // Zmniejszamy maksymalną szerokość do 50px dla podglądu
-      const maxHeight = 50; // Zmniejszamy maksymalną wysokość do 50px
-      let width = img.width;
-      let height = img.height;
-
-      // Skalowanie proporcjonalne
-      if (width > height) {
-        if (width > maxWidth) {
-          height *= maxWidth / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width *= maxHeight / height;
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.7)); // Kompresja JPEG z jakością 70%
-    };
-    img.src = base64Image;
-  });
-}
-
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -494,13 +460,11 @@ function renderCatalog() {
   else if (layout === "2") itemsPerPage = 2;
   let pageDiv = document.createElement("div");
   pageDiv.className = "page";
-  products.forEach(async (p, i) => {
+  products.forEach((p, i) => {
     const item = document.createElement("div");
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
-    // Skalowanie obrazu dla podglądu HTML
-    const previewImgSrc = p.img ? await resizeImageForPreview(p.img) : (uploadedImages[p.indeks] ? await resizeImageForPreview(uploadedImages[p.indeks]) : 'https://dummyimage.com/120x84/eee/000&text=brak');
-    img.src = previewImgSrc;
+    img.src = uploadedImages[p.indeks] || p.img || 'https://dummyimage.com/120x84/eee/000&text=brak';
     img.style.width = '100px';
     img.style.height = '100px';
     img.style.objectFit = 'contain';
@@ -963,7 +927,163 @@ async function generatePDF() {
 
 async function previewPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = await buildPDF(jsPDF, false);
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bannerHeight = 85;
+  let pageNumber = 1;
+
+  // Generowanie tylko pierwszej strony dla szybkiego podglądu
+  if (selectedCover) {
+    try {
+      doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+    } catch (e) {
+      console.error('Błąd dodawania okładki:', e);
+      document.getElementById('debug').innerText = "Błąd dodawania okładki";
+    }
+  } else if (products.length > 0) {
+    const bannerImg = selectedBanner ? selectedBanner.data : null;
+    const backgroundImg = selectedBackground ? selectedBackground.data : null;
+    if (backgroundImg) {
+      try {
+        doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+      } catch (e) {
+        console.error('Błąd dodawania tła:', e);
+        document.getElementById('debug').innerText = "Błąd dodawania tła";
+      }
+    }
+    if (bannerImg) {
+      try {
+        doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+      } catch (e) {
+        console.error('Błąd dodawania banera:', e);
+        document.getElementById('debug').innerText = "Błąd dodawania banera";
+      }
+    }
+    doc.setFont("Arial", "bold");
+    doc.setFontSize(12);
+    doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+    const marginTop = 20 + bannerHeight;
+    const marginBottom = 28;
+    const marginLeftRight = 14;
+    let x = marginLeftRight;
+    let y = marginTop;
+    let productIndex = 0;
+    const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
+      for (let row = 0; row < sectionRows && productIndex < Math.min(products.length, 10); row++) { // Ograniczamy do 10 produktów (pierwsza strona)
+        for (let col = 0; col < sectionCols && productIndex < Math.min(products.length, 10); col++) {
+          const p = products[productIndex];
+          const edit = productEdits[productIndex] || {
+            font: 'Arial',
+            fontColor: '#000000',
+            indeksFont: 'Arial',
+            indeksFontColor: '#000000',
+            rankingFont: 'Arial',
+            rankingFontColor: '#000000',
+            cenaFont: 'Arial',
+            cenaFontColor: '#000000',
+            priceCurrency: globalCurrency,
+            priceFontSize: 'medium'
+          };
+          drawBox(doc, x, y, boxWidth, boxHeight, "3d"); // Używamy domyślnej ramki 3D dla podglądu
+          let imgSrc = uploadedImages[p.indeks] || p.img;
+          if (imgSrc) {
+            try {
+              const img = new Image();
+              img.src = imgSrc;
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+              const maxW = isLarge ? (boxWidth - 40) : 90;
+              const maxH = isLarge ? (boxHeight * 0.4) : 60;
+              let scale = Math.min(maxW / img.width, maxH / img.height);
+              let w = img.width * scale;
+              let h = img.height * scale;
+              let imgX = isLarge ? (x + (boxWidth - w) / 2) : (x + 5 + (maxW - w) / 2);
+              let imgY = isLarge ? (y + 25) : (y + 8 + (maxH - h) / 2);
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+            } catch (e) {
+              console.error('Błąd dodawania obrazka:', e);
+            }
+          }
+          if (isLarge) {
+            let textY = y + boxHeight * 0.5;
+            doc.setFont(edit.font, "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0); // Proste kolory dla podglądu
+            const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
+            lines.forEach(line => {
+              doc.text(line, x + boxWidth / 2, textY, { align: "center" });
+              textY += 14;
+            });
+            textY += 10;
+            doc.setFont(edit.indeksFont, "normal");
+            doc.setFontSize(9);
+            doc.text(`Indeks: ${p.indeks || '-'}` , x + boxWidth / 2, textY, { align: "center" });
+            if (showCena && p.cena) {
+              textY += 20;
+              doc.setFont(edit.cenaFont, "bold");
+              doc.setFontSize(14);
+              const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+              doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            }
+          } else {
+            let textY = y + 20;
+            doc.setFont(edit.font, "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(0, 0, 0);
+            doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
+            textY += 25;
+            doc.setFont(edit.indeksFont, "normal");
+            doc.setFontSize(7);
+            doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
+            if (showCena && p.cena) {
+              textY += 16;
+              doc.setFont(edit.cenaFont, "bold");
+              doc.setFontSize(12);
+              const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+              doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+            }
+          }
+          x += boxWidth + 6;
+          productIndex++;
+        }
+        x = marginLeftRight;
+        y += boxHeight + 6;
+      }
+    };
+    // Generowanie tylko pierwszej strony dla podglądu
+    if (productIndex < products.length) {
+      const marginTop = 20 + bannerHeight;
+      const marginBottom = 28;
+      const marginLeftRight = 14;
+      let x = marginLeftRight;
+      let y = marginTop;
+      // Sekcja 1: 2x2 (4 moduły)
+      let cols = 2;
+      let rows = 2;
+      let boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      let boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      let isLarge = false;
+      await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
+      if (productIndex < Math.min(products.length, 10)) {
+        cols = 2;
+        rows = 1;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
+        isLarge = true;
+        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      }
+      // Sekcja 3: 2x2 (4 moduły)
+      if (productIndex < Math.min(products.length, 10)) {
+        cols = 2;
+        rows = 2;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+        isLarge = false;
+        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      }
+    }
+  }
   const blobUrl = doc.output("bloburl");
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
