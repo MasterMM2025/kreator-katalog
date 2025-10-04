@@ -362,14 +362,12 @@ button:disabled {
 }
 
 /* Podgląd PDF */
-.pdf-preview {
-  margin-top: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+#pdfPreview {
+  margin-top: 15px;
+  display: none;
 }
 
-.pdf-preview h3 {
+#pdfPreview h3 {
   font-size: 1.2rem;
   color: #2d3748;
   font-weight: 600;
@@ -381,10 +379,8 @@ button:disabled {
 
 #pdfIframe {
   width: 100%;
-  max-height: 80vh;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  height: 600px;
+  border: 1px solid #ccc;
 }
 
 /* Modal wyboru banera */
@@ -585,12 +581,12 @@ button:disabled {
     height: 140px;
   }
 
-  .pdf-preview h3 {
+  #pdfPreview h3 {
     font-size: 1.1rem;
   }
 
   #pdfIframe {
-    max-height: 70vh;
+    height: 500px;
   }
 
   .modal {
@@ -648,15 +644,11 @@ button:disabled {
     height: 130px;
   }
 
-  .pdf-preview h3 {
+  #pdfPreview h3 {
     font-size: 1rem;
   }
 
-  .pdf-preview {
-    margin-top: 20px;
-  }
-
   #pdfIframe {
-    max-height: 60vh;
+    height: 400px;
   }
 }
