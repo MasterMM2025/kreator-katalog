@@ -5,6 +5,7 @@ let selectedCover = null;
 let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
+let globalCurrency = 'EUR';
 
 async function toBase64(url) {
   try {
@@ -120,7 +121,13 @@ function showEditModal(productIndex) {
   const edit = productEdits[productIndex] || {
     font: 'Arial',
     fontColor: '#000000',
-    priceCurrency: 'EUR',
+    indeksFont: 'Arial',
+    indeksFontColor: '#000000',
+    rankingFont: 'Arial',
+    rankingFontColor: '#000000',
+    cenaFont: 'Arial',
+    cenaFontColor: '#000000',
+    priceCurrency: globalCurrency,
     priceFontSize: 'medium'
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
@@ -147,22 +154,22 @@ function showEditModal(productIndex) {
       <label>Indeks:</label>
       <input type="text" id="editIndeks" value="${product.indeks || ''}">
       <select id="editIndeksFont">
-        <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
       </select>
-      <input type="color" id="editIndeksColor" value="${edit.fontColor}">
+      <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
     ${showRanking ? `
       <div class="edit-field">
         <label>Ranking:</label>
         <input type="text" id="editRanking" value="${product.ranking || ''}">
         <select id="editRankingFont">
-          <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
-          <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+          <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
+          <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+          <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
         </select>
-        <input type="color" id="editRankingColor" value="${edit.fontColor}">
+        <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
       </div>
     ` : ''}
     ${showCena ? `
@@ -170,11 +177,11 @@ function showEditModal(productIndex) {
         <label>Cena:</label>
         <input type="text" id="editCena" value="${product.cena || ''}">
         <select id="editCenaFont">
-          <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
-          <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+          <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
+          <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+          <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
         </select>
-        <input type="color" id="editCenaColor" value="${edit.fontColor}">
+        <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
           <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
           <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
@@ -223,7 +230,7 @@ function saveEdit(productIndex) {
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
     cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
-    priceCurrency: document.getElementById('editCenaCurrency')?.value || 'EUR',
+    priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
   renderCatalog();
@@ -292,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
     backgroundUpload.addEventListener("drop", (e) => {
       e.preventDefault();
       backgroundUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) loadCustomBackground(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length > 0) loadCustomBackground(e.target.files[0]);
     });
     backgroundUpload.addEventListener("click", () => backgroundFileInput.click());
   }
@@ -315,6 +322,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.dataTransfer.files.length > 0) loadCustomCover(e.dataTransfer.files[0]);
     });
     coverUpload.addEventListener("click", () => coverFileInput.click());
+  }
+  const currencySelect = document.getElementById('currencySelect');
+  if (currencySelect) {
+    currencySelect.addEventListener('change', (e) => {
+      globalCurrency = e.target.value;
+      renderCatalog();
+    });
   }
 });
 
@@ -386,6 +400,7 @@ function renderCatalog() {
     return;
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
+  const showCena = document.getElementById('showCena')?.checked || false;
   let itemsPerPage = 4;
   if (layout === "1") itemsPerPage = 1;
   else if (layout === "2") itemsPerPage = 2;
@@ -399,6 +414,12 @@ function renderCatalog() {
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
+    if (showCena && p.cena) {
+      const edit = productEdits[i] || {};
+      const currency = edit.priceCurrency || globalCurrency;
+      const currencySymbol = currency === 'EUR' ? '€' : '£';
+      details.innerHTML += `<br>Cena: ${p.cena} ${currencySymbol}`;
+    }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
     editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
@@ -587,7 +608,7 @@ async function buildPDF(jsPDF, save = true) {
           rankingFontColor: '#000000',
           cenaFont: 'Arial',
           cenaFontColor: '#000000',
-          priceCurrency: 'EUR',
+          priceCurrency: globalCurrency,
           priceFontSize: 'medium'
         };
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
@@ -832,17 +853,4 @@ async function previewPDF() {
   const { jsPDF } = window.jspdf;
   const doc = await buildPDF(jsPDF, false);
   const blobUrl = doc.output("bloburl");
-  document.getElementById("pdfIframe").src = blobUrl;
-  document.getElementById("pdfPreview").style.display = "block";
-}
-
-// Upewnij się, że funkcje są globalne dla atrybutów onclick
-window.importExcel = importExcel;
-window.generatePDF = generatePDF;
-window.previewPDF = previewPDF;
-window.showBannerModal = showBannerModal;
-window.hideBannerModal = hideBannerModal;
-window.showEditModal = showEditModal;
-window.hideEditModal = hideEditModal;
-window.saveEdit = saveEdit;
-loadProducts();
+  document.getElementById("pdfIframe").src =
