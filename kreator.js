@@ -221,279 +221,6 @@ function saveEdit(productIndex) {
   hideEditModal();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const imageInput = document.getElementById("imageInput");
-  const uploadArea = document.getElementById("uploadArea");
-  if (imageInput && uploadArea) {
-    imageInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        console.log("Zmiana w imageInput, pliki:", e.target.files.length);
-        handleFiles(e.target.files, loadCustomImages);
-      }
-    });
-    uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      uploadArea.classList.add("dragover");
-    });
-    uploadArea.addEventListener("dragleave", () => {
-      uploadArea.classList.remove("dragover");
-    });
-    uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) {
-        console.log("Drop zdjęć:", e.dataTransfer.files.length);
-        handleFiles(e.dataTransfer.files, loadCustomImages);
-      }
-    });
-    uploadArea.querySelector('.file-label').addEventListener("click", (e) => {
-      e.preventDefault();
-      imageInput.click();
-    });
-  } else {
-    console.error("Nie znaleziono elementów: imageInput lub uploadArea");
-    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi zdjęć";
-  }
-  const bannerFileInput = document.getElementById("bannerFileInput");
-  const bannerUpload = document.getElementById("bannerUpload");
-  if (bannerFileInput && bannerUpload) {
-    bannerFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        console.log("Zmiana w bannerFileInput, pliki:", e.target.files.length);
-        handleFiles(e.target.files, loadCustomBanner);
-      }
-    });
-    bannerUpload.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      bannerUpload.classList.add("dragover");
-    });
-    bannerUpload.addEventListener("dragleave", () => {
-      bannerUpload.classList.remove("dragover");
-    });
-    bannerUpload.addEventListener("drop", (e) => {
-      e.preventDefault();
-      bannerUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) {
-        console.log("Drop banera:", e.dataTransfer.files.length);
-        handleFiles(e.dataTransfer.files, loadCustomBanner);
-      }
-    });
-    bannerUpload.querySelector('.file-label').addEventListener("click", (e) => {
-      e.preventDefault();
-      bannerFileInput.click();
-    });
-  } else {
-    console.error("Nie znaleziono elementów: bannerFileInput lub bannerUpload");
-    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi banera";
-  }
-  const backgroundFileInput = document.getElementById("backgroundFileInput");
-  const backgroundUpload = document.getElementById("backgroundUpload");
-  if (backgroundFileInput && backgroundUpload) {
-    backgroundFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        console.log("Zmiana w backgroundFileInput, pliki:", e.target.files.length);
-        handleFiles(e.target.files, loadCustomBackground);
-      }
-    });
-    backgroundUpload.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      backgroundUpload.classList.add("dragover");
-    });
-    backgroundUpload.addEventListener("dragleave", () => {
-      backgroundUpload.classList.remove("dragover");
-    });
-    backgroundUpload.addEventListener("drop", (e) => {
-      e.preventDefault();
-      backgroundUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) {
-        console.log("Drop tła:", e.dataTransfer.files.length);
-        handleFiles(e.dataTransfer.files, loadCustomBackground);
-      }
-    });
-    backgroundUpload.querySelector('.file-label').addEventListener("click", (e) => {
-      e.preventDefault();
-      backgroundFileInput.click();
-    });
-  } else {
-    console.error("Nie znaleziono elementów: backgroundFileInput lub backgroundUpload");
-    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi tła";
-  }
-  const coverFileInput = document.getElementById("coverFileInput");
-  const coverUpload = document.getElementById("coverUpload");
-  if (coverFileInput && coverUpload) {
-    coverFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        console.log("Zmiana w coverFileInput, pliki:", e.target.files.length);
-        handleFiles(e.target.files, loadCustomCover);
-      }
-    });
-    coverUpload.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      coverUpload.classList.add("dragover");
-    });
-    coverUpload.addEventListener("dragleave", () => {
-      coverUpload.classList.remove("dragover");
-    });
-    coverUpload.addEventListener("drop", (e) => {
-      e.preventDefault();
-      coverUpload.classList.remove("dragover");
-      if (e.dataTransfer.files.length > 0) {
-        console.log("Drop okładki:", e.dataTransfer.files.length);
-        handleFiles(e.dataTransfer.files, loadCustomCover);
-      }
-    });
-    coverUpload.querySelector('.file-label').addEventListener("click", (e) => {
-      e.preventDefault();
-      coverFileInput.click();
-    });
-  } else {
-    console.error("Nie znaleziono elementów: coverFileInput lub coverUpload");
-    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi okładki";
-  }
-  const excelFileInput = document.getElementById("excelFile");
-  const fileLabelWrapper = document.querySelector(".file-label-wrapper");
-  if (excelFileInput && fileLabelWrapper) {
-    excelFileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        console.log("Zmiana w excelFileInput, plik:", e.target.files[0].name);
-        importExcel();
-      }
-    });
-    fileLabelWrapper.addEventListener("click", (e) => {
-      e.preventDefault();
-      excelFileInput.click();
-    });
-  } else {
-    console.error("Nie znaleziono elementów: excelFileInput lub fileLabelWrapper");
-    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi importu Excel";
-  }
-  const currencySelect = document.getElementById('currencySelect');
-  if (currencySelect) {
-    currencySelect.addEventListener('change', (e) => {
-      globalCurrency = e.target.value;
-      console.log("Zmieniono walutę na:", globalCurrency);
-      renderCatalog();
-    });
-  }
-  const languageSelect = document.getElementById('languageSelect');
-  if (languageSelect) {
-    languageSelect.addEventListener('change', (e) => {
-      globalLanguage = e.target.value;
-      console.log("Zmieniono język na:", globalLanguage);
-      renderCatalog();
-    });
-  }
-});
-
-function showBannerModal() {
-  const bannerModal = document.getElementById('bannerModal');
-  if (bannerModal) {
-    bannerModal.style.display = 'block';
-    loadBanners();
-  } else {
-    console.error("Nie znaleziono elementu bannerModal");
-    document.getElementById('debug').innerText = "Błąd: Brak modalu banera";
-  }
-}
-
-function hideBannerModal() {
-  const bannerModal = document.getElementById('bannerModal');
-  if (bannerModal) {
-    bannerModal.style.display = 'none';
-  }
-}
-
-async function loadBanners() {
-  const bannerOptions = document.getElementById('bannerOptions');
-  if (!bannerOptions) {
-    console.error("Nie znaleziono elementu bannerOptions");
-    document.getElementById('debug').innerText = "Błąd: Brak kontenera opcji banera";
-    return;
-  }
-  bannerOptions.innerHTML = '';
-  const bannerList = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
-  for (const id of bannerList) {
-    const urls = [
-      `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/BANER/${id}.JPG`,
-      `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/BANER/${id}.jpg`,
-      `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/BANER/${id}.png`
-    ];
-    let base64Banner = null;
-    for (const url of urls) {
-      base64Banner = await toBase64(url);
-      if (base64Banner) break;
-    }
-    if (base64Banner) {
-      const preview = document.createElement('img');
-      preview.src = base64Banner;
-      preview.className = 'banner-preview';
-      preview.onclick = () => selectBanner(id, base64Banner);
-      bannerOptions.appendChild(preview);
-    }
-  }
-}
-
-function selectBanner(id, data) {
-  selectedBanner = { id, data };
-  document.querySelectorAll('.banner-preview').forEach(p => p.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
-  hideBannerModal();
-}
-
-function renderCatalog() {
-  const container = document.getElementById("catalog");
-  if (!container) {
-    console.error("Nie znaleziono elementu catalog");
-    document.getElementById('debug').innerText = "Błąd: Brak elementu katalogu";
-    return;
-  }
-  container.innerHTML = "";
-  if (products.length === 0) {
-    container.innerHTML = "<p>Brak produktów do wyświetlenia. Zaimportuj plik Excel.</p>";
-    return;
-  }
-  const layout = document.getElementById('layoutSelect')?.value || "16";
-  const showCena = document.getElementById('showCena')?.checked || false;
-  const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
-  let itemsPerPage = 4;
-  if (layout === "1") itemsPerPage = 1;
-  else if (layout === "2") itemsPerPage = 2;
-  let pageDiv = document.createElement("div");
-  pageDiv.className = "page";
-  products.forEach((p, i) => {
-    const item = document.createElement("div");
-    item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
-    const img = document.createElement('img');
-    img.src = uploadedImages[p.indeks] || p.img || 'https://dummyimage.com/120x84/eee/000&text=brak';
-    img.style.width = '100px';
-    img.style.height = '100px';
-    img.style.objectFit = 'contain';
-    const details = document.createElement('div');
-    details.className = "details";
-    details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
-    if (showCena && p.cena) {
-      const edit = productEdits[i] || {};
-      const currency = edit.priceCurrency || globalCurrency;
-      const currencySymbol = currency === 'EUR' ? '€' : '£';
-      details.innerHTML += `<br>${priceLabel}: ${p.cena} ${currencySymbol}`;
-    }
-    const editButton = document.createElement('button');
-    editButton.className = 'btn-primary edit-button';
-    editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
-    editButton.onclick = () => showEditModal(i);
-    item.appendChild(img);
-    item.appendChild(details);
-    item.appendChild(editButton);
-    pageDiv.appendChild(item);
-    if ((i + 1) % itemsPerPage === 0) {
-      container.appendChild(pageDiv);
-      pageDiv = document.createElement("div");
-      pageDiv.className = "page";
-    }
-  });
-  if (products.length % itemsPerPage !== 0) container.appendChild(pageDiv);
-}
-
 function importExcel() {
   const file = document.getElementById('excelFile').files[0];
   if (!file) {
@@ -947,145 +674,158 @@ async function previewPDF() {
     }
   }
 
-  // Generowanie pierwszej strony z produktami
+  // Generowanie wszystkich stron z produktami dla podglądu
   if (products.length > 0) {
     const bannerImg = selectedBanner ? selectedBanner.data : null;
     const backgroundImg = selectedBackground ? selectedBackground.data : null;
-    if (backgroundImg) {
-      try {
-        doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      } catch (e) {
-        console.error('Błąd dodawania tła:', e);
-        document.getElementById('debug').innerText = "Błąd dodawania tła";
-      }
-    }
-    if (bannerImg) {
-      try {
-        doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-      } catch (e) {
-        console.error('Błąd dodawania banera:', e);
-        document.getElementById('debug').innerText = "Błąd dodawania banera";
-      }
-    }
-    doc.setFont("Arial", "bold");
-    doc.setFontSize(12);
-    doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-    const marginTop = 20 + bannerHeight;
-    const marginBottom = 28;
-    const marginLeftRight = 14;
-    let x = marginLeftRight;
-    let y = marginTop;
     let productIndex = 0;
-    const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
-      for (let row = 0; row < sectionRows && productIndex < Math.min(products.length, 10); row++) {
-        for (let col = 0; col < sectionCols && productIndex < Math.min(products.length, 10); col++) {
-          const p = products[productIndex];
-          const edit = productEdits[productIndex] || {
-            font: 'Arial',
-            fontColor: '#000000',
-            indeksFont: 'Arial',
-            indeksFontColor: '#000000',
-            rankingFont: 'Arial',
-            rankingFontColor: '#000000',
-            cenaFont: 'Arial',
-            cenaFontColor: '#000000',
-            priceCurrency: globalCurrency,
-            priceFontSize: 'medium'
-          };
-          drawBox(doc, x, y, boxWidth, boxHeight, "3d");
-          let imgSrc = uploadedImages[p.indeks] || p.img;
-          if (imgSrc) {
-            try {
-              const img = new Image();
-              img.src = imgSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-              const maxW = isLarge ? (boxWidth - 40) : 90;
-              const maxH = isLarge ? (boxHeight * 0.4) : 60;
-              let scale = Math.min(maxW / img.width, maxH / img.height);
-              let w = img.width * scale;
-              let h = img.height * scale;
-              let imgX = isLarge ? (x + (boxWidth - w) / 2) : (x + 5 + (maxW - w) / 2);
-              let imgY = isLarge ? (y + 25) : (y + 8 + (maxH - h) / 2);
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
-            } catch (e) {
-              console.error('Błąd dodawania obrazka:', e);
-            }
-          }
-          if (isLarge) {
-            let textY = y + boxHeight * 0.5;
-            doc.setFont(edit.font, "bold");
-            doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
-            lines.forEach(line => {
-              doc.text(line, x + boxWidth / 2, textY, { align: "center" });
-              textY += 14;
-            });
-            textY += 10;
-            doc.setFont(edit.indeksFont, "normal");
-            doc.setFontSize(9);
-            doc.text(`Indeks: ${p.indeks || '-'}` , x + boxWidth / 2, textY, { align: "center" });
-            if (showCena && p.cena) {
-              textY += 20;
-              doc.setFont(edit.cenaFont, "bold");
-              doc.setFontSize(14);
-              const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-              doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
-            }
-          } else {
-            let textY = y + 20;
-            doc.setFont(edit.font, "bold");
-            doc.setFontSize(8);
-            doc.setTextColor(0, 0, 0);
-            doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
-            textY += 25;
-            doc.setFont(edit.indeksFont, "normal");
-            doc.setFontSize(7);
-            doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
-            if (showCena && p.cena) {
-              textY += 16;
-              doc.setFont(edit.cenaFont, "bold");
+    while (productIndex < products.length) {
+      if (backgroundImg) {
+        try {
+          doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+        } catch (e) {
+          console.error('Błąd dodawania tła:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania tła";
+        }
+      }
+      if (bannerImg) {
+        try {
+          doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+        } catch (e) {
+          console.error('Błąd dodawania banera:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania banera";
+        }
+      }
+      doc.setFont("Arial", "bold");
+      doc.setFontSize(12);
+      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+      const marginTop = 20 + bannerHeight;
+      const marginBottom = 28;
+      const marginLeftRight = 14;
+      let x = marginLeftRight;
+      let y = marginTop;
+      const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
+        for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
+          for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
+            if (y + boxHeight + 6 > pageHeight - marginBottom) {
+              doc.addPage();
+              pageNumber++;
+              if (backgroundImg) doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+              if (bannerImg) doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
+              doc.setFont("Arial", "bold");
               doc.setFontSize(12);
-              const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-              doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+              doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+              x = marginLeftRight;
+              y = marginTop;
             }
+            const p = products[productIndex];
+            const edit = productEdits[productIndex] || {
+              font: 'Arial',
+              fontColor: '#000000',
+              indeksFont: 'Arial',
+              indeksFontColor: '#000000',
+              rankingFont: 'Arial',
+              rankingFontColor: '#000000',
+              cenaFont: 'Arial',
+              cenaFontColor: '#000000',
+              priceCurrency: globalCurrency,
+              priceFontSize: 'medium'
+            };
+            drawBox(doc, x, y, boxWidth, boxHeight, "3d");
+            let imgSrc = uploadedImages[p.indeks] || p.img;
+            if (imgSrc) {
+              try {
+                const img = new Image();
+                img.src = imgSrc;
+                await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+                const maxW = isLarge ? (boxWidth - 40) : 90;
+                const maxH = isLarge ? (boxHeight * 0.4) : 60;
+                let scale = Math.min(maxW / img.width, maxH / img.height);
+                let w = img.width * scale;
+                let h = img.height * scale;
+                let imgX = isLarge ? (x + (boxWidth - w) / 2) : (x + 5 + (maxW - w) / 2);
+                let imgY = isLarge ? (y + 25) : (y + 8 + (maxH - h) / 2);
+                doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+              } catch (e) {
+                console.error('Błąd dodawania obrazka:', e);
+              }
+            }
+            if (isLarge) {
+              let textY = y + boxHeight * 0.5;
+              doc.setFont(edit.font, "bold");
+              doc.setFontSize(11);
+              doc.setTextColor(0, 0, 0);
+              const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
+              lines.forEach(line => {
+                doc.text(line, x + boxWidth / 2, textY, { align: "center" });
+                textY += 14;
+              });
+              textY += 10;
+              doc.setFont(edit.indeksFont, "normal");
+              doc.setFontSize(9);
+              doc.text(`Indeks: ${p.indeks || '-'}` , x + boxWidth / 2, textY, { align: "center" });
+              if (showCena && p.cena) {
+                textY += 20;
+                doc.setFont(edit.cenaFont, "bold");
+                doc.setFontSize(14);
+                const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+                doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+              }
+            } else {
+              let textY = y + 20;
+              doc.setFont(edit.font, "bold");
+              doc.setFontSize(8);
+              doc.setTextColor(0, 0, 0);
+              doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
+              textY += 25;
+              doc.setFont(edit.indeksFont, "normal");
+              doc.setFontSize(7);
+              doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
+              if (showCena && p.cena) {
+                textY += 16;
+                doc.setFont(edit.cenaFont, "bold");
+                doc.setFontSize(12);
+                const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+                doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+              }
+            }
+            x += boxWidth + 6;
+            productIndex++;
           }
-          x += boxWidth + 6;
-          productIndex++;
         }
         x = marginLeftRight;
         y += boxHeight + 6;
+      };
+      const marginTop = 20 + bannerHeight;
+      const marginBottom = 28;
+      const marginLeftRight = 14;
+      let x = marginLeftRight;
+      let y = marginTop;
+      // Sekcja 1: 2x2 (4 moduły)
+      let cols = 2;
+      let rows = 2;
+      let boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+      let boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+      let isLarge = false;
+      await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
+      if (productIndex < products.length) {
+        cols = 2;
+        rows = 1;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
+        isLarge = true;
+        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
       }
-    };
-    const marginTop = 20 + bannerHeight;
-    const marginBottom = 28;
-    const marginLeftRight = 14;
-    let x = marginLeftRight;
-    let y = marginTop;
-    // Sekcja 1: 2x2 (4 moduły)
-    let cols = 2;
-    let rows = 2;
-    let boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-    let boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-    let isLarge = false;
-    await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-    // Sekcja 2: 2x1 (2 moduły z dużymi zdjęciami)
-    if (productIndex < products.length) {
-      cols = 2;
-      rows = 1;
-      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
-      isLarge = true;
-      await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-    }
-    // Sekcja 3: 2x2 (4 moduły)
-    if (productIndex < products.length) {
-      cols = 2;
-      rows = 2;
-      boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
-      boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
-      isLarge = false;
-      await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      // Sekcja 3: 2x2 (4 moduły)
+      if (productIndex < products.length) {
+        cols = 2;
+        rows = 2;
+        boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
+        boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
+        isLarge = false;
+        await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      }
     }
   }
   const blobUrl = doc.output("bloburl");
