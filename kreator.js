@@ -8,6 +8,40 @@ let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
+// Funkcja do skalowania obrazu dla podglądu HTML
+function resizeImageForPreview(base64Image) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxWidth = 50; // Zmniejszamy maksymalną szerokość do 50px dla podglądu
+      const maxHeight = 50; // Zmniejszamy maksymalną wysokość do 50px
+      let width = img.width;
+      let height = img.height;
+
+      // Skalowanie proporcjonalne
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.7)); // Kompresja JPEG z jakością 70%
+    };
+    img.src = base64Image;
+  });
+}
+
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -460,11 +494,16 @@ function renderCatalog() {
   else if (layout === "2") itemsPerPage = 2;
   let pageDiv = document.createElement("div");
   pageDiv.className = "page";
-  products.forEach((p, i) => {
+  products.forEach(async (p, i) => {
     const item = document.createElement("div");
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
-    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
+    // Skalowanie obrazu dla podglądu HTML
+    const previewImgSrc = p.img ? await resizeImageForPreview(p.img) : (uploadedImages[p.indeks] ? await resizeImageForPreview(uploadedImages[p.indeks]) : 'https://dummyimage.com/120x84/eee/000&text=brak');
+    img.src = previewImgSrc;
+    img.style.width = '100px';
+    img.style.height = '100px';
+    img.style.objectFit = 'contain';
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
@@ -658,25 +697,25 @@ async function buildPDF(jsPDF, save = true) {
           priceFontSize: 'medium'
         };
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
-        let imgSrc = uploadedImages[p.indeks] || p.img;
-        if (isLarge) {
-          if (imgSrc) {
-            try {
-              const img = new Image();
-              img.src = imgSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-              const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
-              const maxH = boxHeight * (sectionCols === 1 ? 0.5 : 0.4);
-              let scale = Math.min(maxW / img.width, maxH / img.height);
-              let w = img.width * scale;
-              let h = img.height * scale;
-              let imgX = x + (boxWidth - w) / 2;
-              let imgY = y + (sectionCols === 1 ? 40 : 25);
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
-            } catch (e) {
-              console.error('Błąd dodawania obrazka:', e);
-            }
+        let imgSrc = uploadedImages[p.indeks] || p.img; // Używamy oryginalnego obrazu dla PDF
+        if (imgSrc) {
+          try {
+            const img = new Image();
+            img.src = imgSrc;
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+            const maxW = isLarge ? (boxWidth - (sectionCols === 1 ? 80 : 40)) : 90;
+            const maxH = isLarge ? (boxHeight * (sectionCols === 1 ? 0.5 : 0.4)) : 60;
+            let scale = Math.min(maxW / img.width, maxH / img.height);
+            let w = img.width * scale;
+            let h = img.height * scale;
+            let imgX = isLarge ? (x + (boxWidth - w) / 2) : (x + 5 + (maxW - w) / 2);
+            let imgY = isLarge ? (y + (sectionCols === 1 ? 40 : 25)) : (y + 8 + (maxH - h) / 2);
+            doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+          } catch (e) {
+            console.error('Błąd dodawania obrazka:', e);
           }
+        }
+        if (isLarge) {
           let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
           if (textY + (showCena ? 74 : 22) > pageHeight - marginBottom) {
             doc.addPage();
