@@ -6,7 +6,7 @@ let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
 let pageEdits = {};
-let producers = {}; // { nazwaProd: base64_logo }
+let producers = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 let showLogo = true;
@@ -284,7 +284,7 @@ function saveEdit(productIndex) {
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
-  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
+  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
   renderCatalog();
   hideEditModal();
 }
@@ -303,7 +303,6 @@ function showPageEditModal(pageIndex) {
     showPriceLabel: true
   };
   const editForm = document.getElementById('editForm');
-  // Oblicz rzeczywistą liczbę stron na podstawie układu
   const layout = document.getElementById('layoutSelect').value || "16";
   let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
@@ -311,7 +310,7 @@ function showPageEditModal(pageIndex) {
   else if (layout === "4") itemsPerPage = 4;
   else if (layout === "8") itemsPerPage = 8;
   else if (layout === "16") itemsPerPage = 16;
-  else if (layout === "4-2-4") itemsPerPage = 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
+  else if (layout === "4-2-4") itemsPerPage = 10;
   const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
   editForm.innerHTML = `
     <div class="edit-field">
@@ -387,7 +386,7 @@ function savePageEdit(pageIndex) {
     priceCurrency: document.getElementById('editCenaCurrency').value,
     showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true'
   };
-  console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]); // Debug
+  console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]);
   renderCatalog();
   hideEditModal();
 }
@@ -562,15 +561,14 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCatalog();
     });
   }
-  // Dodanie przycisku "Edytuj stronę PDF" nad listą produktów
   const panel = document.querySelector('.improved-panel');
   const pageEditButton = document.createElement('button');
   pageEditButton.className = 'btn-secondary';
   pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę PDF';
-  pageEditButton.onclick = () => showPageEditModal(0); // Domyślnie pierwsza strona
+  pageEditButton.onclick = () => showPageEditModal(0);
   panel.appendChild(pageEditButton);
   loadProducers();
-});
+}
 
 function showBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
@@ -649,7 +647,7 @@ function renderCatalog() {
   else if (layout === "4") itemsPerPage = 4;
   else if (layout === "8") itemsPerPage = 8;
   else if (layout === "16") itemsPerPage = 16;
-  else if (layout === "4-2-4") itemsPerPage = 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
+  else if (layout === "4-2-4") itemsPerPage = 10;
   let pageDiv;
   let currentPage = 0;
   products.forEach((p, i) => {
@@ -670,11 +668,11 @@ function renderCatalog() {
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
       const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
-      const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
+      const finalEdit = { ...pageEdit, ...edit };
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit); // Debug
+      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit);
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
     if (showLogo && p.logo && layout === "4") {
@@ -715,7 +713,7 @@ function importExcel() {
         headers.forEach((header, i) => {
           let value = row[header];
           if (header === 'index-cell') obj['indeks'] = value || '';
-          if (header === 'KOD EAN') obj['ean'] = value ? value.toString() : ''; // Convert to string
+          if (header === 'KOD EAN') obj['ean'] = value ? value.toString() : '';
           if (header === 'netto-cell') obj['cena'] = value || '';
           if (header === 'text-decoration-none') obj['nazwa'] = value || '';
           if (header === 'NAZWA_PROD') obj['nazwa_prod'] = value || '';
@@ -732,7 +730,7 @@ function importExcel() {
         headers.forEach((header, i) => {
           let value = row[i];
           if (header === 'index-cell') obj['indeks'] = value || '';
-          if (header === 'KOD EAN') obj['ean'] = value ? value.toString() : ''; // Convert to string
+          if (header === 'KOD EAN') obj['ean'] = value ? value.toString() : '';
           if (header === 'netto-cell') obj['cena'] = value || '';
           if (header === 'text-decoration-none') obj['nazwa'] = value || '';
           if (header === 'NAZWA_PROD') obj['nazwa_prod'] = value || '';
@@ -786,7 +784,7 @@ function importExcel() {
     if (newProducts.length) {
       products = newProducts;
       productEdits = {};
-      pageEdits = {}; // Resetowanie edycji stron po imporcie
+      pageEdits = {};
       renderCatalog();
       document.getElementById('pdfButton').disabled = false;
       document.getElementById('previewButton').disabled = false;
