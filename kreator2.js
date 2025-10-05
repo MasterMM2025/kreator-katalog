@@ -459,6 +459,23 @@ function saveEdit(productIndex) {
   if (document.getElementById('showCena')?.checked) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
+  // ✅ Uaktualnij kod kreskowy po edycji produktu, jeśli EAN istnieje
+  if (product.ean && /^\d{12,13}$/.test(product.ean)) {
+    try {
+      const canvas = document.createElement('canvas');
+      JsBarcode(canvas, product.ean, {
+        format: "EAN13",
+        width: 1.6,
+        height: 32,
+        displayValue: true,
+        fontSize: 9,
+        margin: 0
+      });
+      product.barcode = canvas.toDataURL("image/png", 0.8);
+    } catch (e) {
+      console.error("Błąd odświeżania kodu kreskowego:", e);
+    }
+  }
   productEdits[productIndex] = {
     nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
     nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
