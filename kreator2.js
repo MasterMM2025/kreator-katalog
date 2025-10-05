@@ -74,7 +74,7 @@ async function buildPDF(jsPDF, save = true) {
   const showEan = document.getElementById('showEan')?.checked || false;
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-  const showLogo = document.getElementById('showLogo')?.checked || false; // Dodano sprawdzanie logo
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
@@ -109,7 +109,7 @@ async function buildPDF(jsPDF, save = true) {
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
         let imgSrc = uploadedImages[p.indeks] || p.img;
-        let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null; // Użyj logo niestandardowego lub producenta
+        let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
         if (isLarge) {
           if (imgSrc) {
             try {
@@ -163,7 +163,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
-          if (showLogo && layout === "4" && logoSrc) { // Dodano logo dla modułu 4
+          if (showLogo && layout === "4" && logoSrc) { // Wyświetl tylko logo dla modułu 4
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
@@ -378,11 +378,11 @@ function showEditModal(productIndex) {
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
-    logo: null // Dodano pole logo
+    logo: null
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-  const showLogo = document.getElementById('showLogo')?.checked || false; // Dodano sprawdzanie logo
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -447,10 +447,10 @@ function showEditModal(productIndex) {
     ${showLogo ? `
       <div class="edit-field">
         <label>Logo:</label>
-        <img src="${edit.logo || (product.producent && manufacturerLogos[product.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
+        <img src="${edit.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
         <select id="editLogoSelect">
           <option value="">Brak logo</option>
-          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${product.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
+          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${p.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
         </select>
         <input type="file" id="editLogo" accept="image/*">
       </div>
@@ -505,7 +505,7 @@ function saveEdit(productIndex) {
     cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
-    logo: productEdits[productIndex]?.logo || null // Zachowaj logo
+    logo: productEdits[productIndex]?.logo || null
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
   renderCatalog();
@@ -608,7 +608,7 @@ function showVirtualEditModal(productIndex) {
     document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
-    window.applyTextEdit = function() { // Zmiana na globalną funkcję
+    window.applyTextEdit = function() {
       obj.set({
         fontFamily: document.getElementById('fontSelect').value,
         fill: document.getElementById('colorSelect').value,
@@ -661,5 +661,3 @@ window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
 loadProducts();
-
-
