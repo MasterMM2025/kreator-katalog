@@ -12,6 +12,16 @@ function drawBox(doc, x, y, w, h, style) {
   }
 }
 
+function showProgressModal() {
+  document.getElementById('progressModal').style.display = 'block';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = '0%';
+}
+
+function hideProgressModal() {
+  document.getElementById('progressModal').style.display = 'none';
+}
+
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -77,18 +87,9 @@ async function buildPDF(jsPDF, save = true) {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
         const p = products[productIndex];
-        const edit = productEdits[productIndex] || {
-          font: 'Arial',
-          fontColor: '#000000',
-          indeksFont: 'Arial',
-          indeksFontColor: '#000000',
-          rankingFont: 'Arial',
-          rankingFontColor: '#000000',
-          cenaFont: 'Arial',
-          cenaFontColor: '#000000',
-          priceCurrency: globalCurrency,
-          priceFontSize: 'medium'
-        };
+        const edit = productEdits[productIndex] || {};
+        const pageEdit = pageEdits[Math.floor(productIndex / 4)] || {};
+        const finalEdit = { ...edit, ...pageEdit }; // Priorytet edycji strony nad edycją produktu
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
@@ -112,9 +113,9 @@ async function buildPDF(jsPDF, save = true) {
           }
 
           let textY = y + 5 + (boxHeight * 0.4) + 10;
-          doc.setFont(edit.font, "bold");
+          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
-          doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
+          doc.setTextColor(parseInt((finalEdit.nazwaFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.nazwaFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.nazwaFontColor || '#000000').substring(5, 7), 16));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           const maxLines = 3;
           lines.slice(0, maxLines).forEach((line, index) => {
@@ -122,26 +123,27 @@ async function buildPDF(jsPDF, save = true) {
           });
           textY += Math.min(lines.length, maxLines) * 18 + 10;
 
-          doc.setFont(edit.indeksFont, "normal");
+          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
-          doc.setTextColor(parseInt(edit.indeksFontColor.substring(1, 3), 16), parseInt(edit.indeksFontColor.substring(3, 5), 16), parseInt(edit.indeksFontColor.substring(5, 7), 16));
+          doc.setTextColor(parseInt((finalEdit.indeksFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.indeksFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.indeksFontColor || '#000000').substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
 
           if (showRanking && p.ranking) {
-            doc.setFont(edit.rankingFont, "normal");
-            doc.setTextColor(parseInt(edit.rankingFontColor.substring(1, 3), 16), parseInt(edit.rankingFontColor.substring(3, 5), 16), parseInt(edit.rankingFontColor.substring(5, 7), 16));
+            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+            doc.setTextColor(parseInt((finalEdit.rankingFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.rankingFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.rankingFontColor || '#000000').substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
 
           if (showCena && p.cena) {
-            doc.setFont(edit.cenaFont, "bold");
-            const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
+            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+            const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
-            doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.setTextColor(parseInt((finalEdit.cenaFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.cenaFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.cenaFontColor || '#000000').substring(5, 7), 16));
+            const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
+            const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
 
           if (showEan && p.ean && p.barcode) {
@@ -174,29 +176,30 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont(edit.font, "bold");
+          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
           doc.setFontSize(8);
-          doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
+          doc.setTextColor(parseInt((finalEdit.nazwaFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.nazwaFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.nazwaFontColor || '#000000').substring(5, 7), 16));
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
-          doc.setFont(edit.indeksFont, "normal");
+          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
           doc.setFontSize(7);
-          doc.setTextColor(parseInt(edit.indeksFontColor.substring(1, 3), 16), parseInt(edit.indeksFontColor.substring(3, 5), 16), parseInt(edit.indeksFontColor.substring(5, 7), 16));
+          doc.setTextColor(parseInt((finalEdit.indeksFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.indeksFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.indeksFontColor || '#000000').substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
           textY += 12;
           if (showRanking && p.ranking) {
-            doc.setFont(edit.rankingFont, "normal");
-            doc.setTextColor(parseInt(edit.rankingFontColor.substring(1, 3), 16), parseInt(edit.rankingFontColor.substring(3, 5), 16), parseInt(edit.rankingFontColor.substring(5, 7), 16));
+            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+            doc.setTextColor(parseInt((finalEdit.rankingFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.rankingFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.rankingFontColor || '#000000').substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
             textY += 12;
           }
           if (showCena && p.cena) {
-            doc.setFont(edit.cenaFont, "bold");
-            const priceFontSize = edit.priceFontSize === 'small' ? 10 : edit.priceFontSize === 'medium' ? 12 : 14;
+            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+            const priceFontSize = (finalEdit.priceFontSize || 'medium') === 'small' ? 10 : (finalEdit.priceFontSize || 'medium') === 'medium' ? 12 : 14;
             doc.setFontSize(priceFontSize);
-            doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+            doc.setTextColor(parseInt((finalEdit.cenaFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.cenaFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.cenaFontColor || '#000000').substring(5, 7), 16));
+            const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
+            const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
@@ -342,5 +345,7 @@ window.hideBannerModal = hideBannerModal;
 window.showEditModal = showEditModal;
 window.hideEditModal = hideEditModal;
 window.saveEdit = saveEdit;
+window.showPageEditModal = showPageEditModal;
+window.savePageEdit = savePageEdit;
 
 loadProducts();
