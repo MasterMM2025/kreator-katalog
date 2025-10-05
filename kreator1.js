@@ -713,17 +713,16 @@ function importExcel() {
         document.getElementById('debug').innerText = "Błąd: Plik CSV jest pusty";
         return;
       }
-      const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
+      const headers = Object.keys(rows[0]).map(h => h.trim());
       rows = rows.map(row => {
         let obj = {};
         headers.forEach((header, i) => {
-          const value = row[Object.keys(row)[i]];
-          if (header.includes('index') || header.includes('indeks')) obj['indeks'] = value || '';
-          if (header.includes('ean')) obj['ean'] = value || '';
-          if (header.includes('rank')) obj['ranking'] = value || '';
-          if (header.includes('cen')) obj['cena'] = value || '';
-          if (header.includes('nazwa')) obj['nazwa'] = value || '';
-          if (header.includes('nazwa_prod')) obj['nazwa_prod'] = value || '';
+          const value = row[header];
+          if (header === 'index-cell') obj['indeks'] = value || '';
+          if (header === 'KOD EAN') obj['ean'] = value || '';
+          if (header === 'netto-cell') obj['cena'] = value || '';
+          if (header === 'text-decoration-none') obj['nazwa'] = value || '';
+          if (header === 'NAZWA_PROD') obj['nazwa_prod'] = value || '';
         });
         return obj;
       });
@@ -731,16 +730,15 @@ function importExcel() {
       const workbook = XLSX.read(e.target.result, { type: 'binary' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
-      const headers = rows[0].map(h => h.toString().toLowerCase().trim());
+      const headers = rows[0].map(h => h.toString().trim());
       rows = rows.slice(1).map(row => {
         let obj = {};
         headers.forEach((header, i) => {
-          if (header.includes('index') || header.includes('indeks')) obj['indeks'] = row[i] || '';
-          if (header.includes('ean')) obj['ean'] = row[i] || '';
-          if (header.includes('rank')) obj['ranking'] = row[i] || '';
-          if (header.includes('cen')) obj['cena'] = row[i] || '';
-          if (header.includes('nazwa')) obj['nazwa'] = row[i] || '';
-          if (header.includes('nazwa_prod')) obj['nazwa_prod'] = row[i] || '';
+          if (header === 'index-cell') obj['indeks'] = row[i] || '';
+          if (header === 'KOD EAN') obj['ean'] = row[i] || '';
+          if (header === 'netto-cell') obj['cena'] = row[i] || '';
+          if (header === 'text-decoration-none') obj['nazwa'] = row[i] || '';
+          if (header === 'NAZWA_PROD') obj['nazwa_prod'] = row[i] || '';
         });
         return obj;
       });
