@@ -11,17 +11,14 @@ function drawBox(doc, x, y, w, h, style) {
     doc.rect(x, y, w, h, 'F');
   }
 }
-
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
-
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
-
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -31,7 +28,6 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
-
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -43,11 +39,9 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
-
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-
   if (products.length > 0) {
     if (backgroundImg) {
       try {
@@ -69,7 +63,6 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
-
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -78,23 +71,20 @@ async function buildPDF(jsPDF, save = true) {
   const showEan = document.getElementById('showEan')?.checked || false;
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
-
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
     if (layout === "4") return 4;
     if (layout === "8") return 8;
     if (layout === "16") return 16;
-    if (layout === "4-2-4") return 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
-    return 4; // Domyślnie
+    if (layout === "4-2-4") return 10;
+    return 4;
   };
-
   const itemsPerPage = getItemsPerPage();
-
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -115,7 +105,6 @@ async function buildPDF(jsPDF, save = true) {
         const finalEdit = { ...pageEdit, ...edit };
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
-
         let imgSrc = uploadedImages[p.indeks] || p.img;
         if (isLarge) {
           if (imgSrc) {
@@ -135,7 +124,6 @@ async function buildPDF(jsPDF, save = true) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
-
           let textY = y + 5 + (boxHeight * 0.4) + 10;
           doc.setFont(finalEdit.nazwaFont, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
@@ -147,14 +135,12 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(line, x + boxWidth / 2, textY + (index * 18), { align: "center" });
           });
           textY += Math.min(lines.length, maxLines) * 18 + 10;
-
           doc.setFont(finalEdit.indeksFont, "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
-
           if (showRanking && p.ranking) {
             doc.setFont(finalEdit.rankingFont, "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
@@ -162,7 +148,6 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
-
           if (showCena && p.cena) {
             doc.setFont(finalEdit.cenaFont, "bold");
             const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
@@ -172,8 +157,20 @@ async function buildPDF(jsPDF, save = true) {
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            textY += sectionCols === 1 ? 22 : 18;
           }
-
+          if (showLogo && p.logo && layout === "4") {
+            try {
+              const logoW = sectionCols === 1 ? 50 : 30;
+              const logoH = sectionCols === 1 ? 50 : 30;
+              const logoX = x + (boxWidth - logoW) / 2;
+              const logoY = textY;
+              doc.addImage(p.logo, p.logo.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
+              textY += logoH + 5;
+            } catch (e) {
+              console.error('Błąd logo w PDF:', e);
+            }
+          }
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = sectionCols === 1 ? 180 : 140;
@@ -234,6 +231,18 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
             textY += 16;
           }
+          if (showLogo && p.logo && layout === "4") {
+            try {
+              const logoW = 30;
+              const logoH = 30;
+              const logoX = x + (boxWidth - logoW) / 2;
+              const logoY = textY;
+              doc.addImage(p.logo, p.logo.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
+              textY += logoH + 5;
+            } catch (e) {
+              console.error('Błąd logo w PDF:', e);
+            }
+          }
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = 85;
@@ -246,7 +255,6 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
         }
-
         processedProducts++;
         const progress = (processedProducts / totalProducts) * 100;
         document.getElementById('progressBar').style.width = `${progress}%`;
@@ -259,7 +267,6 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
-
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -298,23 +305,18 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
-      // First 4 (top)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-
-      // Middle 2
       cols = 2;
       rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-
-      // Last 4 (bottom)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
@@ -322,7 +324,6 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     }
-
     if (productIndex < products.length) {
       doc.addPage();
       pageNumber++;
@@ -343,24 +344,21 @@ async function buildPDF(jsPDF, save = true) {
         }
       }
       doc.setFont("Arial", "bold");
-      doc.setTextColor(0, 0, 0); // Domyślny kolor tekstu dla numeru strony
+      doc.setTextColor(0, 0, 0);
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
       x = marginLeftRight;
       y = marginTop;
     }
   }
-
   hideProgressModal();
   if (save) doc.save("katalog.pdf");
   return doc;
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -369,7 +367,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -451,7 +448,6 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -483,11 +479,10 @@ function saveEdit(productIndex) {
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
-  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
+  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
   renderCatalog();
   hideEditModal();
 }
-
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -526,13 +521,11 @@ function showVirtualEditModal(productIndex) {
     </div>
   `;
   modal.style.display = 'block';
-
   const canvas = new fabric.Canvas('virtualEditCanvas');
   fabric.Image.fromURL(uploadedImages[product.indeks] || product.img, (img) => {
     img.scaleToWidth(300);
     canvas.add(img);
   });
-
   const nazwaText = new fabric.Text(product.nazwa || 'Brak nazwy', {
     left: edit.positionX || 320,
     top: edit.positionY || 10,
@@ -542,7 +535,6 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(nazwaText);
-
   const indeksText = new fabric.Text(`Indeks: ${product.indeks || '-'}` , {
     left: 320,
     top: 40,
@@ -552,7 +544,6 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(indeksText);
-
   if (showRanking && product.ranking) {
     const rankingText = new fabric.Text(`RANKING: ${product.ranking}`, {
       left: 320,
@@ -564,7 +555,6 @@ function showVirtualEditModal(productIndex) {
     });
     canvas.add(rankingText);
   }
-
   if (showCena && product.cena) {
     const cenaText = new fabric.Text(`${priceLabel}: ${product.cena} ${(edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£'}`, {
       left: 320,
@@ -576,7 +566,6 @@ function showVirtualEditModal(productIndex) {
     });
     canvas.add(cenaText);
   }
-
   if (showEan && product.ean && product.barcode) {
     fabric.Image.fromURL(product.barcode, (barcodeImg) => {
       barcodeImg.scaleToWidth(100);
@@ -584,14 +573,12 @@ function showVirtualEditModal(productIndex) {
       canvas.add(barcodeImg);
     });
   }
-
   canvas.on('object:selected', (e) => {
     const obj = e.target;
     document.getElementById('editPanel').style.display = 'block';
     document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
-
     function applyTextEdit() {
       obj.set({
         fontFamily: document.getElementById('fontSelect').value,
@@ -601,12 +588,10 @@ function showVirtualEditModal(productIndex) {
       canvas.renderAll();
     }
   });
-
   canvas.on('object:moving', (e) => {
     const obj = e.target;
     console.log('Przesunięto:', obj.left, obj.top);
   });
-
   document.getElementById('saveVirtualEdit').onclick = () => {
     const activeObject = canvas.getActiveObject();
     if (activeObject) {
@@ -632,17 +617,14 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -651,7 +633,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -660,5 +641,4 @@ window.showVirtualEditModal = showVirtualEditModal;
 window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
-
 loadProducts();
