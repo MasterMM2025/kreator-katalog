@@ -185,42 +185,7 @@ function showEditModal(productIndex) {
 
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
-}
-
-function saveEdit(productIndex) {
-  const product = products[productIndex];
-  const editImage = document.getElementById('editImage').files[0];
-  if (editImage) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImages[product.indeks] = e.target.result;
-      renderCatalog();
-    };
-    reader.readAsDataURL(editImage);
-  }
-  product.nazwa = document.getElementById('editNazwa').value;
-  product.indeks = document.getElementById('editIndeks').value;
-  if (document.getElementById('showRanking')?.checked) {
-    product.ranking = document.getElementById('editRanking')?.value || '';
-  }
-  if (document.getElementById('showCena')?.checked) {
-    product.cena = document.getElementById('editCena')?.value || '';
-  }
-  productEdits[productIndex] = {
-    nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
-    nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
-    indeksFont: document.getElementById('editIndeksFont').value || 'Arial',
-    indeksFontColor: document.getElementById('editIndeksColor').value || '#000000',
-    rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
-    rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
-    cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
-    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
-    priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
-    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
-  };
-  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
-  renderCatalog();
-  hideEditModal();
+  document.getElementById('virtualEditModal').style.display = 'none';
 }
 
 function showPageEditModal(pageIndex) {
@@ -324,10 +289,6 @@ function savePageEdit(pageIndex) {
   console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]); // Debug
   renderCatalog();
   hideEditModal();
-}
-
-function hideEditModal() {
-  document.getElementById('editModal').style.display = 'none';
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -601,7 +562,7 @@ function renderCatalog() {
     img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
     const details = document.createElement('div');
     details.className = "details";
-    details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
+    details.innerHTML = `<span class="name">${p.nazwa || 'Brak nazwy'}</span><br><span class="index">Indeks: ${p.indeks || 'Brak indeksu'}</span>`;
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
       const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
@@ -613,12 +574,17 @@ function renderCatalog() {
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
-    editButton.className = 'btn-primary edit-button';
+    editButton.className = 'btn-secondary edit-button';
     editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
     editButton.onclick = () => showEditModal(i);
+    const virtualEditButton = document.createElement('button');
+    virtualEditButton.className = 'btn-primary edit-button';
+    virtualEditButton.innerHTML = '<i class="fas fa-vr-cardboard"></i> Edycja wirtualna';
+    virtualEditButton.onclick = () => showVirtualEditModal(i);
     item.appendChild(img);
     item.appendChild(details);
     item.appendChild(editButton);
+    item.appendChild(virtualEditButton);
     pageDiv.appendChild(item);
   });
 }
