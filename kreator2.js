@@ -99,9 +99,10 @@ async function buildPDF(jsPDF, save = true) {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
         const p = products[productIndex];
-        const edit = productEdits[productIndex] || {
-          font: 'Arial',
-          fontColor: '#000000',
+        const edit = productEdits[productIndex] || {};
+        const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {
+          nazwaFont: 'Arial',
+          nazwaFontColor: '#000000',
           indeksFont: 'Arial',
           indeksFontColor: '#000000',
           rankingFont: 'Arial',
@@ -109,10 +110,9 @@ async function buildPDF(jsPDF, save = true) {
           cenaFont: 'Arial',
           cenaFontColor: '#000000',
           priceCurrency: globalCurrency,
-          priceFontSize: 'medium'
-        }; // Pełne domyślne wartości
-        const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {};
-        const finalEdit = { ...edit, ...pageEdit }; // Zmieniono kolejność: priorytet productEdits nad pageEdits
+          showPriceLabel: true
+        };
+        const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
@@ -136,9 +136,9 @@ async function buildPDF(jsPDF, save = true) {
           }
 
           let textY = y + 5 + (boxHeight * 0.4) + 10;
-          doc.setFont(finalEdit.font, "bold");
+          doc.setFont(finalEdit.nazwaFont, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
-          const nazwaFontColor = finalEdit.fontColor || '#000000'; // Fallback
+          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000'; // Fallback
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           const maxLines = 3;
@@ -203,9 +203,9 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont(finalEdit.font, "bold");
+          doc.setFont(finalEdit.nazwaFont, "bold");
           doc.setFontSize(8);
-          const nazwaFontColor = finalEdit.fontColor || '#000000';
+          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
