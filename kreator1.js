@@ -6,8 +6,10 @@ let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
 let pageEdits = {};
+let producers = {}; // { nazwaProd: base64_logo }
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
+let showLogo = true;
 
 async function toBase64(url) {
   try {
@@ -59,6 +61,38 @@ async function loadProducts() {
   }
 }
 
+async function loadProducers() {
+  try {
+    const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
+    if (!response.ok) throw new Error(`Nie udało się załadować producentów: ${response.status}`);
+    const producerData = await response.json();
+    
+    for (const prod of producerData) {
+      const nazwaKey = prod.NAZWA_PROD.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+      const logoUrls = [
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${nazwaKey}.png`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${nazwaKey}.jpg`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${nazwaKey}.jpeg`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${prod.NAZWA_PROD.trim()}.png`
+      ];
+      
+      let logoBase64 = null;
+      for (const url of logoUrls) {
+        logoBase64 = await toBase64(url);
+        if (logoBase64) {
+          producers[prod.NAZWA_PROD.trim()] = logoBase64;
+          console.log(`Załadowano logo dla: ${prod.NAZWA_PROD}`);
+          break;
+        }
+      }
+    }
+    document.getElementById('debug').innerText += ` | Załadowano ${Object.keys(producers).length} logów`;
+  } catch (error) {
+    console.error("Błąd ładowania producentów:", error);
+    document.getElementById('debug').innerText += " | Błąd producentów";
+  }
+}
+
 function handleFiles(files, callback) {
   if (!files || files.length === 0) {
     console.error("Brak plików do załadowania");
@@ -101,6 +135,18 @@ function loadCustomImages(file, data) {
   renderCatalog();
 }
 
+function updateLogoPreview() {
+  const select = document.getElementById('editLogoSelect');
+  const preview = document.getElementById('logoPreview');
+  const selectedProd = select.value;
+  if (selectedProd && producers[selectedProd]) {
+    preview.src = producers[selectedProd];
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -117,6 +163,7 @@ function showEditModal(productIndex) {
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -178,6 +225,17 @@ function showEditModal(productIndex) {
         </select>
       </div>
     ` : ''}
+    ${showLogo ? `
+      <div class="edit-field">
+        <label>Logo:</label>
+        <input type="text" id="editNazwaProd" value="${product.nazwaProd || ''}" placeholder="Wpisz nazwę producenta">
+        <select id="editLogoSelect" onchange="updateLogoPreview()">
+          <option value="">-- Wybierz z listy --</option>
+          ${Object.keys(producers).map(name => `<option value="${name}" ${product.nazwaProd === name ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
+        <img id="logoPreview" src="${product.logo || ''}" style="width:60px; height:60px; object-fit:contain; margin-top:5px; display: ${product.logo ? 'block' : 'none'};">
+      </div>
+    ` : ''}
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
   `;
   document.getElementById('editModal').style.display = 'block';
@@ -205,6 +263,14 @@ function saveEdit(productIndex) {
   }
   if (document.getElementById('showCena')?.checked) {
     product.cena = document.getElementById('editCena')?.value || '';
+  }
+  const selectedLogoProd = document.getElementById('editLogoSelect')?.value || '';
+  if (selectedLogoProd) {
+    product.nazwaProd = selectedLogoProd;
+    product.logo = producers[selectedLogoProd];
+  } else {
+    product.nazwaProd = document.getElementById('editNazwaProd')?.value || '';
+    product.logo = null;
   }
   productEdits[productIndex] = {
     nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
@@ -363,7 +429,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: imageInput lub uploadArea");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi zdjęć";
   }
-
   const bannerFileInput = document.getElementById("bannerFileInput");
   const bannerUpload = document.getElementById("bannerUpload");
   if (bannerFileInput && bannerUpload) {
@@ -396,7 +461,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: bannerFileInput lub bannerUpload");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi banera";
   }
-
   const backgroundFileInput = document.getElementById("backgroundFileInput");
   const backgroundUpload = document.getElementById("backgroundUpload");
   if (backgroundFileInput && backgroundUpload) {
@@ -429,7 +493,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: backgroundFileInput lub backgroundUpload");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi tła";
   }
-
   const coverFileInput = document.getElementById("coverFileInput");
   const coverUpload = document.getElementById("coverUpload");
   if (coverFileInput && coverUpload) {
@@ -462,7 +525,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: coverFileInput lub coverUpload");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi okładki";
   }
-
   const excelFileInput = document.getElementById("excelFile");
   const fileLabelWrapper = document.querySelector(".file-label-wrapper");
   if (excelFileInput && fileLabelWrapper) {
@@ -480,7 +542,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Nie znaleziono elementów: excelFileInput lub fileLabelWrapper");
     document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi importu Excel";
   }
-
   const currencySelect = document.getElementById('currencySelect');
   if (currencySelect) {
     currencySelect.addEventListener('change', (e) => {
@@ -489,7 +550,6 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCatalog();
     });
   }
-
   const languageSelect = document.getElementById('languageSelect');
   if (languageSelect) {
     languageSelect.addEventListener('change', (e) => {
@@ -498,7 +558,14 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCatalog();
     });
   }
-
+  const showLogoCheckbox = document.getElementById('showLogo');
+  if (showLogoCheckbox) {
+    showLogoCheckbox.addEventListener('change', (e) => {
+      showLogo = e.target.checked;
+      console.log("Zmieniono showLogo na:", showLogo);
+      renderCatalog();
+    });
+  }
   // Dodanie przycisku "Edytuj stronę PDF" nad listą produktów
   const panel = document.querySelector('.improved-panel');
   const pageEditButton = document.createElement('button');
@@ -506,6 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
   pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę PDF';
   pageEditButton.onclick = () => showPageEditModal(0); // Domyślnie pierwsza strona
   panel.appendChild(pageEditButton);
+  loadProducers();
 });
 
 function showBannerModal() {
@@ -577,6 +645,7 @@ function renderCatalog() {
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
@@ -611,6 +680,9 @@ function renderCatalog() {
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
       console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit); // Debug
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+    }
+    if (showLogo && p.logo && layout === "4") {
+      details.innerHTML += `<br><img src="${p.logo}" class="logo">`;
     }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
@@ -651,6 +723,7 @@ function importExcel() {
           if (header.includes('rank')) obj['ranking'] = value || '';
           if (header.includes('cen')) obj['cena'] = value || '';
           if (header.includes('nazwa')) obj['nazwa'] = value || '';
+          if (header.includes('nazwa_prod')) obj['nazwa_prod'] = value || '';
         });
         return obj;
       });
@@ -667,6 +740,7 @@ function importExcel() {
           if (header.includes('rank')) obj['ranking'] = row[i] || '';
           if (header.includes('cen')) obj['cena'] = row[i] || '';
           if (header.includes('nazwa')) obj['nazwa'] = row[i] || '';
+          if (header.includes('nazwa_prod')) obj['nazwa_prod'] = row[i] || '';
         });
         return obj;
       });
@@ -694,6 +768,11 @@ function importExcel() {
             console.error('Błąd generowania kodu kreskowego:', e);
           }
         }
+        const nazwaProd = row['nazwa_prod'] || '';
+        let logo = null;
+        if (nazwaProd && producers[nazwaProd]) {
+          logo = producers[nazwaProd];
+        }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
           ean: row['ean'] || (matched ? matched.ean : ''),
@@ -701,7 +780,9 @@ function importExcel() {
           cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
           img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
-          barcode: barcodeImg
+          barcode: barcodeImg,
+          nazwaProd: nazwaProd,
+          logo: logo
         });
       }
     });
