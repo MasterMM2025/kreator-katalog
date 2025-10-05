@@ -6,9 +6,10 @@ let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
 let pageEdits = {};
+let producers = {}; // { nazwaProd: base64_logo }
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
-let manufacturerLogos = {};
+let showLogo = true;
 
 async function toBase64(url) {
   try {
@@ -21,38 +22,8 @@ async function toBase64(url) {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch (e) {
-    console.error("Błąd w toBase64:", e);
+  } catch {
     return null;
-  }
-}
-
-async function loadManufacturerLogos() {
-  try {
-    console.log("Ładowanie logów producentów z Producenci.json...");
-    const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
-    if (!response.ok) throw new Error(`Nie udało się załadować Producenci.json: ${response.status}`);
-    const jsonData = await response.json();
-    for (const manufacturer of jsonData) {
-      const name = manufacturer.NAZWA_PROD.trim();
-      const urls = [
-        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${name}.jpg`,
-        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${name}.png`
-      ];
-      let base64Logo = null;
-      for (const url of urls) {
-        base64Logo = await toBase64(url);
-        if (base64Logo) break;
-      }
-      if (base64Logo) {
-        manufacturerLogos[name] = base64Logo;
-        console.log(`Załadowano logo dla ${name}`);
-      }
-    }
-    console.log("Załadowano loga producentów:", Object.keys(manufacturerLogos).length);
-  } catch (error) {
-    console.error("Błąd ładowania logów producentów:", error);
-    document.getElementById('debug').innerText = "Błąd ładowania logów producentów: " + error.message;
   }
 }
 
@@ -80,15 +51,45 @@ async function loadProducts() {
         ranking: p.RANKING || '',
         cena: p.CENA || '',
         indeks: p.INDEKS.toString(),
-        img: base64Img,
-        producent: p.NAZWA_PROD || ''
+        img: base64Img
       };
     }));
     console.log("Załadowano jsonProducts:", jsonProducts.length);
-    await loadManufacturerLogos();
   } catch (error) {
     document.getElementById('debug').innerText = "Błąd ładowania JSON: " + error.message;
     console.error("Błąd loadProducts:", error);
+  }
+}
+
+async function loadProducers() {
+  try {
+    const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
+    if (!response.ok) throw new Error(`Nie udało się załadować producentów: ${response.status}`);
+    const producerData = await response.json();
+    
+    for (const prod of producerData) {
+      const nazwaKey = prod.NAZWA_PROD.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+      const logoUrls = [
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${nazwaKey}.png`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${nazwaKey}.jpg`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${nazwaKey}.jpeg`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${prod.NAZWA_PROD.trim()}.png`
+      ];
+      
+      let logoBase64 = null;
+      for (const url of logoUrls) {
+        logoBase64 = await toBase64(url);
+        if (logoBase64) {
+          producers[prod.NAZWA_PROD.trim()] = logoBase64;
+          console.log(`Załadowano logo dla: ${prod.NAZWA_PROD}`);
+          break;
+        }
+      }
+    }
+    document.getElementById('debug').innerText += ` | Załadowano ${Object.keys(producers).length} logów`;
+  } catch (error) {
+    console.error("Błąd ładowania producentów:", error);
+    document.getElementById('debug').innerText += " | Błąd producentów";
   }
 }
 
@@ -134,6 +135,18 @@ function loadCustomImages(file, data) {
   renderCatalog();
 }
 
+function updateLogoPreview() {
+  const select = document.getElementById('editLogoSelect');
+  const preview = document.getElementById('logoPreview');
+  const selectedProd = select.value;
+  if (selectedProd && producers[selectedProd]) {
+    preview.src = producers[selectedProd];
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -146,8 +159,7 @@ function showEditModal(productIndex) {
     cenaFont: 'Arial',
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
-    priceFontSize: 'medium',
-    logo: null
+    priceFontSize: 'medium'
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
@@ -216,12 +228,12 @@ function showEditModal(productIndex) {
     ${showLogo ? `
       <div class="edit-field">
         <label>Logo:</label>
-        <img src="${edit.logo || (product.producent && manufacturerLogos[product.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
-        <select id="editLogoSelect">
-          <option value="">Brak logo</option>
-          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${product.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
+        <input type="text" id="editNazwaProd" value="${product.nazwaProd || ''}" placeholder="Wpisz nazwę producenta">
+        <select id="editLogoSelect" onchange="updateLogoPreview()">
+          <option value="">-- Wybierz z listy --</option>
+          ${Object.keys(producers).map(name => `<option value="${name}" ${product.nazwaProd === name ? 'selected' : ''}>${name}</option>`).join('')}
         </select>
-        <input type="file" id="editLogo" accept="image/*">
+        <img id="logoPreview" src="${product.logo || ''}" style="width:60px; height:60px; object-fit:contain; margin-top:5px; display: ${product.logo ? 'block' : 'none'};">
       </div>
     ` : ''}
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
@@ -244,21 +256,6 @@ function saveEdit(productIndex) {
     };
     reader.readAsDataURL(editImage);
   }
-  const editLogo = document.getElementById('editLogo')?.files[0];
-  if (editLogo) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      productEdits[productIndex] = productEdits[productIndex] || {};
-      productEdits[productIndex].logo = e.target.result;
-      renderCatalog();
-    };
-    reader.readAsDataURL(editLogo);
-  } else if (document.getElementById('editLogoSelect')) {
-    const selectedLogo = document.getElementById('editLogoSelect').value;
-    productEdits[productIndex] = productEdits[productIndex] || {};
-    productEdits[productIndex].logo = selectedLogo ? manufacturerLogos[selectedLogo] : null;
-    product.producent = selectedLogo || product.producent;
-  }
   product.nazwa = document.getElementById('editNazwa').value;
   product.indeks = document.getElementById('editIndeks').value;
   if (document.getElementById('showRanking')?.checked) {
@@ -267,22 +264,13 @@ function saveEdit(productIndex) {
   if (document.getElementById('showCena')?.checked) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
-  // ✅ Uaktualnij kod kreskowy po edycji produktu, jeśli EAN istnieje
-  if (product.ean && /^\d{12,13}$/.test(product.ean)) {
-    try {
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, product.ean, {
-        format: "EAN13",
-        width: 1.6,
-        height: 32,
-        displayValue: true,
-        fontSize: 9,
-        margin: 0
-      });
-      product.barcode = canvas.toDataURL("image/png", 0.8);
-    } catch (e) {
-      console.error("Błąd odświeżania kodu kreskowego:", e);
-    }
+  const selectedLogoProd = document.getElementById('editLogoSelect')?.value || '';
+  if (selectedLogoProd) {
+    product.nazwaProd = selectedLogoProd;
+    product.logo = producers[selectedLogoProd];
+  } else {
+    product.nazwaProd = document.getElementById('editNazwaProd')?.value || '';
+    product.logo = null;
   }
   productEdits[productIndex] = {
     nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
@@ -292,10 +280,9 @@ function saveEdit(productIndex) {
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
-    cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
+    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
-    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
-    logo: productEdits[productIndex]?.logo || null
+    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
   renderCatalog();
@@ -571,6 +558,14 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCatalog();
     });
   }
+  const showLogoCheckbox = document.getElementById('showLogo');
+  if (showLogoCheckbox) {
+    showLogoCheckbox.addEventListener('change', (e) => {
+      showLogo = e.target.checked;
+      console.log("Zmieniono showLogo na:", showLogo);
+      renderCatalog();
+    });
+  }
   // Dodanie przycisku "Edytuj stronę PDF" nad listą produktów
   const panel = document.querySelector('.improved-panel');
   const pageEditButton = document.createElement('button');
@@ -578,6 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
   pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę PDF';
   pageEditButton.onclick = () => showPageEditModal(0); // Domyślnie pierwsza strona
   panel.appendChild(pageEditButton);
+  loadProducers();
 });
 
 function showBannerModal() {
@@ -672,26 +668,6 @@ function renderCatalog() {
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
     img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
-
-    // ✅ UTRWALENIE kodu kreskowego do produktu (jeśli nie istnieje)
-    if (!p.barcode && p.ean && /^\d{12,13}$/.test(p.ean)) {
-      try {
-        const barcodeCanvas = document.createElement('canvas');
-        JsBarcode(barcodeCanvas, p.ean, {
-          format: "EAN13",
-          width: 1.6,
-          height: 32,
-          displayValue: true,
-          fontSize: 9,
-          margin: 0
-        });
-        p.barcode = barcodeCanvas.toDataURL("image/png", 0.8);
-        console.log("Utworzono brakujący kod kreskowy dla:", p.ean);
-      } catch (e) {
-        console.error("Błąd tworzenia kodu kreskowego w renderCatalog:", e);
-      }
-    }
-
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
@@ -705,16 +681,8 @@ function renderCatalog() {
       console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit); // Debug
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
-    if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
-      const logoImg = document.createElement('img');
-      const logoSrc = productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak';
-      logoImg.src = logoSrc;
-      logoImg.style.width = '80px';
-      logoImg.style.height = '40px';
-      logoImg.style.objectFit = 'contain';
-      logoImg.style.marginTop = '8px';
-      details.appendChild(logoImg);
-      console.log(`Renderuję logo dla produktu ${p.indeks}: ${logoSrc}`); // Debug
+    if (showLogo && p.logo && layout === "4") {
+      details.innerHTML += `<br><img src="${p.logo}" class="logo">`;
     }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
@@ -737,130 +705,96 @@ function importExcel() {
   const reader = new FileReader();
   reader.onload = (e) => {
     let rows;
-    let headers;
-    try {
-      if (file.name.endsWith('.csv')) {
-        const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
-        rows = parsed.data;
-        if (rows.length === 0 || !parsed.meta.fields) {
-          throw new Error("Plik CSV jest pusty lub nie zawiera nagłówków");
-        }
-        headers = parsed.meta.fields.map(h => h.toLowerCase().trim());
-        rows = rows.map(row => {
-          let obj = {};
-          headers.forEach((header, i) => {
-            const value = row[parsed.meta.fields[i]];
-            if (['index', 'index-cell', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) {
-              let eanVal = value?.toString().trim();
-              // Naprawa formatu naukowego E+12 (np. 4.82018E+12)
-              if (/E\+/.test(eanVal)) {
-                const num = Number(eanVal);
-                eanVal = num.toFixed(0); // usuwa notację naukową, zachowując pełne cyfry
-              }
-              // Usunięcie kropki dziesiętnej jeśli się pojawi
-              eanVal = eanVal.replace(/\./g, '');
-              obj['ean'] = eanVal;
-            }
-            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
-            if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
-            if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
-            if (['producent', 'nazwa_prod'].some(h => header.includes(h))) obj['producent'] = value || '';
-            // Ignorowanie kolumny "Logo"
-          });
-          return obj;
-        });
-      } else {
-        const workbook = XLSX.read(e.target.result, { type: 'binary' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
-        if (jsonRows.length <= 1 || !jsonRows[0].length) {
-          throw new Error("Plik XLS jest pusty lub nie zawiera nagłówków");
-        }
-        headers = jsonRows[0].map(h => h.toString().toLowerCase().trim());
-        rows = jsonRows.slice(1).map(row => {
-          let obj = {};
-          if (row.length !== headers.length) {
-            console.warn("Nieprawidłowa liczba kolumn w wierszu:", row);
-            return obj;
-          }
-          headers.forEach((header, i) => {
-            const value = row[i];
-            if (['index', 'index-cell', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) {
-              let eanVal = value?.toString().trim();
-              if (/E\+/.test(eanVal)) {
-                const num = Number(eanVal);
-                eanVal = num.toFixed(0);
-              }
-              eanVal = eanVal.replace(/\./g, '');
-              obj['ean'] = eanVal;
-            }
-            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
-            if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
-            if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
-            if (['producent', 'nazwa_prod'].some(h => header.includes(h))) obj['producent'] = value || '';
-            // Ignorowanie kolumny "Logo"
-          });
-          return obj;
-        });
+    if (file.name.endsWith('.csv')) {
+      const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
+      rows = parsed.data;
+      if (rows.length === 0) {
+        console.error("Plik CSV jest pusty lub niepoprawny");
+        document.getElementById('debug').innerText = "Błąd: Plik CSV jest pusty";
+        return;
       }
-      console.log("Przetworzone nagłówki:", headers);
-      console.log("Przetworzone wiersze CSV/Excel:", rows);
-      const newProducts = [];
-      rows.forEach(row => {
-        const indeks = row['indeks'];
-        if (indeks) {
-          const matched = jsonProducts.find(p => p.indeks === indeks.toString());
-          let barcodeImg = null;
-          let eanValue = row['ean'] ? row['ean'].toString().trim() : null;
-          console.log("EAN (przed generowaniem):", eanValue); // Debugowanie wartości EAN
-          if (eanValue && /^\d{12,13}$/.test(eanValue)) {
-            try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, eanValue, {
-                format: "EAN13",
-                width: 1.6,
-                height: 32,
-                displayValue: true,
-                fontSize: 9,
-                margin: 0
-              });
-              barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-              console.log("Wygenerowano kod kreskowy dla EAN:", eanValue);
-            } catch (e) {
-              console.error('Błąd generowania kodu kreskowego dla EAN:', eanValue, e);
-            }
-          } else {
-            console.warn("Brak ważnego EAN lub niepoprawny format:", eanValue);
-          }
-          newProducts.push({
-            nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
-            ean: eanValue || (matched ? matched.ean : ''),
-            ranking: row['ranking'] || (matched ? matched.ranking : ''),
-            cena: row['cena'] || (matched ? matched.cena : ''),
-            indeks: indeks.toString(),
-            img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
-            barcode: barcodeImg,
-            producent: row['producent'] || (matched ? matched.producent : '')
-          });
-        }
+      const headers = Object.keys(rows[0]).map(h => h.trim());
+      rows = rows.map(row => {
+        let obj = {};
+        headers.forEach((header, i) => {
+          const value = row[header];
+          if (header === 'index-cell') obj['indeks'] = value || '';
+          if (header === 'KOD EAN') obj['ean'] = value || '';
+          if (header === 'netto-cell') obj['cena'] = value || '';
+          if (header === 'text-decoration-none') obj['nazwa'] = value || '';
+          if (header === 'NAZWA_PROD') obj['nazwa_prod'] = value || '';
+        });
+        return obj;
       });
-      console.log("Nowe produkty:", newProducts);
-      if (newProducts.length) {
-        products = newProducts;
-        productEdits = {};
-        pageEdits = {};
-        renderCatalog();
-        document.getElementById('pdfButton').disabled = false;
-        document.getElementById('previewButton').disabled = false;
-        document.getElementById('debug').innerText = `Zaimportowano ${newProducts.length} produktów`;
-      } else {
-        document.getElementById('debug').innerText = "Brak produktów po imporcie. Sprawdź format pliku.";
+    } else {
+      const workbook = XLSX.read(e.target.result, { type: 'binary' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
+      const headers = rows[0].map(h => h.toString().trim());
+      rows = rows.slice(1).map(row => {
+        let obj = {};
+        headers.forEach((header, i) => {
+          if (header === 'index-cell') obj['indeks'] = row[i] || '';
+          if (header === 'KOD EAN') obj['ean'] = row[i] || '';
+          if (header === 'netto-cell') obj['cena'] = row[i] || '';
+          if (header === 'text-decoration-none') obj['nazwa'] = row[i] || '';
+          if (header === 'NAZWA_PROD') obj['nazwa_prod'] = row[i] || '';
+        });
+        return obj;
+      });
+    }
+    console.log("Przetworzone wiersze CSV/Excel:", rows);
+    const newProducts = [];
+    rows.forEach(row => {
+      const indeks = row['indeks'] || row[0];
+      if (indeks) {
+        const matched = jsonProducts.find(p => p.indeks === indeks.toString());
+        let barcodeImg = null;
+        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
+          try {
+            const barcodeCanvas = document.createElement('canvas');
+            JsBarcode(barcodeCanvas, row['ean'], {
+              format: "EAN13",
+              width: 1.6,
+              height: 32,
+              displayValue: true,
+              fontSize: 9,
+              margin: 0
+            });
+            barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
+          } catch (e) {
+            console.error('Błąd generowania kodu kreskowego:', e);
+          }
+        }
+        const nazwaProd = row['nazwa_prod'] || '';
+        let logo = null;
+        if (nazwaProd && producers[nazwaProd]) {
+          logo = producers[nazwaProd];
+        }
+        newProducts.push({
+          nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
+          ean: row['ean'] || (matched ? matched.ean : ''),
+          ranking: row['ranking'] || (matched ? matched.ranking : ''),
+          cena: row['cena'] || (matched ? matched.cena : ''),
+          indeks: indeks.toString(),
+          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
+          barcode: barcodeImg,
+          nazwaProd: nazwaProd,
+          logo: logo
+        });
       }
-    } catch (error) {
-      console.error("Błąd podczas importu:", error);
-      document.getElementById('debug').innerText = "Błąd importu pliku: " + error.message;
+    });
+    console.log("Nowe produkty:", newProducts);
+    if (newProducts.length) {
+      products = newProducts;
+      productEdits = {};
+      pageEdits = {}; // Resetowanie edycji stron po imporcie
+      renderCatalog();
+      document.getElementById('pdfButton').disabled = false;
+      document.getElementById('previewButton').disabled = false;
+      document.getElementById('debug').innerText = `Zaimportowano ${newProducts.length} produktów`;
+    } else {
+      document.getElementById('debug').innerText = "Brak produktów po imporcie. Sprawdź format pliku.";
     }
   };
   reader.onerror = () => {
