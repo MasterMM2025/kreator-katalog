@@ -207,10 +207,10 @@ function saveEdit(productIndex) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
   productEdits[productIndex] = {
-    font: document.getElementById('editNazwaFont').value,
-    fontColor: document.getElementById('editNazwaColor').value,
-    indeksFont: document.getElementById('editIndeksFont').value,
-    indeksFontColor: document.getElementById('editIndeksColor').value,
+    font: document.getElementById('editNazwaFont').value || 'Arial',
+    fontColor: document.getElementById('editNazwaColor').value || '#000000',
+    indeksFont: document.getElementById('editIndeksFont').value || 'Arial',
+    indeksFontColor: document.getElementById('editIndeksColor').value || '#000000',
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
@@ -218,6 +218,7 @@ function saveEdit(productIndex) {
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
+  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
   renderCatalog();
   hideEditModal();
 }
@@ -607,6 +608,8 @@ function renderCatalog() {
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+      // Debug: Sprawdź wartości finalEdit
+      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit);
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
