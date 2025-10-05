@@ -206,6 +206,23 @@ function saveEdit(productIndex) {
   if (document.getElementById('showCena')?.checked) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
+  // ✅ Uaktualnij kod kreskowy po edycji produktu, jeśli EAN istnieje
+  if (product.ean && /^\d{12,13}$/.test(product.ean)) {
+    try {
+      const canvas = document.createElement('canvas');
+      JsBarcode(canvas, product.ean, {
+        format: "EAN13",
+        width: 1.6,
+        height: 32,
+        displayValue: true,
+        fontSize: 9,
+        margin: 0
+      });
+      product.barcode = canvas.toDataURL("image/png", 0.8);
+    } catch (e) {
+      console.error("Błąd odświeżania kodu kreskowego:", e);
+    }
+  }
   productEdits[productIndex] = {
     nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
     nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
@@ -592,6 +609,26 @@ function renderCatalog() {
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
     img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
+
+    // ✅ UTRWALENIE kodu kreskowego do produktu (jeśli nie istnieje)
+    if (!p.barcode && p.ean && /^\d{12,13}$/.test(p.ean)) {
+      try {
+        const barcodeCanvas = document.createElement('canvas');
+        JsBarcode(barcodeCanvas, p.ean, {
+          format: "EAN13",
+          width: 1.6,
+          height: 32,
+          displayValue: true,
+          fontSize: 9,
+          margin: 0
+        });
+        p.barcode = barcodeCanvas.toDataURL("image/png", 0.8);
+        console.log("Utworzono brakujący kod kreskowy dla:", p.ean);
+      } catch (e) {
+        console.error("Błąd tworzenia kodu kreskowego w renderCatalog:", e);
+      }
+    }
+
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
