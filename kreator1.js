@@ -648,7 +648,7 @@ function renderCatalog() {
     const item = document.createElement("div");
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
-    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/123x84/eee/000&text=brak";
+    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
@@ -721,21 +721,19 @@ function importExcel() {
           throw new Error("Plik XLS jest pusty lub nie zawiera nagłówków");
         }
         headers = rows[0].map(h => h.toString().toLowerCase().trim());
-        rows = rows.slice(1).map(row => {
+        // Alternatywne podejście: użyj sheet_to_json z nagłówkami jako obiektami
+        const jsonRows = XLSX.utils.sheet_to_json(sheet, { header: headers, raw: true });
+        rows = jsonRows.map(row => {
           let obj = {};
-          if (row.length !== headers.length) {
-            console.warn("Nieprawidłowa liczba kolumn w wierszu:", row);
-            return obj; // Pomiń wiersz, jeśli liczba kolumn się nie zgadza
+          for (let key in row) {
+            const header = key.toLowerCase().trim();
+            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[key] || '';
+            if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = row[key] || '';
+            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[key] || '';
+            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[key] || '';
+            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[key] || '';
+            if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[key] || '';
           }
-          headers.forEach((header, i) => {
-            const value = row[i];
-            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = value || '';
-            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
-            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
-            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
-            if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || '';
-          });
           return obj;
         });
       }
@@ -747,7 +745,7 @@ function importExcel() {
         if (indeks) {
           const matched = jsonProducts.find(p => p.indeks === indeks.toString());
           let barcodeImg = null;
-          if (row['ean'] && /^\d{12,13}$/.test(row['ean'].toString())) { // Upewnij się, że EAN jest traktowane jako string
+          if (row['ean'] && /^\d{12,13}$/.test(row['ean'].toString())) {
             try {
               const barcodeCanvas = document.createElement('canvas');
               JsBarcode(barcodeCanvas, row['ean'].toString(), {
@@ -793,7 +791,7 @@ function importExcel() {
     }
   };
   reader.onerror = () => {
-    console.error("Bład odczytu pliku");
+    console.error("Błąd odczytu pliku");
     document.getElementById('debug').innerText = "Błąd odczytu pliku CSV/Excel";
   };
   if (file.name.endsWith('.csv')) reader.readAsText(file);
