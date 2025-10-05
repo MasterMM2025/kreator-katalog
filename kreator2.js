@@ -305,18 +305,21 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
+      // First 4 (top)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      // Middle 2
       cols = 2;
       rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      // Last 4 (bottom)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
@@ -344,7 +347,7 @@ async function buildPDF(jsPDF, save = true) {
         }
       }
       doc.setFont("Arial", "bold");
-      doc.setTextColor(0, 0, 0);
+      doc.setTextColor(0, 0, 0); // Domyślny kolor tekstu dla numeru strony
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
       x = marginLeftRight;
@@ -479,7 +482,7 @@ function saveEdit(productIndex) {
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
-  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
+  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
   renderCatalog();
   hideEditModal();
 }
