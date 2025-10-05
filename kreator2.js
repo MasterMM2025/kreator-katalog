@@ -11,17 +11,14 @@ function drawBox(doc, x, y, w, h, style) {
     doc.rect(x, y, w, h, 'F');
   }
 }
-
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
-
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
-
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -163,16 +160,16 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
-          if (showLogo && layout === "4" && logoSrc) { // Wyświetl tylko logo dla modułu 4
+          if (showLogo && layout === "4" && logoSrc) {
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
               await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; });
-              const logoW = 80;
-              const logoH = 40;
+              const logoW = 120;
+              const logoH = 60;
               const logoX = x + (boxWidth - logoW) / 2;
               const logoY = textY;
-              doc.addImage(logoSrc, logoSrc.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
+              doc.addImage(logoSrc, logoSrc.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH, undefined, 'SLOW');
               textY += logoH + 5;
             } catch (e) {
               console.error('Błąd dodawania loga:', e);
@@ -350,12 +347,10 @@ async function buildPDF(jsPDF, save = true) {
   if (save) doc.save("katalog.pdf");
   return doc;
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -364,7 +359,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -407,7 +401,7 @@ function showEditModal(productIndex) {
       <select id="editIndeksFont">
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
@@ -430,7 +424,7 @@ function showEditModal(productIndex) {
         <select id="editCenaFont">
           <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
@@ -447,10 +441,10 @@ function showEditModal(productIndex) {
     ${showLogo ? `
       <div class="edit-field">
         <label>Logo:</label>
-        <img src="${edit.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
+        <img src="${edit.logo || (product.producent && manufacturerLogos[product.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
         <select id="editLogoSelect">
           <option value="">Brak logo</option>
-          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${p.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
+          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${product.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
         </select>
         <input type="file" id="editLogo" accept="image/*">
       </div>
@@ -459,7 +453,6 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -511,7 +504,6 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -646,12 +638,10 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
