@@ -639,11 +639,12 @@ function importExcel() {
           let obj = {};
           headers.forEach((header, i) => {
             const value = row[parsed.meta.fields[i]];
-            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || '';
+            if (['index', 'index-cell', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
+            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) obj['ean'] = value || '';
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
-            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
-            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
+            if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            // Ignorowanie kolumny "Logo"
           });
           return obj;
         });
@@ -663,11 +664,12 @@ function importExcel() {
           }
           headers.forEach((header, i) => {
             const value = row[i];
-            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || '';
+            if (['index', 'index-cell', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
+            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) obj['ean'] = value || '';
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
-            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
-            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
+            if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            // Ignorowanie kolumny "Logo"
           });
           return obj;
         });
@@ -680,10 +682,12 @@ function importExcel() {
         if (indeks) {
           const matched = jsonProducts.find(p => p.indeks === indeks.toString());
           let barcodeImg = null;
-          if (row['ean'] && /^\d{12,13}$/.test(row['ean'].toString())) {
+          // Konwersja EAN na string i usunięcie notacji naukowej
+          let eanValue = row['ean'] ? row['ean'].toString().replace(/E\+(\d+)/, (match, exp) => '0'.repeat(parseInt(exp, 10))) : null;
+          if (eanValue && /^\d{12,13}$/.test(eanValue)) {
             try {
               const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, row['ean'].toString(), {
+              JsBarcode(barcodeCanvas, eanValue, {
                 format: "EAN13",
                 width: 1.6,
                 height: 32,
@@ -692,16 +696,16 @@ function importExcel() {
                 margin: 0
               });
               barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-              console.log("Wygenerowano kod kreskowy dla EAN:", row['ean']);
+              console.log("Wygenerowano kod kreskowy dla EAN:", eanValue);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd generowania kodu kreskowego dla EAN:', eanValue, e);
             }
           } else {
-            console.warn("Brak ważnego EAN lub niepoprawny format:", row['ean']);
+            console.warn("Brak ważnego EAN lub niepoprawny format:", row['ean'], "przekonwertowane:", eanValue);
           }
           newProducts.push({
             nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
-            ean: row['ean'] || (matched ? matched.ean : ''),
+            ean: eanValue || (matched ? matched.ean : ''),
             ranking: row['ranking'] || (matched ? matched.ranking : ''),
             cena: row['cena'] || (matched ? matched.cena : ''),
             indeks: indeks.toString(),
