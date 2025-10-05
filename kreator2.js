@@ -110,9 +110,23 @@ async function buildPDF(jsPDF, save = true) {
           cenaFontColor: '#000000',
           priceCurrency: globalCurrency,
           priceFontSize: 'medium'
-        }; // Upewniamy się, że zawsze mamy pełne domyślne wartości
+        }; // Pełne domyślne wartości
         const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {};
-        const finalEdit = { ...pageEdit, ...edit }; // Pełny priorytet edycji produktu
+        const finalEdit = {
+          ...pageEdit,
+          ...edit,
+          font: edit.font || pageEdit.nazwaFont || 'Arial',
+          fontColor: edit.fontColor || pageEdit.nazwaFontColor || '#000000',
+          indeksFont: edit.indeksFont || pageEdit.indeksFont || 'Arial',
+          indeksFontColor: edit.indeksFontColor || pageEdit.indeksFontColor || '#000000',
+          rankingFont: edit.rankingFont || pageEdit.rankingFont || 'Arial',
+          rankingFontColor: edit.rankingFontColor || pageEdit.rankingFontColor || '#000000',
+          cenaFont: edit.cenaFont || pageEdit.cenaFont || 'Arial',
+          cenaFontColor: edit.cenaFontColor || pageEdit.cenaFontColor || '#000000',
+          priceCurrency: edit.priceCurrency || pageEdit.priceCurrency || globalCurrency,
+          priceFontSize: edit.priceFontSize || pageEdit.priceFontSize || 'medium',
+          showPriceLabel: edit.showPriceLabel !== undefined ? edit.showPriceLabel : pageEdit.showPriceLabel !== undefined ? pageEdit.showPriceLabel : true
+        }; // Explicit merging to ensure all fields are defined
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
