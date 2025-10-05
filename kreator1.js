@@ -9,7 +9,6 @@ let pageEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 let manufacturerLogos = {};
-
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -25,7 +24,6 @@ async function toBase64(url) {
     return null;
   }
 }
-
 async function loadManufacturerLogos() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
@@ -52,7 +50,6 @@ async function loadManufacturerLogos() {
     document.getElementById('debug').innerText = "Błąd ładowania logów producentów: " + error.message;
   }
 }
-
 async function loadProducts() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/UKRAINA.json");
@@ -88,7 +85,6 @@ async function loadProducts() {
     console.error("Błąd loadProducts:", error);
   }
 }
-
 function handleFiles(files, callback) {
   if (!files || files.length === 0) {
     console.error("Brak plików do załadowania");
@@ -108,29 +104,24 @@ function handleFiles(files, callback) {
     reader.readAsDataURL(file);
   });
 }
-
 function loadCustomBanner(file, data) {
   selectedBanner = { id: "custom", data };
   console.log("Załadowano baner:", file.name);
 }
-
 function loadCustomBackground(file, data) {
   selectedBackground = { id: "customBackground", data };
   console.log("Załadowano tło:", file.name);
 }
-
 function loadCustomCover(file, data) {
   selectedCover = { id: "customCover", data };
   console.log("Załadowano okładkę:", file.name);
 }
-
 function loadCustomImages(file, data) {
   const fileName = file.name.split('.')[0];
   uploadedImages[fileName] = data;
   console.log(`Załadowano obraz dla indeksu: ${fileName}`);
   renderCatalog();
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -225,11 +216,9 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -281,7 +270,6 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial',
@@ -364,7 +352,6 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function savePageEdit(pageIndex) {
   const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
   pageEdits[newPageIndex] = {
@@ -383,11 +370,9 @@ function savePageEdit(pageIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
 }
-
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
   const uploadArea = document.getElementById("uploadArea");
@@ -556,7 +541,6 @@ document.addEventListener("DOMContentLoaded", () => {
   pageEditButton.onclick = () => showPageEditModal(0);
   document.querySelector('.improved-panel').appendChild(pageEditButton);
 });
-
 function showBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
@@ -567,14 +551,12 @@ function showBannerModal() {
     document.getElementById('debug').innerText = "Błąd: Brak modalu banera";
   }
 }
-
 function hideBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
     bannerModal.style.display = 'none';
   }
 }
-
 async function loadBanners() {
   const bannerOptions = document.getElementById('bannerOptions');
   if (!bannerOptions) {
@@ -604,14 +586,12 @@ async function loadBanners() {
     }
   }
 }
-
 function selectBanner(id, data) {
   selectedBanner = { id, data };
   document.querySelectorAll('.banner-preview').forEach(p => p.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
   hideBannerModal();
 }
-
 function renderCatalog() {
   const container = document.getElementById("catalog");
   if (!container) {
@@ -664,8 +644,8 @@ function renderCatalog() {
     if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
       const logoImg = document.createElement('img');
       logoImg.src = productEdits[i]?.logo || manufacturerLogos[p.producent];
-      logoImg.style.width = '80px';
-      logoImg.style.height = '40px';
+      logoImg.style.width = '120px';
+      logoImg.style.height = '60px';
       logoImg.style.objectFit = 'contain';
       logoImg.style.marginTop = '8px';
       details.appendChild(logoImg);
@@ -680,7 +660,6 @@ function renderCatalog() {
     pageDiv.appendChild(item);
   });
 }
-
 function importExcel() {
   const file = document.getElementById('excelFile').files[0];
   if (!file) {
@@ -705,7 +684,7 @@ function importExcel() {
         headers.forEach((header, i) => {
           const value = row[Object.keys(row)[i]];
           if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || ''; // Rozszerzono warianty dla EAN
+          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || '';
           if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
           if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
@@ -722,7 +701,7 @@ function importExcel() {
         let obj = {};
         headers.forEach((header, i) => {
           if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[i] || '';
-          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = row[i] || ''; // Rozszerzono warianty dla EAN
+          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = row[i] || '';
           if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[i] || '';
           if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[i] || '';
@@ -756,7 +735,7 @@ function importExcel() {
         }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
-          ean: row['ean'] || (matched ? matched.ean : ''), // Upewnij się, że EAN jest poprawnie przypisane
+          ean: row['ean'] || (matched ? matched.ean : ''),
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
           cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
