@@ -705,11 +705,11 @@ function importExcel() {
         headers.forEach((header, i) => {
           const value = row[Object.keys(row)[i]];
           if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-          if (['ean', 'kod ean'].some(h => header.includes(h))) obj['ean'] = value || '';
+          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || ''; // Rozszerzono warianty dla EAN
           if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
-          if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || ''; // Priorytet na cenę
+          if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
-          if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || ''; // Obsługa logo/producenta
+          if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || '';
         });
         return obj;
       });
@@ -722,11 +722,11 @@ function importExcel() {
         let obj = {};
         headers.forEach((header, i) => {
           if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[i] || '';
-          if (['ean', 'kod ean'].some(h => header.includes(h))) obj['ean'] = row[i] || '';
+          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = row[i] || ''; // Rozszerzono warianty dla EAN
           if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[i] || '';
-          if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || ''; // Priorytet na cenę
+          if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[i] || '';
-          if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[i] || ''; // Obsługa logo/producenta
+          if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[i] || '';
         });
         return obj;
       });
@@ -756,9 +756,9 @@ function importExcel() {
         }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
-          ean: row['ean'] || (matched ? matched.ean : ''),
+          ean: row['ean'] || (matched ? matched.ean : ''), // Upewnij się, że EAN jest poprawnie przypisane
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
-          cena: row['cena'] || (matched ? matched.cena : ''), // Upewnij się, że cena jest poprawnie przypisana
+          cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
           img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
           barcode: barcodeImg,
