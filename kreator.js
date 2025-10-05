@@ -545,13 +545,31 @@ function importExcel() {
       const indeks = row['indeks'] || row[0];
       if (indeks) {
         const matched = jsonProducts.find(p => p.indeks === indeks.toString());
+        let barcodeImg = null;
+        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
+          try {
+            const barcodeCanvas = document.createElement('canvas');
+            JsBarcode(barcodeCanvas, row['ean'], {
+              format: "EAN13",
+              width: 1.6,
+              height: 32,
+              displayValue: true,
+              fontSize: 9,
+              margin: 0
+            });
+            barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
+          } catch (e) {
+            console.error('Błąd generowania kodu kreskowego:', e);
+          }
+        }
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
           ean: row['ean'] || (matched ? matched.ean : ''),
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
           cena: row['cena'] || (matched ? matched.cena : ''),
           indeks: indeks.toString(),
-          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null)
+          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
+          barcode: barcodeImg
         });
       }
     });
@@ -662,11 +680,17 @@ async function buildPDF(jsPDF, save = true) {
         if (isLarge) {
           if (imgSrc) {
             try {
+              const img = new Image();
+              img.src = imgSrc;
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
               const maxH = boxHeight * (sectionCols === 1 ? 0.5 : 0.4);
-              const imgX = x + (boxWidth - maxW) / 2;
-              const imgY = y + (sectionCols === 1 ? 40 : 25);
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, maxW, maxH, undefined, "FAST");
+              let scale = Math.min(maxW / img.width, maxH / img.height);
+              let w = img.width * scale;
+              let h = img.height * scale;
+              let imgX = x + (boxWidth - w) / 2;
+              let imgY = y + (sectionCols === 1 ? 40 : 25);
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
@@ -700,35 +724,31 @@ async function buildPDF(jsPDF, save = true) {
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
-          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+          if (showEan && p.ean && p.barcode) {
             try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13",
-                width: sectionCols === 1 ? 3 : 2,
-                height: sectionCols === 1 ? 50 : 40,
-                displayValue: true,
-                fontSize: sectionCols === 1 ? 12 : 10,
-                margin: 0
-              });
-              const barcodeImg = barcodeCanvas.toDataURL("image/png");
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
               const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
-              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd dodawania kodu kreskowego:', e);
             }
           }
         } else {
           if (imgSrc) {
             try {
+              const img = new Image();
+              img.src = imgSrc;
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = 90;
               const maxH = 60;
-              const imgX = x + 5;
-              const imgY = y + 8;
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, maxW, maxH, undefined, "FAST");
+              let scale = Math.min(maxW / img.width, maxH / img.height);
+              let w = img.width * scale;
+              let h = img.height * scale;
+              let imgX = x + 5 + (maxW - w) / 2;
+              let imgY = y + 8 + (maxH - h) / 2;
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
@@ -759,25 +779,15 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
-          if (showEan && p.ean && /^\d{12,13}$/.test(p.ean)) {
+          if (showEan && p.ean && p.barcode) {
             try {
-              const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, p.ean, {
-                format: "EAN13",
-                width: 1.6,
-                height: 32,
-                displayValue: true,
-                fontSize: 9,
-                margin: 0
-              });
-              const barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
               const bw = 85;
               const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(barcodeImg, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
-              console.error('Błąd generowania kodu kreskowego:', e);
+              console.error('Błąd dodawania kodu kreskowego:', e);
             }
           }
         }
