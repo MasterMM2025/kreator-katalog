@@ -321,6 +321,7 @@ function savePageEdit(pageIndex) {
     priceCurrency: document.getElementById('editCenaCurrency').value,
     showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true'
   };
+  console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]); // Debug
   renderCatalog();
   hideEditModal();
 }
