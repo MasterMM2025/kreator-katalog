@@ -11,17 +11,14 @@ function drawBox(doc, x, y, w, h, style) {
     doc.rect(x, y, w, h, 'F');
   }
 }
-
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
-
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
-
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -31,7 +28,6 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
-
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -43,11 +39,9 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
-
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-
   if (products.length > 0) {
     if (backgroundImg) {
       try {
@@ -69,7 +63,6 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
-
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -78,10 +71,10 @@ async function buildPDF(jsPDF, save = true) {
   const showEan = document.getElementById('showEan')?.checked || false;
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
-
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -92,7 +85,6 @@ async function buildPDF(jsPDF, save = true) {
     return 4; // Domyślnie
   };
   const itemsPerPage = getItemsPerPage();
-
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -111,10 +103,9 @@ async function buildPDF(jsPDF, save = true) {
           showPriceLabel: true
         };
         const finalEdit = { ...pageEdit, ...edit };
-        console.log('BuildPDF - Product Index:', productIndex, 'Data:', p); // Debugowanie danych produktu
+        console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
         let imgSrc = uploadedImages[p.indeks] || p.img;
-
         if (isLarge) {
           if (imgSrc) {
             try {
@@ -166,6 +157,19 @@ async function buildPDF(jsPDF, save = true) {
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            textY += sectionCols === 1 ? 22 : 18;
+          }
+          if (showLogo && p.logo && layout === "4") {
+            try {
+              const logoW = sectionCols === 1 ? 50 : 30;
+              const logoH = sectionCols === 1 ? 50 : 30;
+              const logoX = x + (boxWidth - logoW) / 2;
+              const logoY = textY;
+              doc.addImage(p.logo, p.logo.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
+              textY += logoH + 5;
+            } catch (e) {
+              console.error('Błąd logo w PDF:', e);
+            }
           }
           if (showEan && p.ean && p.barcode) {
             try {
@@ -227,6 +231,18 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
             textY += 16;
           }
+          if (showLogo && p.logo && layout === "4") {
+            try {
+              const logoW = 30;
+              const logoH = 30;
+              const logoX = x + (boxWidth - logoW) / 2;
+              const logoY = textY;
+              doc.addImage(p.logo, p.logo.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
+              textY += logoH + 5;
+            } catch (e) {
+              console.error('Błąd logo w PDF:', e);
+            }
+          }
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = 85;
@@ -251,7 +267,6 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
-
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -343,12 +358,10 @@ async function buildPDF(jsPDF, save = true) {
   if (save) doc.save("katalog.pdf");
   return doc;
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -357,7 +370,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -439,7 +451,6 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -459,23 +470,6 @@ function saveEdit(productIndex) {
   if (document.getElementById('showCena')?.checked) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
-  // ✅ Uaktualnij kod kreskowy po edycji produktu, jeśli EAN istnieje
-  if (product.ean && /^\d{12,13}$/.test(product.ean)) {
-    try {
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, product.ean, {
-        format: "EAN13",
-        width: 1.6,
-        height: 32,
-        displayValue: true,
-        fontSize: 9,
-        margin: 0
-      });
-      product.barcode = canvas.toDataURL("image/png", 0.8);
-    } catch (e) {
-      console.error("Błąd odświeżania kodu kreskowego:", e);
-    }
-  }
   productEdits[productIndex] = {
     nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
     nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
@@ -484,7 +478,7 @@ function saveEdit(productIndex) {
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
-    cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
+    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
@@ -492,7 +486,6 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -545,7 +538,7 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(nazwaText);
-  const indeksText = new fabric.Text(`Indeks: ${product.indeks || '-'}`, {
+  const indeksText = new fabric.Text(`Indeks: ${product.indeks || '-'}` , {
     left: 320,
     top: 40,
     fontSize: 16,
@@ -627,17 +620,14 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -646,7 +636,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
