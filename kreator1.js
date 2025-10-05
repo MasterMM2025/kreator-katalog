@@ -392,10 +392,6 @@ function savePageEdit(pageIndex) {
   hideEditModal();
 }
 
-function hideEditModal() {
-  document.getElementById('editModal').style.display = 'none';
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
   const uploadArea = document.getElementById("uploadArea");
@@ -717,9 +713,9 @@ function importExcel() {
       rows = rows.map(row => {
         let obj = {};
         headers.forEach((header, i) => {
-          const value = row[header];
+          let value = row[header];
           if (header === 'index-cell') obj['indeks'] = value || '';
-          if (header === 'KOD EAN') obj['ean'] = value || '';
+          if (header === 'KOD EAN') obj['ean'] = value ? value.toString() : ''; // Convert to string
           if (header === 'netto-cell') obj['cena'] = value || '';
           if (header === 'text-decoration-none') obj['nazwa'] = value || '';
           if (header === 'NAZWA_PROD') obj['nazwa_prod'] = value || '';
@@ -727,18 +723,19 @@ function importExcel() {
         return obj;
       });
     } else {
-      const workbook = XLSX.read(e.target.result, { type: 'binary' });
+      const workbook = XLSX.read(e.target.result, { type: 'binary', raw: false });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
+      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
       const headers = rows[0].map(h => h.toString().trim());
       rows = rows.slice(1).map(row => {
         let obj = {};
         headers.forEach((header, i) => {
-          if (header === 'index-cell') obj['indeks'] = row[i] || '';
-          if (header === 'KOD EAN') obj['ean'] = row[i] || '';
-          if (header === 'netto-cell') obj['cena'] = row[i] || '';
-          if (header === 'text-decoration-none') obj['nazwa'] = row[i] || '';
-          if (header === 'NAZWA_PROD') obj['nazwa_prod'] = row[i] || '';
+          let value = row[i];
+          if (header === 'index-cell') obj['indeks'] = value || '';
+          if (header === 'KOD EAN') obj['ean'] = value ? value.toString() : ''; // Convert to string
+          if (header === 'netto-cell') obj['cena'] = value || '';
+          if (header === 'text-decoration-none') obj['nazwa'] = value || '';
+          if (header === 'NAZWA_PROD') obj['nazwa_prod'] = value || '';
         });
         return obj;
       });
@@ -764,6 +761,7 @@ function importExcel() {
             barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
           } catch (e) {
             console.error('Błąd generowania kodu kreskowego:', e);
+            document.getElementById('debug').innerText += ` | Błąd kodu EAN: ${row['ean']}`;
           }
         }
         const nazwaProd = row['nazwa_prod'] || '';
