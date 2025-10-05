@@ -640,7 +640,17 @@ function importExcel() {
           headers.forEach((header, i) => {
             const value = row[parsed.meta.fields[i]];
             if (['index', 'index-cell', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) obj['ean'] = value || '';
+            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) {
+              let eanVal = value?.toString().trim();
+              // Naprawa formatu naukowego E+12 (np. 4.82018E+12)
+              if (/E\+/.test(eanVal)) {
+                const num = Number(eanVal);
+                eanVal = num.toFixed(0); // usuwa notację naukową, zachowując pełne cyfry
+              }
+              // Usunięcie kropki dziesiętnej jeśli się pojawi
+              eanVal = eanVal.replace(/\./g, '');
+              obj['ean'] = eanVal;
+            }
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
             if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
             if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
@@ -665,7 +675,15 @@ function importExcel() {
           headers.forEach((header, i) => {
             const value = row[i];
             if (['index', 'index-cell', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) obj['ean'] = value || '';
+            if (['ean', 'kod ean', 'kod_ean'].some(h => header.includes(h))) {
+              let eanVal = value?.toString().trim();
+              if (/E\+/.test(eanVal)) {
+                const num = Number(eanVal);
+                eanVal = num.toFixed(0);
+              }
+              eanVal = eanVal.replace(/\./g, '');
+              obj['ean'] = eanVal;
+            }
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
             if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
             if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
@@ -682,8 +700,8 @@ function importExcel() {
         if (indeks) {
           const matched = jsonProducts.find(p => p.indeks === indeks.toString());
           let barcodeImg = null;
-          // Konwersja EAN na string i usunięcie notacji naukowej
-          let eanValue = row['ean'] ? row['ean'].toString().replace(/E\+(\d+)/, (match, exp) => '0'.repeat(parseInt(exp, 10))) : null;
+          let eanValue = row['ean'] ? row['ean'].toString().trim() : null;
+          console.log("EAN (przed generowaniem):", eanValue); // Debugowanie wartości EAN
           if (eanValue && /^\d{12,13}$/.test(eanValue)) {
             try {
               const barcodeCanvas = document.createElement('canvas');
@@ -701,7 +719,7 @@ function importExcel() {
               console.error('Błąd generowania kodu kreskowego dla EAN:', eanValue, e);
             }
           } else {
-            console.warn("Brak ważnego EAN lub niepoprawny format:", row['ean'], "przekonwertowane:", eanValue);
+            console.warn("Brak ważnego EAN lub niepoprawny format:", eanValue);
           }
           newProducts.push({
             nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
