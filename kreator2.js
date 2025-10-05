@@ -101,7 +101,7 @@ async function buildPDF(jsPDF, save = true) {
         const p = products[productIndex];
         const edit = productEdits[productIndex] || {};
         const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {};
-        const finalEdit = { ...edit, ...pageEdit }; // Priorytet edycji strony nad edycją produktu
+        const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
