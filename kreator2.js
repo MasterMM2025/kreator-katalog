@@ -152,8 +152,7 @@ async function buildPDF(jsPDF, save = true) {
           let textY = y + 5 + (boxHeight * 0.4) + 10;
           doc.setFont(finalEdit.nazwaFont, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
-          // Ensure fontColor is always a valid hex color
-          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
+          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000'; // Fallback
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           const maxLines = 3;
@@ -164,16 +163,14 @@ async function buildPDF(jsPDF, save = true) {
 
           doc.setFont(finalEdit.indeksFont, "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
-          // Ensure indeksFontColor is always a valid hex color
-          const indeksFontColor = finalEdit.indeksFontColor || '#000000';
+          const indeksFontColor = finalEdit.indeksFontColor || '#000000'; // Fallback
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
 
           if (showRanking && p.ranking) {
             doc.setFont(finalEdit.rankingFont, "normal");
-            // Ensure rankingFontColor is always a valid hex color
-            const rankingFontColor = finalEdit.rankingFontColor || '#000000';
+            const rankingFontColor = finalEdit.rankingFontColor || '#000000'; // Fallback
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
@@ -183,8 +180,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setFont(finalEdit.cenaFont, "bold");
             const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
-            // Ensure cenaFontColor is always a valid hex color
-            const cenaFontColor = finalEdit.cenaFontColor || '#000000';
+            const cenaFontColor = finalEdit.cenaFontColor || '#000000'; // Fallback
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
