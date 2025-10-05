@@ -608,8 +608,7 @@ function renderCatalog() {
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-      // Debug: Sprawdź wartości finalEdit
-      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit);
+      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit); // Debug
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
