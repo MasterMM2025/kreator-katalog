@@ -272,7 +272,7 @@ function saveEdit(productIndex) {
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
-    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
+    cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
     logo: productEdits[productIndex]?.logo || null
@@ -691,6 +691,7 @@ function importExcel() {
   const reader = new FileReader();
   reader.onload = (e) => {
     let rows;
+    let headers;
     try {
       if (file.name.endsWith('.csv')) {
         const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true, dynamicTyping: true });
@@ -698,7 +699,7 @@ function importExcel() {
         if (rows.length === 0 || !parsed.meta.fields) {
           throw new Error("Plik CSV jest pusty lub nie zawiera nagłówków");
         }
-        const headers = parsed.meta.fields.map(h => h.toLowerCase().trim());
+        headers = parsed.meta.fields.map(h => h.toLowerCase().trim());
         rows = rows.map(row => {
           let obj = {};
           headers.forEach((header, i) => {
@@ -719,7 +720,7 @@ function importExcel() {
         if (rows.length <= 1 || !rows[0].length) {
           throw new Error("Plik XLS jest pusty lub nie zawiera nagłówków");
         }
-        const headers = rows[0].map(h => h.toString().toLowerCase().trim());
+        headers = rows[0].map(h => h.toString().toLowerCase().trim());
         rows = rows.slice(1).map(row => {
           let obj = {};
           headers.forEach((header, i) => {
