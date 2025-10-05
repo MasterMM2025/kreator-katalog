@@ -336,11 +336,6 @@ button:disabled {
   height: 600px;
   border: 1px solid #ccc;
 }
-#pdfIframe img {
-  width: 100%;
-  display: block;
-  margin-bottom: 10px;
-}
 /* Modal wyboru banera i edycji produktu */
 .modal {
   display: none;
@@ -368,6 +363,31 @@ button:disabled {
   cursor: pointer;
   color: #2d3748;
   align-self: flex-end;
+}
+/* Modal paska postępu */
+#progressModal {
+  background: rgba(0, 0, 0, 0.5);
+}
+#progressModal .modal-content {
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+}
+#progressBarContainer {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+#progressBar {
+  height: 20px;
+  background: #3182ce;
+  width: 0%;
+  transition: width 0.1s;
+}
+#progressText {
+  font-size: 1rem;
+  color: #2d3748;
+  margin-top: 10px;
 }
 .banner-options {
   display: flex;
