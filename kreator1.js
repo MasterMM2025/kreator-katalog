@@ -104,8 +104,8 @@ function loadCustomImages(file, data) {
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
-    font: 'Arial',
-    fontColor: '#000000',
+    nazwaFont: 'Arial',
+    nazwaFontColor: '#000000',
     indeksFont: 'Arial',
     indeksFontColor: '#000000',
     rankingFont: 'Arial',
@@ -129,11 +129,11 @@ function showEditModal(productIndex) {
       <label>Nazwa:</label>
       <input type="text" id="editNazwa" value="${product.nazwa || ''}">
       <select id="editNazwaFont">
-        <option value="Arial" ${edit.font === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.font === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
       </select>
-      <input type="color" id="editNazwaColor" value="${edit.fontColor}">
+      <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
     </div>
     <div class="edit-field">
       <label>Indeks:</label>
@@ -207,8 +207,8 @@ function saveEdit(productIndex) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
   productEdits[productIndex] = {
-    font: document.getElementById('editNazwaFont').value || 'Arial',
-    fontColor: document.getElementById('editNazwaColor').value || '#000000',
+    nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
+    nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
     indeksFont: document.getElementById('editIndeksFont').value || 'Arial',
     indeksFontColor: document.getElementById('editIndeksColor').value || '#000000',
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
