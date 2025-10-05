@@ -8,7 +8,7 @@ let productEdits = {};
 let pageEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
-let manufacturerLogos = {}; // Nowy obiekt do przechowywania logotypów producentów
+let manufacturerLogos = {};
 
 async function toBase64(url) {
   try {
@@ -78,11 +78,11 @@ async function loadProducts() {
         cena: p.CENA || '',
         indeks: p.INDEKS.toString(),
         img: base64Img,
-        producent: p.NAZWA_PROD || '' // Dodano pole producent
+        producent: p.NAZWA_PROD || ''
       };
     }));
     console.log("Załadowano jsonProducts:", jsonProducts.length);
-    await loadManufacturerLogos(); // Wczytaj logotypy po załadowaniu produktów
+    await loadManufacturerLogos();
   } catch (error) {
     document.getElementById('debug').innerText = "Błąd ładowania JSON: " + error.message;
     console.error("Błąd loadProducts:", error);
@@ -144,11 +144,11 @@ function showEditModal(productIndex) {
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
-    logo: null // Dodano pole logo
+    logo: null
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-  const showLogo = document.getElementById('showLogo')?.checked || false; // Dodano sprawdzanie logo
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -275,7 +275,7 @@ function saveEdit(productIndex) {
     cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
-    logo: productEdits[productIndex]?.logo || null // Zachowaj logo
+    logo: productEdits[productIndex]?.logo || null
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
   renderCatalog();
@@ -626,7 +626,7 @@ function renderCatalog() {
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
-  const showLogo = document.getElementById('showLogo')?.checked || false; // Dodano sprawdzanie logo
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
@@ -659,10 +659,8 @@ function renderCatalog() {
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit);
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
-    // Dodaj logo dla modułu 4
     if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
       const logoImg = document.createElement('img');
       logoImg.src = productEdits[i]?.logo || manufacturerLogos[p.producent];
@@ -706,12 +704,12 @@ function importExcel() {
         let obj = {};
         headers.forEach((header, i) => {
           const value = row[Object.keys(row)[i]];
-          if (header.includes('index') || header.includes('indeks')) obj['indeks'] = value || '';
-          if (header.includes('ean')) obj['ean'] = value || '';
-          if (header.includes('rank')) obj['ranking'] = value || '';
-          if (header.includes('cen')) obj['cena'] = value || '';
-          if (header.includes('nazwa')) obj['nazwa'] = value || '';
-          if (header.includes('logo') || header.includes('nazwa_prod')) obj['producent'] = value || ''; // Obsługa kolumny Logo/NAZWA_PROD
+          if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
+          if (['ean', 'kod ean'].some(h => header.includes(h))) obj['ean'] = value || '';
+          if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
+          if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || ''; // Priorytet na cenę
+          if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+          if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || ''; // Obsługa logo/producenta
         });
         return obj;
       });
@@ -723,12 +721,12 @@ function importExcel() {
       rows = rows.slice(1).map(row => {
         let obj = {};
         headers.forEach((header, i) => {
-          if (header.includes('index') || header.includes('indeks')) obj['indeks'] = row[i] || '';
-          if (header.includes('ean')) obj['ean'] = row[i] || '';
-          if (header.includes('rank')) obj['ranking'] = row[i] || '';
-          if (header.includes('cen')) obj['cena'] = row[i] || '';
-          if (header.includes('nazwa')) obj['nazwa'] = row[i] || '';
-          if (header.includes('logo') || header.includes('nazwa_prod')) obj['producent'] = row[i] || ''; // Obsługa kolumny Logo/NAZWA_PROD
+          if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[i] || '';
+          if (['ean', 'kod ean'].some(h => header.includes(h))) obj['ean'] = row[i] || '';
+          if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[i] || '';
+          if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || ''; // Priorytet na cenę
+          if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[i] || '';
+          if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[i] || ''; // Obsługa logo/producenta
         });
         return obj;
       });
@@ -760,11 +758,11 @@ function importExcel() {
           nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
           ean: row['ean'] || (matched ? matched.ean : ''),
           ranking: row['ranking'] || (matched ? matched.ranking : ''),
-          cena: row['cena'] || (matched ? matched.cena : ''),
+          cena: row['cena'] || (matched ? matched.cena : ''), // Upewnij się, że cena jest poprawnie przypisana
           indeks: indeks.toString(),
           img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
           barcode: barcodeImg,
-          producent: row['producent'] || (matched ? matched.producent : '') // Dodano pole producent
+          producent: row['producent'] || (matched ? matched.producent : '')
         });
       }
     });
