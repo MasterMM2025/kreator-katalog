@@ -11,17 +11,14 @@ function drawBox(doc, x, y, w, h, style) {
     doc.rect(x, y, w, h, 'F');
   }
 }
-
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
-
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
-
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -31,7 +28,6 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
-
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -43,11 +39,9 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
-
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-
   if (products.length > 0) {
     if (backgroundImg) {
       try {
@@ -67,9 +61,8 @@ async function buildPDF(jsPDF, save = true) {
     }
     doc.setFont("Arial", "bold");
     doc.setFontSize(12);
-    doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+    doc.text(${pageNumber}, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
-
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -78,11 +71,9 @@ async function buildPDF(jsPDF, save = true) {
   const showEan = document.getElementById('showEan')?.checked || false;
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
-
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -92,9 +83,7 @@ async function buildPDF(jsPDF, save = true) {
     if (layout === "4-2-4") return 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
     return 4; // Domyślnie
   };
-
   const itemsPerPage = getItemsPerPage();
-
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -115,7 +104,6 @@ async function buildPDF(jsPDF, save = true) {
         const finalEdit = { ...pageEdit, ...edit };
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
-
         let imgSrc = uploadedImages[p.indeks] || p.img;
         if (isLarge) {
           if (imgSrc) {
@@ -135,7 +123,6 @@ async function buildPDF(jsPDF, save = true) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
-
           let textY = y + 5 + (boxHeight * 0.4) + 10;
           doc.setFont(finalEdit.nazwaFont, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
@@ -147,22 +134,19 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(line, x + boxWidth / 2, textY + (index * 18), { align: "center" });
           });
           textY += Math.min(lines.length, maxLines) * 18 + 10;
-
           doc.setFont(finalEdit.indeksFont, "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
-          doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
+          doc.text(Indeks: ${p.indeks || '-'}, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
-
           if (showRanking && p.ranking) {
             doc.setFont(finalEdit.rankingFont, "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
-            doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.text(RANKING: ${p.ranking}, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
-
           if (showCena && p.cena) {
             doc.setFont(finalEdit.cenaFont, "bold");
             const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
@@ -171,9 +155,8 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.text(${showPriceLabel ? ${priceLabel}:  : ''}${p.cena} ${currencySymbol}, x + boxWidth / 2, textY, { align: "center" });
           }
-
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = sectionCols === 1 ? 180 : 140;
@@ -214,13 +197,13 @@ async function buildPDF(jsPDF, save = true) {
           doc.setFontSize(7);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
-          doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
+          doc.text(Indeks: ${p.indeks || 'Brak indeksu'}, x + 105, textY, { maxWidth: 150 });
           textY += 12;
           if (showRanking && p.ranking) {
             doc.setFont(finalEdit.rankingFont, "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
-            doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
+            doc.text(RANKING: ${p.ranking}, x + 105, textY, { maxWidth: 150 });
             textY += 12;
           }
           if (showCena && p.cena) {
@@ -231,7 +214,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
+            doc.text(${showPriceLabel ? ${priceLabel}:  : ''}${p.cena} ${currencySymbol}, x + 105, textY, { maxWidth: 150});
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
@@ -246,11 +229,10 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
         }
-
         processedProducts++;
         const progress = (processedProducts / totalProducts) * 100;
-        document.getElementById('progressBar').style.width = `${progress}%`;
-        document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+        document.getElementById('progressBar').style.width = ${progress}%;
+        document.getElementById('progressText').textContent = ${Math.round(progress)}%;
         x += boxWidth + 6;
         productIndex++;
       }
@@ -259,7 +241,6 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
-
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -305,7 +286,6 @@ async function buildPDF(jsPDF, save = true) {
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-
       // Middle 2
       cols = 2;
       rows = 1;
@@ -313,7 +293,6 @@ async function buildPDF(jsPDF, save = true) {
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-
       // Last 4 (bottom)
       cols = 2;
       rows = 2;
@@ -322,7 +301,6 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     }
-
     if (productIndex < products.length) {
       doc.addPage();
       pageNumber++;
@@ -345,22 +323,19 @@ async function buildPDF(jsPDF, save = true) {
       doc.setFont("Arial", "bold");
       doc.setTextColor(0, 0, 0); // Domyślny kolor tekstu dla numeru strony
       doc.setFontSize(12);
-      doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
+      doc.text(${pageNumber}, pageWidth - 20, pageHeight - 10, { align: "right" });
       x = marginLeftRight;
       y = marginTop;
     }
   }
-
   hideProgressModal();
   if (save) doc.save("katalog.pdf");
   return doc;
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -369,7 +344,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -388,33 +362,7 @@ function showEditModal(productIndex) {
   const showCena = document.getElementById('showCena')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
-  editForm.innerHTML = `
-    <div class="edit-field">
-      <label>Zdjęcie:</label>
-      <img src="${uploadedImages[product.indeks] || product.img || 'https://dummyimage.com/120x84/eee/000&text=brak'}" style="width:100px;height:100px;object-fit:contain;margin-bottom:10px;">
-      <input type="file" id="editImage" accept="image/*">
-    </div>
-    <div class="edit-field">
-      <label>Nazwa:</label>
-      <input type="text" id="editNazwa" value="${product.nazwa || ''}">
-      <select id="editNazwaFont">
-        <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-      </select>
-      <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
-    </div>
-    <div class="edit-field">
-      <label>Indeks:</label>
-      <input type="text" id="editIndeks" value="${product.indeks || ''}">
-      <select id="editIndeksFont">
-        <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-      </select>
-      <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
-    </div>
-    ${showRanking ? `
+  editForm.innerHTML = &nbsp;&nbsp;&nbsp;&nbsp;<div class="edit-field"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Zdjęcie:</label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="${uploadedImages[product.indeks] || product.img || 'https://dummyimage.com/120x84/eee/000&text=brak'}" style="width:100px;height:100px;object-fit:contain;margin-bottom:10px;"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="file" id="editImage" accept="image/*"> &nbsp;&nbsp;&nbsp;&nbsp;</div> &nbsp;&nbsp;&nbsp;&nbsp;<div class="edit-field"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Nazwa:</label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="editNazwa" value="${product.nazwa || ''}"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<select id="editNazwaFont"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</select> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}"> &nbsp;&nbsp;&nbsp;&nbsp;</div> &nbsp;&nbsp;&nbsp;&nbsp;<div class="edit-field"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Indeks:</label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="editIndeks" value="${product.indeks || ''}"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<select id="editIndeksFont"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</select> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="color" id="editIndeksColor" value="${edit.indeksFontColor}"> &nbsp;&nbsp;&nbsp;&nbsp;</div> &nbsp;&nbsp;&nbsp;&nbsp;${showRanking ?
       <div class="edit-field">
         <label>Ranking:</label>
         <input type="text" id="editRanking" value="${product.ranking || ''}">
@@ -425,8 +373,7 @@ function showEditModal(productIndex) {
         </select>
         <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
       </div>
-    ` : ''}
-    ${showCena ? `
+    : ''} &nbsp;&nbsp;&nbsp;&nbsp;${showCena ?
       <div class="edit-field">
         <label>${priceLabel}:</label>
         <input type="text" id="editCena" value="${product.cena || ''}">
@@ -446,12 +393,9 @@ function showEditModal(productIndex) {
           <option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option>
         </select>
       </div>
-    ` : ''}
-    <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
-  `;
+     : ''} &nbsp;&nbsp;&nbsp;&nbsp;<button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button> &nbsp;&nbsp;;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -487,7 +431,6 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -505,34 +448,13 @@ function showVirtualEditModal(productIndex) {
     positionY: 10
   };
   const modal = document.getElementById('virtualEditModal');
-  modal.innerHTML = `
-    <div style="position: relative; width: 800px; height: 600px; border: 1px solid #ccc;">
-      <canvas id="virtualEditCanvas" width="800" height="600"></canvas>
-      <div id="editPanel" style="position: absolute; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; display: none;">
-        <select id="fontSelect">
-          <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-          <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-        </select>
-        <input type="color" id="colorSelect" value="${edit.nazwaFontColor}">
-        <select id="sizeSelect">
-          <option value="small" ${edit.priceFontSize === 'small' ? 'selected' : ''}>Mały</option>
-          <option value="medium" ${edit.priceFontSize === 'medium' ? 'selected' : ''}>Średni</option>
-          <option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option>
-        </select>
-        <button onclick="applyTextEdit()">Zastosuj</button>
-      </div>
-      <button id="saveVirtualEdit" style="position: absolute; bottom: 10px; right: 10px;">Zapisz</button>
-    </div>
-  `;
+  modal.innerHTML =  &nbsp;&nbsp;&nbsp;&nbsp;<div style="position: relative; width: 800px; height: 600px; border: 1px solid #ccc;"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<canvas id="virtualEditCanvas" width="800" height="600"></canvas> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div id="editPanel" style="position: absolute; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; display: none;"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<select id="fontSelect"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</select> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="color" id="colorSelect" value="${edit.nazwaFontColor}"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<select id="sizeSelect"> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="small" ${edit.priceFontSize === 'small' ? 'selected' : ''}>Mały</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="medium" ${edit.priceFontSize === 'medium' ? 'selected' : ''}>Średni</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</select> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="applyTextEdit()">Zastosuj</button> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button id="saveVirtualEdit" style="position: absolute; bottom: 10px; right: 10px;">Zapisz</button> &nbsp;&nbsp;&nbsp;&nbsp;</div> &nbsp;&nbsp;;
   modal.style.display = 'block';
-
   const canvas = new fabric.Canvas('virtualEditCanvas');
   fabric.Image.fromURL(uploadedImages[product.indeks] || product.img, (img) => {
     img.scaleToWidth(300);
     canvas.add(img);
   });
-
   const nazwaText = new fabric.Text(product.nazwa || 'Brak nazwy', {
     left: edit.positionX || 320,
     top: edit.positionY || 10,
@@ -542,8 +464,7 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(nazwaText);
-
-  const indeksText = new fabric.Text(`Indeks: ${product.indeks || '-'}` , {
+  const indeksText = new fabric.Text(Indeks: ${product.indeks || '-'} , {
     left: 320,
     top: 40,
     fontSize: 16,
@@ -552,9 +473,8 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(indeksText);
-
   if (showRanking && product.ranking) {
-    const rankingText = new fabric.Text(`RANKING: ${product.ranking}`, {
+    const rankingText = new fabric.Text(RANKING: ${product.ranking}, {
       left: 320,
       top: 60,
       fontSize: 16,
@@ -564,9 +484,8 @@ function showVirtualEditModal(productIndex) {
     });
     canvas.add(rankingText);
   }
-
   if (showCena && product.cena) {
-    const cenaText = new fabric.Text(`${priceLabel}: ${product.cena} ${(edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£'}`, {
+    const cenaText = new fabric.Text(${priceLabel}: ${product.cena} ${(edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£'}, {
       left: 320,
       top: 80,
       fontSize: edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24,
@@ -576,7 +495,6 @@ function showVirtualEditModal(productIndex) {
     });
     canvas.add(cenaText);
   }
-
   if (showEan && product.ean && product.barcode) {
     fabric.Image.fromURL(product.barcode, (barcodeImg) => {
       barcodeImg.scaleToWidth(100);
@@ -584,14 +502,12 @@ function showVirtualEditModal(productIndex) {
       canvas.add(barcodeImg);
     });
   }
-
   canvas.on('object:selected', (e) => {
     const obj = e.target;
     document.getElementById('editPanel').style.display = 'block';
     document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
-
     function applyTextEdit() {
       obj.set({
         fontFamily: document.getElementById('fontSelect').value,
@@ -601,12 +517,10 @@ function showVirtualEditModal(productIndex) {
       canvas.renderAll();
     }
   });
-
   canvas.on('object:moving', (e) => {
     const obj = e.target;
     console.log('Przesunięto:', obj.left, obj.top);
   });
-
   document.getElementById('saveVirtualEdit').onclick = () => {
     const activeObject = canvas.getActiveObject();
     if (activeObject) {
@@ -632,17 +546,14 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -651,7 +562,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -660,5 +570,6 @@ window.showVirtualEditModal = showVirtualEditModal;
 window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
-
 loadProducts();
+
+
