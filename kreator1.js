@@ -21,13 +21,15 @@ async function toBase64(url) {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch {
+  } catch (e) {
+    console.error("Błąd w toBase64:", e);
     return null;
   }
 }
 
 async function loadManufacturerLogos() {
   try {
+    console.log("Ładowanie logów producentów z Producenci.json...");
     const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
     if (!response.ok) throw new Error(`Nie udało się załadować Producenci.json: ${response.status}`);
     const jsonData = await response.json();
@@ -44,6 +46,7 @@ async function loadManufacturerLogos() {
       }
       if (base64Logo) {
         manufacturerLogos[name] = base64Logo;
+        console.log(`Załadowano logo dla ${name}`);
       }
     }
     console.log("Załadowano loga producentów:", Object.keys(manufacturerLogos).length);
@@ -704,12 +707,14 @@ function renderCatalog() {
     }
     if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
       const logoImg = document.createElement('img');
-      logoImg.src = productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak';
+      const logoSrc = productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak';
+      logoImg.src = logoSrc;
       logoImg.style.width = '80px';
       logoImg.style.height = '40px';
       logoImg.style.objectFit = 'contain';
       logoImg.style.marginTop = '8px';
       details.appendChild(logoImg);
+      console.log(`Renderuję logo dla produktu ${p.indeks}: ${logoSrc}`); // Debug
     }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
