@@ -169,6 +169,7 @@ async function buildPDF(jsPDF, save = true) {
               textY += logoH + 5;
             } catch (e) {
               console.error('Błąd logo w PDF:', e);
+              document.getElementById('debug').innerText += ` | Błąd logo: ${p.nazwaProd}`;
             }
           }
           if (showEan && p.ean && p.barcode) {
@@ -242,6 +243,7 @@ async function buildPDF(jsPDF, save = true) {
               textY += logoH + 5;
             } catch (e) {
               console.error('Błąd logo w PDF:', e);
+              document.getElementById('debug').innerText += ` | Błąd logo: ${p.nazwaProd}`;
             }
           }
           if (showEan && p.ean && p.barcode) {
