@@ -648,7 +648,7 @@ function renderCatalog() {
     const item = document.createElement("div");
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
-    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
+    img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/123x84/eee/000&text=brak";
     const details = document.createElement('div');
     details.className = "details";
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
@@ -723,13 +723,18 @@ function importExcel() {
         headers = rows[0].map(h => h.toString().toLowerCase().trim());
         rows = rows.slice(1).map(row => {
           let obj = {};
+          if (row.length !== headers.length) {
+            console.warn("Nieprawidłowa liczba kolumn w wierszu:", row);
+            return obj; // Pomiń wiersz, jeśli liczba kolumn się nie zgadza
+          }
           headers.forEach((header, i) => {
-            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[i] || '';
-            if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = row[i] || '';
-            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[i] || '';
-            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || '';
-            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[i] || '';
-            if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[i] || '';
+            const value = row[i];
+            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
+            if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = value || '';
+            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
+            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
+            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || '';
           });
           return obj;
         });
@@ -742,10 +747,10 @@ function importExcel() {
         if (indeks) {
           const matched = jsonProducts.find(p => p.indeks === indeks.toString());
           let barcodeImg = null;
-          if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
+          if (row['ean'] && /^\d{12,13}$/.test(row['ean'].toString())) { // Upewnij się, że EAN jest traktowane jako string
             try {
               const barcodeCanvas = document.createElement('canvas');
-              JsBarcode(barcodeCanvas, row['ean'], {
+              JsBarcode(barcodeCanvas, row['ean'].toString(), {
                 format: "EAN13",
                 width: 1.6,
                 height: 32,
@@ -788,7 +793,7 @@ function importExcel() {
     }
   };
   reader.onerror = () => {
-    console.error("Błąd odczytu pliku");
+    console.error("Bład odczytu pliku");
     document.getElementById('debug').innerText = "Błąd odczytu pliku CSV/Excel";
   };
   if (file.name.endsWith('.csv')) reader.readAsText(file);
