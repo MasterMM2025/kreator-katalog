@@ -8,7 +8,6 @@ let productEdits = {};
 let pageEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
-let manufacturerLogos = {};
 
 async function toBase64(url) {
   try {
@@ -23,33 +22,6 @@ async function toBase64(url) {
     });
   } catch {
     return null;
-  }
-}
-
-async function loadManufacturerLogos() {
-  try {
-    const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
-    if (!response.ok) throw new Error(`Nie udało się załadować Producenci.json: ${response.status}`);
-    const jsonData = await response.json();
-    for (const manufacturer of jsonData) {
-      const name = manufacturer.NAZWA_PROD.trim();
-      const urls = [
-        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${name}.jpg`,
-        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${name}.png`
-      ];
-      let base64Logo = null;
-      for (const url of urls) {
-        base64Logo = await toBase64(url);
-        if (base64Logo) break;
-      }
-      if (base64Logo) {
-        manufacturerLogos[name] = base64Logo;
-      }
-    }
-    console.log("Załadowano loga producentów:", Object.keys(manufacturerLogos).length);
-  } catch (error) {
-    console.error("Błąd ładowania logów producentów:", error);
-    document.getElementById('debug').innerText = "Błąd ładowania logów producentów: " + error.message;
   }
 }
 
@@ -77,12 +49,10 @@ async function loadProducts() {
         ranking: p.RANKING || '',
         cena: p.CENA || '',
         indeks: p.INDEKS.toString(),
-        img: base64Img,
-        producent: p.NAZWA_PROD || ''
+        img: base64Img
       };
     }));
     console.log("Załadowano jsonProducts:", jsonProducts.length);
-    await loadManufacturerLogos();
   } catch (error) {
     document.getElementById('debug').innerText = "Błąd ładowania JSON: " + error.message;
     console.error("Błąd loadProducts:", error);
@@ -143,12 +113,10 @@ function showEditModal(productIndex) {
     cenaFont: 'Arial',
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
-    priceFontSize: 'medium',
-    logo: null
+    priceFontSize: 'medium'
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
-  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -210,17 +178,6 @@ function showEditModal(productIndex) {
         </select>
       </div>
     ` : ''}
-    ${showLogo ? `
-      <div class="edit-field">
-        <label>Logo:</label>
-        <img src="${edit.logo || (product.producent && manufacturerLogos[product.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
-        <select id="editLogoSelect">
-          <option value="">Brak logo</option>
-          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${product.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
-        </select>
-        <input type="file" id="editLogo" accept="image/*">
-      </div>
-    ` : ''}
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
   `;
   document.getElementById('editModal').style.display = 'block';
@@ -241,21 +198,6 @@ function saveEdit(productIndex) {
     };
     reader.readAsDataURL(editImage);
   }
-  const editLogo = document.getElementById('editLogo')?.files[0];
-  if (editLogo) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      productEdits[productIndex] = productEdits[productIndex] || {};
-      productEdits[productIndex].logo = e.target.result;
-      renderCatalog();
-    };
-    reader.readAsDataURL(editLogo);
-  } else if (document.getElementById('editLogoSelect')) {
-    const selectedLogo = document.getElementById('editLogoSelect').value;
-    productEdits[productIndex] = productEdits[productIndex] || {};
-    productEdits[productIndex].logo = selectedLogo ? manufacturerLogos[selectedLogo] : null;
-    product.producent = selectedLogo || product.producent;
-  }
   product.nazwa = document.getElementById('editNazwa').value;
   product.indeks = document.getElementById('editIndeks').value;
   if (document.getElementById('showRanking')?.checked) {
@@ -274,10 +216,9 @@ function saveEdit(productIndex) {
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
     cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
-    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
-    logo: productEdits[productIndex]?.logo || null
+    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
   };
-  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
+  console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
   renderCatalog();
   hideEditModal();
 }
@@ -296,6 +237,7 @@ function showPageEditModal(pageIndex) {
     showPriceLabel: true
   };
   const editForm = document.getElementById('editForm');
+  // Oblicz rzeczywistą liczbę stron na podstawie układu
   const layout = document.getElementById('layoutSelect').value || "16";
   let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
@@ -303,7 +245,7 @@ function showPageEditModal(pageIndex) {
   else if (layout === "4") itemsPerPage = 4;
   else if (layout === "8") itemsPerPage = 8;
   else if (layout === "16") itemsPerPage = 16;
-  else if (layout === "4-2-4") itemsPerPage = 10;
+  else if (layout === "4-2-4") itemsPerPage = 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
   const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
   editForm.innerHTML = `
     <div class="edit-field">
@@ -379,7 +321,7 @@ function savePageEdit(pageIndex) {
     priceCurrency: document.getElementById('editCenaCurrency').value,
     showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true'
   };
-  console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]);
+  console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]); // Debug
   renderCatalog();
   hideEditModal();
 }
@@ -550,11 +492,13 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCatalog();
     });
   }
+  // Dodanie przycisku "Edytuj stronę PDF" nad listą produktów
+  const panel = document.querySelector('.improved-panel');
   const pageEditButton = document.createElement('button');
   pageEditButton.className = 'btn-secondary';
   pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę PDF';
-  pageEditButton.onclick = () => showPageEditModal(0);
-  document.querySelector('.improved-panel').appendChild(pageEditButton);
+  pageEditButton.onclick = () => showPageEditModal(0); // Domyślnie pierwsza strona
+  panel.appendChild(pageEditButton);
 });
 
 function showBannerModal() {
@@ -626,7 +570,6 @@ function renderCatalog() {
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
-  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
@@ -634,7 +577,7 @@ function renderCatalog() {
   else if (layout === "4") itemsPerPage = 4;
   else if (layout === "8") itemsPerPage = 8;
   else if (layout === "16") itemsPerPage = 16;
-  else if (layout === "4-2-4") itemsPerPage = 10;
+  else if (layout === "4-2-4") itemsPerPage = 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
   let pageDiv;
   let currentPage = 0;
   products.forEach((p, i) => {
@@ -655,20 +598,12 @@ function renderCatalog() {
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
       const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
-      const finalEdit = { ...pageEdit, ...edit };
+      const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+      console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit); // Debug
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
-    }
-    if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
-      const logoImg = document.createElement('img');
-      logoImg.src = productEdits[i]?.logo || manufacturerLogos[p.producent];
-      logoImg.style.width = '80px';
-      logoImg.style.height = '40px';
-      logoImg.style.objectFit = 'contain';
-      logoImg.style.marginTop = '8px';
-      details.appendChild(logoImg);
     }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
@@ -694,7 +629,7 @@ function importExcel() {
     let headers;
     try {
       if (file.name.endsWith('.csv')) {
-        const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true, dynamicTyping: true });
+        const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
         rows = parsed.data;
         if (rows.length === 0 || !parsed.meta.fields) {
           throw new Error("Plik CSV jest pusty lub nie zawiera nagłówków");
@@ -705,38 +640,39 @@ function importExcel() {
           headers.forEach((header, i) => {
             const value = row[parsed.meta.fields[i]];
             if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-            if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = value || '';
+            if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || '';
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
             if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
             if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
-            if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || '';
           });
           return obj;
         });
       } else {
         const workbook = XLSX.read(e.target.result, { type: 'binary' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        // Użyj sheet_to_json z nagłówkami jako kluczami
-        const jsonRows = XLSX.utils.sheet_to_json(sheet, { raw: true });
-        if (Object.keys(jsonRows).length === 0) {
-          throw new Error("Plik XLS jest pusty lub nie zawiera danych");
+        const jsonRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
+        if (jsonRows.length <= 1 || !jsonRows[0].length) {
+          throw new Error("Plik XLS jest pusty lub nie zawiera nagłówków");
         }
-        headers = Object.keys(jsonRows[0]).map(h => h.toString().toLowerCase().trim());
-        rows = jsonRows.map(row => {
+        headers = jsonRows[0].map(h => h.toString().toLowerCase().trim());
+        rows = jsonRows.slice(1).map(row => {
           let obj = {};
-          for (let key in row) {
-            const header = key.toLowerCase().trim();
-            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[key] || '';
-            if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = row[key] || '';
-            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[key] || '';
-            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[key] || '';
-            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[key] || '';
-            if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[key] || '';
+          if (row.length !== headers.length) {
+            console.warn("Nieprawidłowa liczba kolumn w wierszu:", row);
+            return obj;
           }
+          headers.forEach((header, i) => {
+            const value = row[i];
+            if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
+            if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || '';
+            if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
+            if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
+            if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+          });
           return obj;
         });
       }
-      console.log("Przetworzone nagłówki:", headers); // Debugowanie
+      console.log("Przetworzone nagłówki:", headers);
       console.log("Przetworzone wiersze CSV/Excel:", rows);
       const newProducts = [];
       rows.forEach(row => {
@@ -756,7 +692,7 @@ function importExcel() {
                 margin: 0
               });
               barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-              console.log("Wygenerowano kod kreskowy dla EAN:", row['ean']); // Debugowanie
+              console.log("Wygenerowano kod kreskowy dla EAN:", row['ean']);
             } catch (e) {
               console.error('Błąd generowania kodu kreskowego:', e);
             }
@@ -770,8 +706,7 @@ function importExcel() {
             cena: row['cena'] || (matched ? matched.cena : ''),
             indeks: indeks.toString(),
             img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
-            barcode: barcodeImg,
-            producent: row['producent'] || (matched ? matched.producent : '')
+            barcode: barcodeImg
           });
         }
       });
