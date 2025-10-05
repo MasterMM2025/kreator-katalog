@@ -925,15 +925,9 @@ async function previewPDF() {
   const doc = await buildPDF(jsPDF, false);
   const endTime = performance.now();
   const totalTime = endTime - startTime;
-  const blobUrl = doc.output('bloburl');
-  const win = window.open(blobUrl, '_blank');
-  if (win) {
-    win.focus();
-  } else {
-    alert('Proszę zezwolić na wyskakujące okna, aby zobaczyć podgląd PDF.');
-    document.getElementById('pdfIframe').src = blobUrl;
-    document.getElementById('pdfPreview').style.display = 'block';
-  }
+  const blobUrl = doc.output("bloburl");
+  document.getElementById("pdfIframe").src = blobUrl;
+  document.getElementById("pdfPreview").style.display = "block";
   updateProgress(totalTime);
 }
 
