@@ -31,6 +31,7 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
+
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -42,9 +43,11 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
+
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+
   if (products.length > 0) {
     if (backgroundImg) {
       try {
@@ -66,6 +69,7 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -78,6 +82,7 @@ async function buildPDF(jsPDF, save = true) {
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
+
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -88,6 +93,7 @@ async function buildPDF(jsPDF, save = true) {
     return 4;
   };
   const itemsPerPage = getItemsPerPage();
+
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -106,10 +112,12 @@ async function buildPDF(jsPDF, save = true) {
           showPriceLabel: true
         };
         const finalEdit = { ...pageEdit, ...edit };
-        console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
+        console.log('BuildPDF - Product Index:', productIndex, 'Data:', p); // Debugowanie
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
+
         let imgSrc = uploadedImages[p.indeks] || p.img;
         let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
+
         if (isLarge) {
           if (imgSrc) {
             try {
@@ -143,7 +151,7 @@ async function buildPDF(jsPDF, save = true) {
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
-          doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
+          doc.text(`Indeks: ${p.indeks || '-'}` , x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
           if (showRanking && p.ranking) {
             doc.setFont(finalEdit.rankingFont, "normal");
@@ -163,7 +171,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
-          if (showLogo && layout === "4" && logoSrc) { // Wyświetl tylko logo dla modułu 4
+          if (showLogo && layout === "4" && logoSrc) {
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
@@ -178,13 +186,18 @@ async function buildPDF(jsPDF, save = true) {
               console.error('Błąd dodawania loga:', e);
             }
           }
-          if (showEan && p.ean && p.barcode) {
+          if (showEan && p.ean) {
             try {
+              console.log('Próba dodania kodu kreskowego dla EAN:', p.ean, 'Barcode:', p.barcode); // Debugowanie
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              if (p.barcode) {
+                doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              } else {
+                console.warn('Brak obrazu kodu kreskowego dla EAN:', p.ean);
+              }
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
             }
@@ -238,13 +251,18 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
             textY += 16;
           }
-          if (showEan && p.ean && p.barcode) {
+          if (showEan && p.ean) {
             try {
+              console.log('Próba dodania kodu kreskowego dla EAN:', p.ean, 'Barcode:', p.barcode); // Debugowanie
               const bw = 85;
               const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              if (p.barcode) {
+                doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              } else {
+                console.warn('Brak obrazu kodu kreskowego dla EAN:', p.ean);
+              }
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
             }
@@ -262,6 +280,7 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
+
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -502,7 +521,7 @@ function saveEdit(productIndex) {
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
-    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
+    cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
     logo: productEdits[productIndex]?.logo || null
