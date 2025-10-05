@@ -5,7 +5,7 @@ let selectedCover = null;
 let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
-let pageEdits = {}; // Nowy obiekt do przechowywania edycji stron
+let pageEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
@@ -141,7 +141,7 @@ function showEditModal(productIndex) {
       <select id="editIndeksFont">
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.font === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
@@ -244,7 +244,7 @@ function showPageEditModal(pageIndex) {
   else if (layout === "4") itemsPerPage = 4;
   else if (layout === "8") itemsPerPage = 8;
   else if (layout === "16") itemsPerPage = 16;
-  else if (layout === "4-2-4") itemsPerPage = 4 + 2 + 4; // Przybliżona liczba dla 4-2-4
+  else if (layout === "4-2-4") itemsPerPage = 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
   const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
   editForm.innerHTML = `
     <div class="edit-field">
@@ -603,9 +603,10 @@ function renderCatalog() {
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
       const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
-      const currency = pageEdit.priceCurrency || edit.priceCurrency || globalCurrency;
+      const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
+      const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
-      const showPriceLabel = pageEdit.showPriceLabel !== undefined ? pageEdit.showPriceLabel : true;
+      const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
