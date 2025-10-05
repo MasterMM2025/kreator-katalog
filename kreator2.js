@@ -11,14 +11,17 @@ function drawBox(doc, x, y, w, h, style) {
     doc.rect(x, y, w, h, 'F');
   }
 }
+
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
+
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
+
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -106,6 +109,7 @@ async function buildPDF(jsPDF, save = true) {
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
         let imgSrc = uploadedImages[p.indeks] || p.img;
+        let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
         if (isLarge) {
           if (imgSrc) {
             try {
@@ -159,16 +163,19 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
-          if (showLogo && p.logo && layout === "4") {
+          if (showLogo && layout === "4" && logoSrc) { // Wyświetl tylko logo dla modułu 4
             try {
-              const logoW = sectionCols === 1 ? 50 : 30;
-              const logoH = sectionCols === 1 ? 50 : 30;
+              const logoImg = new Image();
+              logoImg.src = logoSrc;
+              await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; });
+              const logoW = 80;
+              const logoH = 40;
               const logoX = x + (boxWidth - logoW) / 2;
               const logoY = textY;
-              doc.addImage(p.logo, p.logo.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
+              doc.addImage(logoSrc, logoSrc.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
               textY += logoH + 5;
             } catch (e) {
-              console.error('Błąd logo w PDF:', e);
+              console.error('Błąd dodawania loga:', e);
             }
           }
           if (showEan && p.ean && p.barcode) {
@@ -180,7 +187,6 @@ async function buildPDF(jsPDF, save = true) {
               doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
-              document.getElementById('debug').innerText += ` | Błąd kodu EAN: ${p.ean}`;
             }
           }
         } else {
@@ -232,18 +238,6 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
             textY += 16;
           }
-          if (showLogo && p.logo && layout === "4") {
-            try {
-              const logoW = 30;
-              const logoH = 30;
-              const logoX = x + (boxWidth - logoW) / 2;
-              const logoY = textY;
-              doc.addImage(p.logo, p.logo.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH);
-              textY += logoH + 5;
-            } catch (e) {
-              console.error('Błąd logo w PDF:', e);
-            }
-          }
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = 85;
@@ -253,7 +247,6 @@ async function buildPDF(jsPDF, save = true) {
               doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
-              document.getElementById('debug').innerText += ` | Błąd kodu EAN: ${p.ean}`;
             }
           }
         }
@@ -357,10 +350,12 @@ async function buildPDF(jsPDF, save = true) {
   if (save) doc.save("katalog.pdf");
   return doc;
 }
+
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
+
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -369,6 +364,7 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -381,10 +377,12 @@ function showEditModal(productIndex) {
     cenaFont: 'Arial',
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
-    priceFontSize: 'medium'
+    priceFontSize: 'medium',
+    logo: null
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -446,10 +444,22 @@ function showEditModal(productIndex) {
         </select>
       </div>
     ` : ''}
+    ${showLogo ? `
+      <div class="edit-field">
+        <label>Logo:</label>
+        <img src="${edit.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
+        <select id="editLogoSelect">
+          <option value="">Brak logo</option>
+          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${p.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
+        <input type="file" id="editLogo" accept="image/*">
+      </div>
+    ` : ''}
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -460,6 +470,21 @@ function saveEdit(productIndex) {
       renderCatalog();
     };
     reader.readAsDataURL(editImage);
+  }
+  const editLogo = document.getElementById('editLogo')?.files[0];
+  if (editLogo) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      productEdits[productIndex] = productEdits[productIndex] || {};
+      productEdits[productIndex].logo = e.target.result;
+      renderCatalog();
+    };
+    reader.readAsDataURL(editLogo);
+  } else if (document.getElementById('editLogoSelect')) {
+    const selectedLogo = document.getElementById('editLogoSelect').value;
+    productEdits[productIndex] = productEdits[productIndex] || {};
+    productEdits[productIndex].logo = selectedLogo ? manufacturerLogos[selectedLogo] : null;
+    product.producent = selectedLogo || product.producent;
   }
   product.nazwa = document.getElementById('editNazwa').value;
   product.indeks = document.getElementById('editIndeks').value;
@@ -479,12 +504,14 @@ function saveEdit(productIndex) {
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
     cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
-    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
+    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
+    logo: productEdits[productIndex]?.logo || null
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
   renderCatalog();
   hideEditModal();
 }
+
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -581,14 +608,14 @@ function showVirtualEditModal(productIndex) {
     document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
-    function applyTextEdit() {
+    window.applyTextEdit = function() {
       obj.set({
         fontFamily: document.getElementById('fontSelect').value,
         fill: document.getElementById('colorSelect').value,
         fontSize: document.getElementById('sizeSelect').value === 'small' ? 16 : document.getElementById('sizeSelect').value === 'medium' ? 20 : 24
       });
       canvas.renderAll();
-    }
+    };
   });
   canvas.on('object:moving', (e) => {
     const obj = e.target;
@@ -619,22 +646,12 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
+
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-async function generatePDF() {
-  const { jsPDF } = window.jspdf;
-  await buildPDF(jsPDF, true);
-}
-async function previewPDF() {
-  showProgressModal();
-  const { jsPDF } = window.jspdf;
-  const doc = await buildPDF(jsPDF, false);
-  const blobUrl = doc.output("bloburl");
-  document.getElementById("pdfIframe").src = blobUrl;
-  document.getElementById("pdfPreview").style.display = "block";
-}
+
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
