@@ -697,19 +697,19 @@ async function buildPDF(jsPDF, save = true) {
               img.src = imgSrc;
               await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
-              const maxH = boxHeight * 0.4; // Fixed height for image
+              const maxH = boxHeight * 0.4;
               let scale = Math.min(maxW / img.width, maxH / img.height);
               let w = img.width * scale;
               let h = img.height * scale;
               let imgX = x + (boxWidth - w) / 2;
-              let imgY = y + 5; // Minimalny margines 5 pt od góry
+              let imgY = y + 5;
               doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
 
-          let textY = y + 5 + (boxHeight * 0.4) + 10; // Po obrazie z marginesem
+          let textY = y + 5 + (boxHeight * 0.4) + 10;
           doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
@@ -747,7 +747,7 @@ async function buildPDF(jsPDF, save = true) {
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
-              const by = y + boxHeight - bh - 5; // Minimalny margines 5 pt od dołu
+              const by = y + boxHeight - bh - 5;
               doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
@@ -921,9 +921,44 @@ async function generatePDF() {
 async function previewPDF() {
   const { jsPDF } = window.jspdf;
   const doc = await buildPDF(jsPDF, false);
-  const blobUrl = doc.output("bloburl");
-  document.getElementById("pdfIframe").src = blobUrl;
-  document.getElementById("pdfPreview").style.display = "block";
+  const pdfData = doc.output('arraybuffer');
+  const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+  loadingTask.promise.then(pdf => {
+    const iframe = document.getElementById('pdfIframe');
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write('<html><body style="margin:0;padding:0;"></body></html>');
+    iframeDoc.close();
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      pdf.getPage(pageNum).then(page => {
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        page.render(renderContext).promise.then(() => {
+          const img = new Image();
+          img.src = canvas.toDataURL();
+          img.onload = () => {
+            const imgElement = iframeDoc.createElement('img');
+            imgElement.src = img.src;
+            imgElement.style.width = '100%';
+            imgElement.style.display = 'block';
+            imgElement.style.marginBottom = '10px';
+            iframeDoc.body.appendChild(imgElement);
+          };
+        });
+      });
+    }
+    document.getElementById('pdfPreview').style.display = 'block';
+  }).catch(error => {
+    console.error('Błąd renderowania PDF:', error);
+    document.getElementById('debug').innerText = 'Błąd renderowania podglądu PDF';
+  });
 }
 
 window.importExcel = importExcel;
