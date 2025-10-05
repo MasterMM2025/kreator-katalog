@@ -336,6 +336,11 @@ button:disabled {
   height: 600px;
   border: 1px solid #ccc;
 }
+#pdfIframe img {
+  width: 100%;
+  display: block;
+  margin-bottom: 10px;
+}
 /* Modal wyboru banera i edycji produktu */
 .modal {
   display: none;
