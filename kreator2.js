@@ -112,21 +112,7 @@ async function buildPDF(jsPDF, save = true) {
           priceFontSize: 'medium'
         }; // Pełne domyślne wartości
         const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {};
-        const finalEdit = {
-          ...pageEdit,
-          ...edit,
-          font: edit.font || pageEdit.nazwaFont || 'Arial',
-          fontColor: edit.fontColor || pageEdit.nazwaFontColor || '#000000',
-          indeksFont: edit.indeksFont || pageEdit.indeksFont || 'Arial',
-          indeksFontColor: edit.indeksFontColor || pageEdit.indeksFontColor || '#000000',
-          rankingFont: edit.rankingFont || pageEdit.rankingFont || 'Arial',
-          rankingFontColor: edit.rankingFontColor || pageEdit.rankingFontColor || '#000000',
-          cenaFont: edit.cenaFont || pageEdit.cenaFont || 'Arial',
-          cenaFontColor: edit.cenaFontColor || pageEdit.cenaFontColor || '#000000',
-          priceCurrency: edit.priceCurrency || pageEdit.priceCurrency || globalCurrency,
-          priceFontSize: edit.priceFontSize || pageEdit.priceFontSize || 'medium',
-          showPriceLabel: edit.showPriceLabel !== undefined ? edit.showPriceLabel : pageEdit.showPriceLabel !== undefined ? pageEdit.showPriceLabel : true
-        }; // Explicit merging with fallback
+        const finalEdit = { ...edit, ...pageEdit }; // Zmieniono kolejność: priorytet productEdits nad pageEdits
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
@@ -150,9 +136,9 @@ async function buildPDF(jsPDF, save = true) {
           }
 
           let textY = y + 5 + (boxHeight * 0.4) + 10;
-          doc.setFont(finalEdit.nazwaFont, "bold");
+          doc.setFont(finalEdit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
-          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000'; // Fallback
+          const nazwaFontColor = finalEdit.fontColor || '#000000'; // Fallback
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           const maxLines = 3;
@@ -217,9 +203,9 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont(finalEdit.nazwaFont, "bold");
+          doc.setFont(finalEdit.font, "bold");
           doc.setFontSize(8);
-          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
+          const nazwaFontColor = finalEdit.fontColor || '#000000';
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
