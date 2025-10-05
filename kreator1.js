@@ -8,6 +8,7 @@ let productEdits = {};
 let pageEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
+let manufacturerLogos = {};
 
 async function toBase64(url) {
   try {
@@ -22,6 +23,33 @@ async function toBase64(url) {
     });
   } catch {
     return null;
+  }
+}
+
+async function loadManufacturerLogos() {
+  try {
+    const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
+    if (!response.ok) throw new Error(`Nie udało się załadować Producenci.json: ${response.status}`);
+    const jsonData = await response.json();
+    for (const manufacturer of jsonData) {
+      const name = manufacturer.NAZWA_PROD.trim();
+      const urls = [
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${name}.jpg`,
+        `https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/zdjecia/${name}.png`
+      ];
+      let base64Logo = null;
+      for (const url of urls) {
+        base64Logo = await toBase64(url);
+        if (base64Logo) break;
+      }
+      if (base64Logo) {
+        manufacturerLogos[name] = base64Logo;
+      }
+    }
+    console.log("Załadowano loga producentów:", Object.keys(manufacturerLogos).length);
+  } catch (error) {
+    console.error("Błąd ładowania logów producentów:", error);
+    document.getElementById('debug').innerText = "Błąd ładowania logów producentów: " + error.message;
   }
 }
 
@@ -49,10 +77,12 @@ async function loadProducts() {
         ranking: p.RANKING || '',
         cena: p.CENA || '',
         indeks: p.INDEKS.toString(),
-        img: base64Img
+        img: base64Img,
+        producent: p.NAZWA_PROD || ''
       };
     }));
     console.log("Załadowano jsonProducts:", jsonProducts.length);
+    await loadManufacturerLogos();
   } catch (error) {
     document.getElementById('debug').innerText = "Błąd ładowania JSON: " + error.message;
     console.error("Błąd loadProducts:", error);
@@ -113,10 +143,12 @@ function showEditModal(productIndex) {
     cenaFont: 'Arial',
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
-    priceFontSize: 'medium'
+    priceFontSize: 'medium',
+    logo: null
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -178,6 +210,17 @@ function showEditModal(productIndex) {
         </select>
       </div>
     ` : ''}
+    ${showLogo ? `
+      <div class="edit-field">
+        <label>Logo:</label>
+        <img src="${edit.logo || (product.producent && manufacturerLogos[product.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak'}" style="width:80px;height:40px;object-fit:contain;margin-bottom:10px;">
+        <select id="editLogoSelect">
+          <option value="">Brak logo</option>
+          ${Object.keys(manufacturerLogos).map(name => `<option value="${name}" ${product.producent === name ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
+        <input type="file" id="editLogo" accept="image/*">
+      </div>
+    ` : ''}
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
   `;
   document.getElementById('editModal').style.display = 'block';
@@ -197,6 +240,21 @@ function saveEdit(productIndex) {
       renderCatalog();
     };
     reader.readAsDataURL(editImage);
+  }
+  const editLogo = document.getElementById('editLogo')?.files[0];
+  if (editLogo) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      productEdits[productIndex] = productEdits[productIndex] || {};
+      productEdits[productIndex].logo = e.target.result;
+      renderCatalog();
+    };
+    reader.readAsDataURL(editLogo);
+  } else if (document.getElementById('editLogoSelect')) {
+    const selectedLogo = document.getElementById('editLogoSelect').value;
+    productEdits[productIndex] = productEdits[productIndex] || {};
+    productEdits[productIndex].logo = selectedLogo ? manufacturerLogos[selectedLogo] : null;
+    product.producent = selectedLogo || product.producent;
   }
   product.nazwa = document.getElementById('editNazwa').value;
   product.indeks = document.getElementById('editIndeks').value;
@@ -233,7 +291,8 @@ function saveEdit(productIndex) {
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
     cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
-    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium'
+    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
+    logo: productEdits[productIndex]?.logo || null
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]); // Debug
   renderCatalog();
@@ -587,6 +646,7 @@ function renderCatalog() {
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
@@ -642,6 +702,15 @@ function renderCatalog() {
       console.log('RenderCatalog - Product Index:', i, 'Final Edit:', finalEdit); // Debug
       details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
+    if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
+      const logoImg = document.createElement('img');
+      logoImg.src = productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]) || 'https://dummyimage.com/80x40/eee/000&text=brak';
+      logoImg.style.width = '80px';
+      logoImg.style.height = '40px';
+      logoImg.style.objectFit = 'contain';
+      logoImg.style.marginTop = '8px';
+      details.appendChild(logoImg);
+    }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
     editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
@@ -691,6 +760,7 @@ function importExcel() {
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
             if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
             if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            if (['producent', 'nazwa_prod'].some(h => header.includes(h))) obj['producent'] = value || '';
             // Ignorowanie kolumny "Logo"
           });
           return obj;
@@ -724,6 +794,7 @@ function importExcel() {
             if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
             if (['cen', 'cena', 'netto', 'netto-cell'].some(h => header.includes(h))) obj['cena'] = value || '';
             if (['nazwa', 'name', 'nazwa producenta'].some(h => header.includes(h))) obj['nazwa'] = value || '';
+            if (['producent', 'nazwa_prod'].some(h => header.includes(h))) obj['producent'] = value || '';
             // Ignorowanie kolumny "Logo"
           });
           return obj;
@@ -765,7 +836,8 @@ function importExcel() {
             cena: row['cena'] || (matched ? matched.cena : ''),
             indeks: indeks.toString(),
             img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
-            barcode: barcodeImg
+            barcode: barcodeImg,
+            producent: row['producent'] || (matched ? matched.producent : '')
           });
         }
       });
