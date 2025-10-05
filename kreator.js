@@ -919,46 +919,48 @@ async function generatePDF() {
 }
 
 async function previewPDF() {
+  showProgressModal();
   const { jsPDF } = window.jspdf;
+  const startTime = performance.now();
   const doc = await buildPDF(jsPDF, false);
-  const pdfData = doc.output('arraybuffer');
-  const loadingTask = pdfjsLib.getDocument({ data: pdfData });
-  loadingTask.promise.then(pdf => {
-    const iframe = document.getElementById('pdfIframe');
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    iframeDoc.open();
-    iframeDoc.write('<html><body style="margin:0;padding:0;"></body></html>');
-    iframeDoc.close();
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      pdf.getPage(pageNum).then(page => {
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport
-        };
-        page.render(renderContext).promise.then(() => {
-          const img = new Image();
-          img.src = canvas.toDataURL();
-          img.onload = () => {
-            const imgElement = iframeDoc.createElement('img');
-            imgElement.src = img.src;
-            imgElement.style.width = '100%';
-            imgElement.style.display = 'block';
-            imgElement.style.marginBottom = '10px';
-            iframeDoc.body.appendChild(imgElement);
-          };
-        });
-      });
-    }
+  const endTime = performance.now();
+  const totalTime = endTime - startTime;
+  const blobUrl = doc.output('bloburl');
+  const win = window.open(blobUrl, '_blank');
+  if (win) {
+    win.focus();
+  } else {
+    alert('Proszę zezwolić na wyskakujące okna, aby zobaczyć podgląd PDF.');
+    document.getElementById('pdfIframe').src = blobUrl;
     document.getElementById('pdfPreview').style.display = 'block';
-  }).catch(error => {
-    console.error('Błąd renderowania PDF:', error);
-    document.getElementById('debug').innerText = 'Błąd renderowania podglądu PDF';
-  });
+  }
+  updateProgress(totalTime);
+}
+
+function showProgressModal() {
+  document.getElementById('progressModal').style.display = 'block';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = '0%';
+}
+
+function hideProgressModal() {
+  document.getElementById('progressModal').style.display = 'none';
+}
+
+function updateProgress(totalTime) {
+  let progress = 0;
+  const interval = 50; // Aktualizacja co 50ms
+  const increment = 100 / (totalTime / interval);
+  const progressInterval = setInterval(() => {
+    progress += increment;
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(progressInterval);
+      hideProgressModal();
+    }
+    document.getElementById('progressBar').style.width = `${progress}%`;
+    document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+  }, interval);
 }
 
 window.importExcel = importExcel;
