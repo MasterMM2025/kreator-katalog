@@ -83,12 +83,24 @@ async function buildPDF(jsPDF, save = true) {
   let y = marginTop;
   let productIndex = 0;
 
+  const getItemsPerPage = () => {
+    if (layout === "1") return 1;
+    if (layout === "2") return 2;
+    if (layout === "4") return 4;
+    if (layout === "8") return 8;
+    if (layout === "16") return 16;
+    if (layout === "4-2-4") return 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
+    return 4; // Domyślnie
+  };
+
+  const itemsPerPage = getItemsPerPage();
+
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
         const p = products[productIndex];
         const edit = productEdits[productIndex] || {};
-        const pageEdit = pageEdits[Math.floor(productIndex / 4)] || {};
+        const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {};
         const finalEdit = { ...edit, ...pageEdit }; // Priorytet edycji strony nad edycją produktu
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
@@ -199,7 +211,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt((finalEdit.cenaFontColor || '#000000').substring(1, 3), 16), parseInt((finalEdit.cenaFontColor || '#000000').substring(3, 5), 16), parseInt((finalEdit.cenaFontColor || '#000000').substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
