@@ -614,11 +614,14 @@ function drawBox(doc, x, y, w, h, style) {
 }
 
 async function buildPDF(jsPDF, save = true) {
+  showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
   let pageNumber = 1;
+  let totalProducts = products.length;
+  let processedProducts = 0;
 
   if (selectedCover) {
     try {
@@ -810,6 +813,10 @@ async function buildPDF(jsPDF, save = true) {
           }
         }
 
+        processedProducts++;
+        const progress = (processedProducts / totalProducts) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+        document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
         x += boxWidth + 6;
         productIndex++;
       }
@@ -909,6 +916,7 @@ async function buildPDF(jsPDF, save = true) {
     }
   }
 
+  hideProgressModal();
   if (save) doc.save("katalog.pdf");
   return doc;
 }
@@ -921,14 +929,10 @@ async function generatePDF() {
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
-  const startTime = performance.now();
   const doc = await buildPDF(jsPDF, false);
-  const endTime = performance.now();
-  const totalTime = endTime - startTime;
   const blobUrl = doc.output("bloburl");
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
-  updateProgress(totalTime);
 }
 
 function showProgressModal() {
@@ -939,22 +943,6 @@ function showProgressModal() {
 
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
-}
-
-function updateProgress(totalTime) {
-  let progress = 0;
-  const interval = 50; // Aktualizacja co 50ms
-  const increment = 100 / (totalTime / interval);
-  const progressInterval = setInterval(() => {
-    progress += increment;
-    if (progress >= 100) {
-      progress = 100;
-      clearInterval(progressInterval);
-      hideProgressModal();
-    }
-    document.getElementById('progressBar').style.width = `${progress}%`;
-    document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
-  }, interval);
 }
 
 window.importExcel = importExcel;
