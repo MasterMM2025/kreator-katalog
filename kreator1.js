@@ -236,11 +236,21 @@ function showPageEditModal(pageIndex) {
     showPriceLabel: true
   };
   const editForm = document.getElementById('editForm');
+  // Oblicz rzeczywistą liczbę stron na podstawie układu
+  const layout = document.getElementById('layoutSelect').value || "16";
+  let itemsPerPage;
+  if (layout === "1") itemsPerPage = 1;
+  else if (layout === "2") itemsPerPage = 2;
+  else if (layout === "4") itemsPerPage = 4;
+  else if (layout === "8") itemsPerPage = 8;
+  else if (layout === "16") itemsPerPage = 16;
+  else if (layout === "4-2-4") itemsPerPage = 4 + 2 + 4; // Przybliżona liczba dla 4-2-4
+  const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
   editForm.innerHTML = `
     <div class="edit-field">
       <label>Wybierz stronę:</label>
       <select id="editPageSelect">
-        ${Array.from({ length: Math.ceil(products.length / 4) }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`)}
+        ${Array.from({ length: totalPages }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`)}
       </select>
     </div>
     <div class="edit-field">
@@ -486,6 +496,14 @@ document.addEventListener("DOMContentLoaded", () => {
       renderCatalog();
     });
   }
+
+  // Dodanie przycisku "Edytuj stronę PDF" nad listą produktów
+  const panel = document.querySelector('.improved-panel');
+  const pageEditButton = document.createElement('button');
+  pageEditButton.className = 'btn-secondary';
+  pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę PDF';
+  pageEditButton.onclick = () => showPageEditModal(0); // Domyślnie pierwsza strona
+  panel.appendChild(pageEditButton);
 });
 
 function showBannerModal() {
@@ -558,9 +576,13 @@ function renderCatalog() {
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
-  let itemsPerPage = 4;
+  let itemsPerPage;
   if (layout === "1") itemsPerPage = 1;
   else if (layout === "2") itemsPerPage = 2;
+  else if (layout === "4") itemsPerPage = 4;
+  else if (layout === "8") itemsPerPage = 8;
+  else if (layout === "16") itemsPerPage = 16;
+  else if (layout === "4-2-4") itemsPerPage = 10; // Przybliżona liczba dla 4-2-4 (4+2+4)
   let pageDiv;
   let currentPage = 0;
   products.forEach((p, i) => {
@@ -590,14 +612,9 @@ function renderCatalog() {
     editButton.className = 'btn-primary edit-button';
     editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
     editButton.onclick = () => showEditModal(i);
-    const pageEditButton = document.createElement('button');
-    pageEditButton.className = 'btn-secondary edit-button';
-    pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę';
-    pageEditButton.onclick = () => showPageEditModal(Math.floor(i / itemsPerPage));
     item.appendChild(img);
     item.appendChild(details);
     item.appendChild(editButton);
-    item.appendChild(pageEditButton);
     pageDiv.appendChild(item);
   });
 }
