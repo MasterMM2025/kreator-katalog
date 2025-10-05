@@ -705,7 +705,7 @@ function importExcel() {
         headers.forEach((header, i) => {
           const value = row[Object.keys(row)[i]];
           if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = value || '';
-          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = value || ''; // Rozszerzono warianty dla EAN
+          if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = value || ''; // Ulepszone dopasowanie EAN
           if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = value || '';
           if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
@@ -722,7 +722,7 @@ function importExcel() {
         let obj = {};
         headers.forEach((header, i) => {
           if (['index', 'indeks'].some(h => header.includes(h))) obj['indeks'] = row[i] || '';
-          if (['ean', 'kod ean', 'barcode'].some(h => header.includes(h))) obj['ean'] = row[i] || ''; // Rozszerzono warianty dla EAN
+          if (['ean', 'kod ean', 'barcode'].some(h => header.toLowerCase().includes(h.toLowerCase()))) obj['ean'] = row[i] || ''; // Ulepszone dopasowanie EAN
           if (['rank', 'ranking'].some(h => header.includes(h))) obj['ranking'] = row[i] || '';
           if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[i] || '';
@@ -731,6 +731,7 @@ function importExcel() {
         return obj;
       });
     }
+    console.log("Przetworzone nagłówki:", headers); // Debugowanie nagłówków
     console.log("Przetworzone wiersze CSV/Excel:", rows);
     const newProducts = [];
     rows.forEach(row => {
