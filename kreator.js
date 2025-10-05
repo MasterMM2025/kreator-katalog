@@ -697,28 +697,28 @@ async function buildPDF(jsPDF, save = true) {
               img.src = imgSrc;
               await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
-              const maxH = boxHeight * (sectionCols === 1 ? 0.5 : 0.4);
+              const maxH = boxHeight * 0.4; // Fixed height for image
               let scale = Math.min(maxW / img.width, maxH / img.height);
               let w = img.width * scale;
               let h = img.height * scale;
               let imgX = x + (boxWidth - w) / 2;
-              let imgY = y + (sectionCols === 1 ? 40 : 25);
+              let imgY = y + 5; // Minimalny margines 5 pt od góry
               doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
             }
           }
 
-          let textY = y + boxHeight * (sectionCols === 1 ? 0.6 : 0.5);
+          let textY = y + 5 + (boxHeight * 0.4) + 10; // Po obrazie z marginesem
           doc.setFont(edit.font, "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           doc.setTextColor(parseInt(edit.fontColor.substring(1, 3), 16), parseInt(edit.fontColor.substring(3, 5), 16), parseInt(edit.fontColor.substring(5, 7), 16));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
-          const maxLines = 3; // Limit to 3 lines to prevent overflow
+          const maxLines = 3;
           lines.slice(0, maxLines).forEach((line, index) => {
             doc.text(line, x + boxWidth / 2, textY + (index * 18), { align: "center" });
           });
-          textY += Math.min(lines.length, maxLines) * 18 + 10; // Adjust based on actual lines
+          textY += Math.min(lines.length, maxLines) * 18 + 10;
 
           doc.setFont(edit.indeksFont, "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
@@ -734,14 +734,12 @@ async function buildPDF(jsPDF, save = true) {
           }
 
           if (showCena && p.cena) {
-            // Fixed position for price, starting from bottom up
-            const priceY = y + boxHeight - 40; // Fixed distance from bottom
             doc.setFont(edit.cenaFont, "bold");
             const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
             const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, priceY, { align: "center" });
+            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
 
           if (showEan && p.ean && p.barcode) {
@@ -749,7 +747,7 @@ async function buildPDF(jsPDF, save = true) {
               const bw = sectionCols === 1 ? 180 : 140;
               const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
-              const by = y + boxHeight - bh - (sectionCols === 1 ? 30 : 20);
+              const by = y + boxHeight - bh - 5; // Minimalny margines 5 pt od dołu
               doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
