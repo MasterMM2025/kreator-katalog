@@ -112,7 +112,21 @@ async function buildPDF(jsPDF, save = true) {
           priceCurrency: globalCurrency,
           showPriceLabel: true
         };
-        const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
+        // Ulepszona logika: baza pageEdit z nadpisywaniem tylko istniejącymi polami z edit
+        const finalEdit = {
+          ...pageEdit,
+          ...(edit.font && { font: edit.font }),
+          ...(edit.fontColor && { fontColor: edit.fontColor }),
+          ...(edit.indeksFont && { indeksFont: edit.indeksFont }),
+          ...(edit.indeksFontColor && { indeksFontColor: edit.indeksFontColor }),
+          ...(edit.rankingFont && { rankingFont: edit.rankingFont }),
+          ...(edit.rankingFontColor && { rankingFontColor: edit.rankingFontColor }),
+          ...(edit.cenaFont && { cenaFont: edit.cenaFont }),
+          ...(edit.cenaFontColor && { cenaFontColor: edit.cenaFontColor }),
+          ...(edit.priceCurrency && { priceCurrency: edit.priceCurrency }),
+          ...(edit.priceFontSize && { priceFontSize: edit.priceFontSize }),
+          ...(edit.showPriceLabel !== undefined && { showPriceLabel: edit.showPriceLabel })
+        };
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
