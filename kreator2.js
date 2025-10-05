@@ -101,7 +101,7 @@ async function buildPDF(jsPDF, save = true) {
         const p = products[productIndex];
         const edit = productEdits[productIndex] || {};
         const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {};
-        const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony
+        const finalEdit = { ...pageEdit, ...edit }; // Priorytet edycji produktu nad edycją strony dla wszystkich pól
         drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
 
         let imgSrc = uploadedImages[p.indeks] || p.img;
@@ -323,6 +323,7 @@ async function buildPDF(jsPDF, save = true) {
         }
       }
       doc.setFont("Arial", "bold");
+      doc.setTextColor(0, 0, 0); // Domyślny kolor tekstu dla numeru strony
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
       x = marginLeftRight;
