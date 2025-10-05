@@ -5,6 +5,7 @@ let selectedCover = null;
 let selectedBackground = null;
 let uploadedImages = {};
 let productEdits = {};
+let pageEdits = {}; // Nowy obiekt do przechowywania edycji stron
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 
@@ -219,6 +220,102 @@ function saveEdit(productIndex) {
   };
   renderCatalog();
   hideEditModal();
+}
+
+function showPageEditModal(pageIndex) {
+  const edit = pageEdits[pageIndex] || {
+    nazwaFont: 'Arial',
+    nazwaFontColor: '#000000',
+    indeksFont: 'Arial',
+    indeksFontColor: '#000000',
+    rankingFont: 'Arial',
+    rankingFontColor: '#000000',
+    cenaFont: 'Arial',
+    cenaFontColor: '#000000',
+    priceCurrency: globalCurrency,
+    showPriceLabel: true
+  };
+  const editForm = document.getElementById('editForm');
+  editForm.innerHTML = `
+    <div class="edit-field">
+      <label>Wybierz stronę:</label>
+      <select id="editPageSelect">
+        ${Array.from({ length: Math.ceil(products.length / 4) }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`)}
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Czcionka nazwy:</label>
+      <select id="editNazwaFont">
+        <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Czcionka indeksu:</label>
+      <select id="editIndeksFont">
+        <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Czcionka rankingu:</label>
+      <select id="editRankingFont">
+        <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Czcionka ceny:</label>
+      <select id="editCenaFont">
+        <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Waluta:</label>
+      <select id="editCenaCurrency">
+        <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
+        <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Format ceny:</label>
+      <label><input type="radio" name="priceFormat" value="true" ${edit.showPriceLabel ? 'checked' : ''}> Price: 1.45</label>
+      <label><input type="radio" name="priceFormat" value="false" ${!edit.showPriceLabel ? 'checked' : ''}> 1.45</label>
+    </div>
+    <button onclick="savePageEdit(${pageIndex})" class="btn-primary">Zapisz</button>
+  `;
+  document.getElementById('editModal').style.display = 'block';
+}
+
+function savePageEdit(pageIndex) {
+  const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
+  pageEdits[newPageIndex] = {
+    nazwaFont: document.getElementById('editNazwaFont').value,
+    nazwaFontColor: document.getElementById('editNazwaColor').value,
+    indeksFont: document.getElementById('editIndeksFont').value,
+    indeksFontColor: document.getElementById('editIndeksColor').value,
+    rankingFont: document.getElementById('editRankingFont').value,
+    rankingFontColor: document.getElementById('editRankingColor').value,
+    cenaFont: document.getElementById('editCenaFont').value,
+    cenaFontColor: document.getElementById('editCenaColor').value,
+    priceCurrency: document.getElementById('editCenaCurrency').value,
+    showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true'
+  };
+  renderCatalog();
+  hideEditModal();
+}
+
+function hideEditModal() {
+  document.getElementById('editModal').style.display = 'none';
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -464,9 +561,16 @@ function renderCatalog() {
   let itemsPerPage = 4;
   if (layout === "1") itemsPerPage = 1;
   else if (layout === "2") itemsPerPage = 2;
-  let pageDiv = document.createElement("div");
-  pageDiv.className = "page";
+  let pageDiv;
+  let currentPage = 0;
   products.forEach((p, i) => {
+    if (i % itemsPerPage === 0) {
+      pageDiv = document.createElement("div");
+      pageDiv.className = "page";
+      pageDiv.setAttribute("data-page", currentPage);
+      currentPage++;
+      container.appendChild(pageDiv);
+    }
     const item = document.createElement("div");
     item.className = layout === "1" || layout === "2" ? "item item-large" : "item";
     const img = document.createElement('img');
@@ -476,25 +580,26 @@ function renderCatalog() {
     details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
-      const currency = edit.priceCurrency || globalCurrency;
+      const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
+      const currency = pageEdit.priceCurrency || edit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
-      details.innerHTML += `<br>${priceLabel}: ${p.cena} ${currencySymbol}`;
+      const showPriceLabel = pageEdit.showPriceLabel !== undefined ? pageEdit.showPriceLabel : true;
+      details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
     editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
     editButton.onclick = () => showEditModal(i);
+    const pageEditButton = document.createElement('button');
+    pageEditButton.className = 'btn-secondary edit-button';
+    pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę';
+    pageEditButton.onclick = () => showPageEditModal(Math.floor(i / itemsPerPage));
     item.appendChild(img);
     item.appendChild(details);
     item.appendChild(editButton);
+    item.appendChild(pageEditButton);
     pageDiv.appendChild(item);
-    if ((i + 1) % itemsPerPage === 0) {
-      container.appendChild(pageDiv);
-      pageDiv = document.createElement("div");
-      pageDiv.className = "page";
-    }
   });
-  if (products.length % itemsPerPage !== 0) container.appendChild(pageDiv);
 }
 
 function importExcel() {
@@ -583,6 +688,7 @@ function importExcel() {
     if (newProducts.length) {
       products = newProducts;
       productEdits = {};
+      pageEdits = {}; // Resetowanie edycji stron po imporcie
       renderCatalog();
       document.getElementById('pdfButton').disabled = false;
       document.getElementById('previewButton').disabled = false;
@@ -597,14 +703,4 @@ function importExcel() {
   };
   if (file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
-}
-
-function showProgressModal() {
-  document.getElementById('progressModal').style.display = 'block';
-  document.getElementById('progressBar').style.width = '0%';
-  document.getElementById('progressText').textContent = '0%';
-}
-
-function hideProgressModal() {
-  document.getElementById('progressModal').style.display = 'none';
 }
