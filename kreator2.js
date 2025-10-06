@@ -422,7 +422,7 @@ async function buildPDF(jsPDF, save = true) {
       } else if (backgroundImg) {
         try {
           doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-        }<Action to take> {
+        } catch (e) {
           console.error('Błąd dodawania tła:', e);
           document.getElementById('debug').innerText = "Błąd dodawania tła";
         }
@@ -975,4 +975,5 @@ window.showVirtualEditModal = showVirtualEditModal;
 window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
+window.loadProducts = loadProducts;
 loadProducts();
