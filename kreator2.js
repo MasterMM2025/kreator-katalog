@@ -49,33 +49,32 @@ async function buildPDF(jsPDF, save = true) {
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-  const applyGradient = (gradientType) => {
+  const applyGradient = (gradientType, opacity) => {
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
     if (gradientType === "blue") {
-      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-      gradient.addColorStop(0, '#e6f0fa');
-      gradient.addColorStop(1, '#3182ce');
-      doc.setFillColor(gradient);
+      doc.setFillColor(230, 240, 250);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(49, 130, 206);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "green") {
-      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-      gradient.addColorStop(0, '#e6ffe6');
-      gradient.addColorStop(1, '#38a169');
-      doc.setFillColor(gradient);
+      doc.setFillColor(230, 255, 230);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(56, 161, 105);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "gray") {
-      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-      gradient.addColorStop(0, '#f7fafc');
-      gradient.addColorStop(1, '#a0aec0');
-      doc.setFillColor(gradient);
+      doc.setFillColor(247, 250, 252);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(160, 174, 192);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     }
+    doc.restoreGraphicsState();
   };
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
       try {
-        doc.saveGraphicsState();
-        doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
-        applyGradient(pageEdit.pageBackgroundGradient);
-        doc.rect(0, 0, pageWidth, pageHeight, 'F');
-        doc.restoreGraphicsState();
+        applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
       } catch (e) {
         console.error('Błąd dodawania gradientu tła:', e);
         document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
@@ -374,11 +373,7 @@ async function buildPDF(jsPDF, save = true) {
       const pageEdit = pageEdits[pageNumber - 1] || {};
       if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
         try {
-          doc.saveGraphicsState();
-          doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
-          applyGradient(pageEdit.pageBackgroundGradient);
-          doc.rect(0, 0, pageWidth, pageHeight, 'F');
-          doc.restoreGraphicsState();
+          applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
         } catch (e) {
           console.error('Błąd dodawania gradientu tła:', e);
           document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
