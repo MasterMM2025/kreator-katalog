@@ -1,25 +1,20 @@
-function drawBox(doc, x, y, w, h, frameStyle, shadowStyle) {
-  doc.setLineWidth(1);
-  if (frameStyle === "3d") {
-    doc.setFillColor(220, 220, 220);
-    doc.roundedRect(x + 2, y + 2, w, h, 5, 5, 'F');
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(x, y, w, h, 5, 5, 'F');
-    doc.setDrawColor(80, 80, 80);
-    doc.roundedRect(x, y, w, h, 5, 5, 'S');
+function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
+  doc.setFillColor(255, 255, 255);
+  doc.rect(x, y, w, h, 'F');
+  const color = borderColor ? [
+    parseInt(borderColor.substring(1, 3), 16),
+    parseInt(borderColor.substring(3, 5), 16),
+    parseInt(borderColor.substring(5, 7), 16)
+  ] : [200, 200, 200];
+  doc.setDrawColor(...color);
+  if (borderStyle === "dashed") {
+    doc.setLineDash([5, 5]);
+  } else if (borderStyle === "dotted") {
+    doc.setLineDash([2, 2]);
   } else {
-    doc.setFillColor(255, 255, 255);
-    doc.rect(x, y, w, h, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(x, y, w, h, 'S');
+    doc.setLineDash([]);
   }
-  if (shadowStyle === "light") {
-    doc.setFillColor(0, 0, 0, 0.1);
-    doc.rect(x + 3, y + 3, w, h, 'F');
-  } else if (shadowStyle === "strong") {
-    doc.setFillColor(0, 0, 0, 0.3);
-    doc.rect(x + 5, y + 5, w, h, 'F');
-  }
+  doc.rect(x, y, w, h, 'S');
 }
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
@@ -52,8 +47,37 @@ async function buildPDF(jsPDF, save = true) {
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+  const applyGradient = (gradientType) => {
+    if (gradientType === "blue") {
+      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+      gradient.addColorStop(0, '#e6f0fa');
+      gradient.addColorStop(1, '#3182ce');
+      doc.setFillColor(gradient);
+    } else if (gradientType === "green") {
+      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+      gradient.addColorStop(0, '#e6ffe6');
+      gradient.addColorStop(1, '#38a169');
+      doc.setFillColor(gradient);
+    } else if (gradientType === "gray") {
+      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+      gradient.addColorStop(0, '#f7fafc');
+      gradient.addColorStop(1, '#a0aec0');
+      doc.setFillColor(gradient);
+    }
+  };
   if (products.length > 0) {
-    if (backgroundImg) {
+    const pageEdit = pageEdits[pageNumber - 1] || {};
+    if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
+      try {
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
+        applyGradient(pageEdit.pageBackgroundGradient);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        doc.restoreGraphicsState();
+      } catch (e) {
+        console.error('Błąd dodawania gradientu tła:', e);
+      }
+    } else if (backgroundImg) {
       try {
         doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
       } catch (e) {
@@ -110,10 +134,12 @@ async function buildPDF(jsPDF, save = true) {
           cenaFontColor: '#000000',
           priceCurrency: globalCurrency,
           showPriceLabel: true,
-          frameStyle: '3d',
-          shadowStyle: 'none',
+          borderStyle: 'solid',
+          borderColor: '#000000',
           backgroundTexture: null,
-          backgroundOpacity: 1.0
+          backgroundOpacity: 1.0,
+          pageBackgroundGradient: 'none',
+          pageBackgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
@@ -127,7 +153,7 @@ async function buildPDF(jsPDF, save = true) {
             console.error('Błąd dodawania tekstury tła:', e);
           }
         }
-        drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.frameStyle || '3d', finalEdit.shadowStyle || 'none');
+        drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
         let imgSrc = uploadedImages[p.indeks] || p.img;
         let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
         if (isLarge) {
@@ -187,7 +213,7 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
-              await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; });
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const logoW = 120;
               const logoH = 60;
               const logoX = x + (boxWidth - logoW) / 2;
@@ -342,7 +368,18 @@ async function buildPDF(jsPDF, save = true) {
     if (productIndex < products.length) {
       doc.addPage();
       pageNumber++;
-      if (backgroundImg) {
+      const pageEdit = pageEdits[pageNumber - 1] || {};
+      if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
+        try {
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
+          applyGradient(pageEdit.pageBackgroundGradient);
+          doc.rect(0, 0, pageWidth, pageHeight, 'F');
+          doc.restoreGraphicsState();
+        } catch (e) {
+          console.error('Błąd dodawania gradientu tła:', e);
+        }
+      } else if (backgroundImg) {
         try {
           doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
         } catch (e) {
@@ -396,8 +433,8 @@ function showEditModal(productIndex) {
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
     logo: null,
-    frameStyle: '3d',
-    shadowStyle: 'none',
+    borderStyle: 'solid',
+    borderColor: '#000000',
     backgroundTexture: null,
     backgroundOpacity: 1.0
   };
@@ -477,19 +514,16 @@ function showEditModal(productIndex) {
       </div>
     ` : ''}
     <div class="edit-field">
-      <label>Styl ramki:</label>
-      <select id="editFrameStyle">
-        <option value="3d" ${edit.frameStyle === '3d' ? 'selected' : ''}>3D</option>
-        <option value="simple" ${edit.frameStyle === 'simple' ? 'selected' : ''}>Prosty</option>
+      <label>Styl obramowania:</label>
+      <select id="editBorderStyle">
+        <option value="solid" ${edit.borderStyle === 'solid' ? 'selected' : ''}>Pełna linia</option>
+        <option value="dashed" ${edit.borderStyle === 'dashed' ? 'selected' : ''}>Kreskowana</option>
+        <option value="dotted" ${edit.borderStyle === 'dotted' ? 'selected' : ''}>Kropkowana</option>
       </select>
     </div>
     <div class="edit-field">
-      <label>Cień:</label>
-      <select id="editShadowStyle">
-        <option value="none" ${edit.shadowStyle === 'none' ? 'selected' : ''}>Brak</option>
-        <option value="light" ${edit.shadowStyle === 'light' ? 'selected' : ''}>Delikatny</option>
-        <option value="strong" ${edit.shadowStyle === 'strong' ? 'selected' : ''}>Mocny</option>
-      </select>
+      <label>Kolor obramowania:</label>
+      <input type="color" id="editBorderColor" value="${edit.borderColor || '#000000'}">
     </div>
     <div class="edit-field">
       <label>Tekstura tła:</label>
@@ -560,12 +594,127 @@ function saveEdit(productIndex) {
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
     logo: productEdits[productIndex]?.logo || null,
-    frameStyle: document.getElementById('editFrameStyle').value || '3d',
-    shadowStyle: document.getElementById('editShadowStyle').value || 'none',
+    borderStyle: document.getElementById('editBorderStyle').value || 'solid',
+    borderColor: document.getElementById('editBorderColor').value || '#000000',
     backgroundTexture: productEdits[productIndex]?.backgroundTexture || null,
     backgroundOpacity: parseFloat(document.getElementById('editBackgroundOpacity').value) || 1.0
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
+  renderCatalog();
+  hideEditModal();
+}
+function showPageEditModal(pageIndex) {
+  const edit = pageEdits[pageIndex] || {
+    nazwaFont: 'Arial',
+    nazwaFontColor: '#000000',
+    indeksFont: 'Arial',
+    indeksFontColor: '#000000',
+    rankingFont: 'Arial',
+    rankingFontColor: '#000000',
+    cenaFont: 'Arial',
+    cenaFontColor: '#000000',
+    priceCurrency: globalCurrency,
+    showPriceLabel: true,
+    pageBackgroundGradient: 'none',
+    pageBackgroundOpacity: 1.0
+  };
+  const editForm = document.getElementById('editForm');
+  const layout = document.getElementById('layoutSelect').value || "16";
+  let itemsPerPage;
+  if (layout === "1") itemsPerPage = 1;
+  else if (layout === "2") itemsPerPage = 2;
+  else if (layout === "4") itemsPerPage = 4;
+  else if (layout === "8") itemsPerPage = 8;
+  else if (layout === "16") itemsPerPage = 16;
+  else if (layout === "4-2-4") itemsPerPage = 10;
+  const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
+  editForm.innerHTML = `
+    <div class="edit-field">
+      <label>Wybierz stronę:</label>
+      <select id="editPageSelect">
+        ${Array.from({ length: totalPages }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`)}
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Czcionka nazwy:</label>
+      <select id="editNazwaFont">
+        <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Czcionka indeksu:</label>
+      <select id="editIndeksFont">
+        <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Czcionka rankingu:</label>
+      <select id="editRankingFont">
+        <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Czcionka ceny:</label>
+      <select id="editCenaFont">
+        <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
+        <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+        <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
+    </div>
+    <div class="edit-field">
+      <label>Waluta:</label>
+      <select id="editCenaCurrency">
+        <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
+        <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Format ceny:</label>
+      <label><input type="radio" name="priceFormat" value="true" ${edit.showPriceLabel ? 'checked' : ''}> Price: 1.45</label>
+      <label><input type="radio" name="priceFormat" value="false" ${!edit.showPriceLabel ? 'checked' : ''}> 1.45</label>
+    </div>
+    <div class="edit-field">
+      <label>Gradient tła strony:</label>
+      <select id="editPageBackgroundGradient">
+        <option value="none" ${edit.pageBackgroundGradient === 'none' ? 'selected' : ''}>Brak</option>
+        <option value="blue" ${edit.pageBackgroundGradient === 'blue' ? 'selected' : ''}>Niebieski</option>
+        <option value="green" ${edit.pageBackgroundGradient === 'green' ? 'selected' : ''}>Zielony</option>
+        <option value="gray" ${edit.pageBackgroundGradient === 'gray' ? 'selected' : ''}>Szary</option>
+      </select>
+      <label>Przezroczystość tła:</label>
+      <input type="range" id="editPageBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.pageBackgroundOpacity || 1.0}">
+    </div>
+    <button onclick="savePageEdit(${pageIndex})" class="btn-primary">Zapisz</button>
+  `;
+  document.getElementById('editModal').style.display = 'block';
+}
+function savePageEdit(pageIndex) {
+  const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
+  pageEdits[newPageIndex] = {
+    nazwaFont: document.getElementById('editNazwaFont').value,
+    nazwaFontColor: document.getElementById('editNazwaColor').value,
+    indeksFont: document.getElementById('editIndeksFont').value,
+    indeksFontColor: document.getElementById('editIndeksColor').value,
+    rankingFont: document.getElementById('editRankingFont').value,
+    rankingFontColor: document.getElementById('editRankingColor').value,
+    cenaFont: document.getElementById('editCenaFont').value,
+    cenaFontColor: document.getElementById('editCenaColor').value,
+    priceCurrency: document.getElementById('editCenaCurrency').value,
+    showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true',
+    pageBackgroundGradient: document.getElementById('editPageBackgroundGradient').value || 'none',
+    pageBackgroundOpacity: parseFloat(document.getElementById('editPageBackgroundOpacity').value) || 1.0
+  };
+  console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]);
   renderCatalog();
   hideEditModal();
 }
@@ -584,8 +733,8 @@ function showVirtualEditModal(productIndex) {
     priceFontSize: 'medium',
     positionX: 320,
     positionY: 10,
-    frameStyle: '3d',
-    shadowStyle: 'none',
+    borderStyle: 'solid',
+    borderColor: '#000000',
     backgroundTexture: null,
     backgroundOpacity: 1.0
   };
@@ -605,15 +754,12 @@ function showVirtualEditModal(productIndex) {
           <option value="medium" ${edit.priceFontSize === 'medium' ? 'selected' : ''}>Średni</option>
           <option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option>
         </select>
-        <select id="frameStyleSelect">
-          <option value="3d" ${edit.frameStyle === '3d' ? 'selected' : ''}>3D</option>
-          <option value="simple" ${edit.frameStyle === 'simple' ? 'selected' : ''}>Prosty</option>
+        <select id="borderStyleSelect">
+          <option value="solid" ${edit.borderStyle === 'solid' ? 'selected' : ''}>Pełna linia</option>
+          <option value="dashed" ${edit.borderStyle === 'dashed' ? 'selected' : ''}>Kreskowana</option>
+          <option value="dotted" ${edit.borderStyle === 'dotted' ? 'selected' : ''}>Kropkowana</option>
         </select>
-        <select id="shadowStyleSelect">
-          <option value="none" ${edit.shadowStyle === 'none' ? 'selected' : ''}>Brak</option>
-          <option value="light" ${edit.shadowStyle === 'light' ? 'selected' : ''}>Delikatny</option>
-          <option value="strong" ${edit.shadowStyle === 'strong' ? 'selected' : ''}>Mocny</option>
-        </select>
+        <input type="color" id="borderColorSelect" value="${edit.borderColor || '#000000'}">
         <input type="file" id="backgroundTextureSelect" accept="image/*">
         <label>Przezroczystość tła:</label>
         <input type="range" id="backgroundOpacitySelect" min="0.1" max="1.0" step="0.1" value="${edit.backgroundOpacity || 1.0}">
@@ -635,6 +781,18 @@ function showVirtualEditModal(productIndex) {
     img.scaleToWidth(300);
     canvas.add(img);
   });
+  const borderRect = new fabric.Rect({
+    left: 0,
+    top: 0,
+    width: 300,
+    height: 200,
+    fill: 'transparent',
+    stroke: edit.borderColor || '#000000',
+    strokeWidth: 2,
+    strokeDashArray: edit.borderStyle === 'dashed' ? [5, 5] : edit.borderStyle === 'dotted' ? [2, 2] : null,
+    selectable: false
+  });
+  canvas.add(borderRect);
   const nazwaText = new fabric.Text(product.nazwa || 'Brak nazwy', {
     left: edit.positionX || 320,
     top: edit.positionY || 10,
@@ -688,8 +846,8 @@ function showVirtualEditModal(productIndex) {
     document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
-    document.getElementById('frameStyleSelect').value = edit.frameStyle || '3d';
-    document.getElementById('shadowStyleSelect').value = edit.shadowStyle || 'none';
+    document.getElementById('borderStyleSelect').value = edit.borderStyle || 'solid';
+    document.getElementById('borderColorSelect').value = edit.borderColor || '#000000';
     document.getElementById('backgroundOpacitySelect').value = edit.backgroundOpacity || 1.0;
     window.applyTextEdit = function() {
       obj.set({
@@ -697,8 +855,8 @@ function showVirtualEditModal(productIndex) {
         fill: document.getElementById('colorSelect').value,
         fontSize: document.getElementById('sizeSelect').value === 'small' ? 16 : document.getElementById('sizeSelect').value === 'medium' ? 20 : 24
       });
-      const frameStyle = document.getElementById('frameStyleSelect').value;
-      const shadowStyle = document.getElementById('shadowStyleSelect').value;
+      const borderStyle = document.getElementById('borderStyleSelect').value;
+      const borderColor = document.getElementById('borderColorSelect').value;
       const backgroundOpacity = parseFloat(document.getElementById('backgroundOpacitySelect').value);
       const backgroundTextureInput = document.getElementById('backgroundTextureSelect').files[0];
       if (backgroundTextureInput) {
@@ -717,8 +875,12 @@ function showVirtualEditModal(productIndex) {
         canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
         edit.backgroundTexture = null;
       }
-      edit.frameStyle = frameStyle;
-      edit.shadowStyle = shadowStyle;
+      borderRect.set({
+        stroke: borderColor,
+        strokeDashArray: borderStyle === 'dashed' ? [5, 5] : borderStyle === 'dotted' ? [2, 2] : null
+      });
+      edit.borderStyle = borderStyle;
+      edit.borderColor = borderColor;
       edit.backgroundOpacity = backgroundOpacity;
       canvas.renderAll();
     };
@@ -743,8 +905,8 @@ function showVirtualEditModal(productIndex) {
         priceFontSize: activeObject === nazwaText || activeObject === cenaText ? (activeObject.fontSize === 16 ? 'small' : activeObject.fontSize === 20 ? 'medium' : 'large') : edit.priceFontSize,
         positionX: activeObject.left,
         positionY: activeObject.top,
-        frameStyle: edit.frameStyle || '3d',
-        shadowStyle: edit.shadowStyle || 'none',
+        borderStyle: edit.borderStyle || 'solid',
+        borderColor: edit.borderColor || '#000000',
         backgroundTexture: edit.backgroundTexture || null,
         backgroundOpacity: edit.backgroundOpacity || 1.0
       };
