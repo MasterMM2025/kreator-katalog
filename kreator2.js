@@ -52,48 +52,55 @@ async function buildPDF(jsPDF, save = true) {
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
-    if (gradientType === "blue-purple") {
-      doc.setFillColor(235, 245, 255);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(103, 71, 171);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "orange-red") {
-      doc.setFillColor(255, 237, 213);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(220, 38, 38);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "green-teal") {
-      doc.setFillColor(209, 250, 229);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(13, 148, 136);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "pink-purple") {
-      doc.setFillColor(250, 219, 235);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(139, 92, 246);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "gray-blue") {
-      doc.setFillColor(241, 245, 249);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(59, 130, 246);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "gold-yellow") {
-      doc.setFillColor(254, 243, 199);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(202, 138, 4);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    try {
+      if (gradientType === "ocean-breeze") {
+        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+        gradient.addColorStop(0, '#A5FECB');
+        gradient.addColorStop(0.3, '#20BDFF');
+        gradient.addColorStop(1, '#043B5C');
+        doc.setFillColor(gradient);
+      } else if (gradientType === "sunset-glow") {
+        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+        gradient.addColorStop(0, '#FFE5B4');
+        gradient.addColorStop(0.4, '#FF6B6B');
+        gradient.addColorStop(1, '#4A00E0');
+        doc.setFillColor(gradient);
+      } else if (gradientType === "forest-mist") {
+        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+        gradient.addColorStop(0, '#D4F4DD');
+        gradient.addColorStop(0.5, '#4CAF50');
+        gradient.addColorStop(1, '#1B5E20');
+        doc.setFillColor(gradient);
+      } else if (gradientType === "lavender-dream") {
+        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+        gradient.addColorStop(0, '#F3E7FA');
+        gradient.addColorStop(0.3, '#D6A4F5');
+        gradient.addColorStop(1, '#6B46C1');
+        doc.setFillColor(gradient);
+      } else if (gradientType === "desert-sunset") {
+        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+        gradient.addColorStop(0, '#FBD38D');
+        gradient.addColorStop(0.4, '#F56565');
+        gradient.addColorStop(1, '#9B2C2C');
+        doc.setFillColor(gradient);
+      } else if (gradientType === "midnight-sky") {
+        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+        gradient.addColorStop(0, '#EBF4FF');
+        gradient.addColorStop(0.5, '#7F9CF5');
+        gradient.addColorStop(1, '#1A237E');
+        doc.setFillColor(gradient);
+      }
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+    } catch (e) {
+      console.error('Błąd renderowania gradientu:', e);
+      document.getElementById('debug').innerText = "Błąd renderowania gradientu";
     }
     doc.restoreGraphicsState();
   };
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
-      try {
-        applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
-      } catch (e) {
-        console.error('Błąd dodawania gradientu tła:', e);
-        document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
-      }
+      applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
     } else if (backgroundImg) {
       try {
         doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -205,7 +212,7 @@ async function buildPDF(jsPDF, save = true) {
           doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
-          doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
+          doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
           if (showRanking && p.ranking) {
@@ -387,12 +394,7 @@ async function buildPDF(jsPDF, save = true) {
       pageNumber++;
       const pageEdit = pageEdits[pageNumber - 1] || {};
       if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
-        try {
-          applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
-        } catch (e) {
-          console.error('Błąd dodawania gradientu tła:', e);
-          document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
-        }
+        applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
       } else if (backgroundImg) {
         try {
           doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -701,12 +703,12 @@ function showPageEditModal(pageIndex) {
       <label>Gradient tła strony:</label>
       <select id="editPageBackgroundGradient">
         <option value="none" ${edit.pageBackgroundGradient === 'none' ? 'selected' : ''}>Brak</option>
-        <option value="blue-purple" ${edit.pageBackgroundGradient === 'blue-purple' ? 'selected' : ''}>Niebiesko-fioletowy</option>
-        <option value="orange-red" ${edit.pageBackgroundGradient === 'orange-red' ? 'selected' : ''}>Pomarańczowo-czerwony</option>
-        <option value="green-teal" ${edit.pageBackgroundGradient === 'green-teal' ? 'selected' : ''}>Zielono-turkusowy</option>
-        <option value="pink-purple" ${edit.pageBackgroundGradient === 'pink-purple' ? 'selected' : ''}>Różowo-fioletowy</option>
-        <option value="gray-blue" ${edit.pageBackgroundGradient === 'gray-blue' ? 'selected' : ''}>Szaro-niebieski</option>
-        <option value="gold-yellow" ${edit.pageBackgroundGradient === 'gold-yellow' ? 'selected' : ''}>Złoto-żółty</option>
+        <option value="ocean-breeze" ${edit.pageBackgroundGradient === 'ocean-breeze' ? 'selected' : ''}>Ocean Breeze</option>
+        <option value="sunset-glow" ${edit.pageBackgroundGradient === 'sunset-glow' ? 'selected' : ''}>Sunset Glow</option>
+        <option value="forest-mist" ${edit.pageBackgroundGradient === 'forest-mist' ? 'selected' : ''}>Forest Mist</option>
+        <option value="lavender-dream" ${edit.pageBackgroundGradient === 'lavender-dream' ? 'selected' : ''}>Lavender Dream</option>
+        <option value="desert-sunset" ${edit.pageBackgroundGradient === 'desert-sunset' ? 'selected' : ''}>Desert Sunset</option>
+        <option value="midnight-sky" ${edit.pageBackgroundGradient === 'midnight-sky' ? 'selected' : ''}>Midnight Sky</option>
       </select>
       <label>Przezroczystość tła:</label>
       <input type="range" id="editPageBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.pageBackgroundOpacity || 1.0}">
