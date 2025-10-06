@@ -1,11 +1,13 @@
 function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
+  doc.setFillColor(220, 220, 220);
+  doc.roundedRect(x + 2, y + 2, w, h, 5, 5, 'F');
   doc.setFillColor(255, 255, 255);
-  doc.rect(x, y, w, h, 'F');
+  doc.roundedRect(x, y, w, h, 5, 5, 'F');
   const color = borderColor ? [
     parseInt(borderColor.substring(1, 3), 16),
     parseInt(borderColor.substring(3, 5), 16),
     parseInt(borderColor.substring(5, 7), 16)
-  ] : [200, 200, 200];
+  ] : [80, 80, 80];
   doc.setDrawColor(...color);
   if (borderStyle === "dashed") {
     doc.setLineDash([5, 5]);
@@ -14,7 +16,7 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   } else {
     doc.setLineDash([]);
   }
-  doc.rect(x, y, w, h, 'S');
+  doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
@@ -47,22 +49,36 @@ async function buildPDF(jsPDF, save = true) {
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+  const applyGradient = (gradientType) => {
+    if (gradientType === "blue") {
+      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+      gradient.addColorStop(0, '#e6f0fa');
+      gradient.addColorStop(1, '#3182ce');
+      doc.setFillColor(gradient);
+    } else if (gradientType === "green") {
+      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+      gradient.addColorStop(0, '#e6ffe6');
+      gradient.addColorStop(1, '#38a169');
+      doc.setFillColor(gradient);
+    } else if (gradientType === "gray") {
+      const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
+      gradient.addColorStop(0, '#f7fafc');
+      gradient.addColorStop(1, '#a0aec0');
+      doc.setFillColor(gradient);
+    }
+  };
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
-    if (pageEdit.pageBackgroundColor && pageEdit.pageBackgroundColor !== "#FFFFFF") {
+    if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
       try {
         doc.saveGraphicsState();
         doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
-        const color = [
-          parseInt(pageEdit.pageBackgroundColor.substring(1, 3), 16),
-          parseInt(pageEdit.pageBackgroundColor.substring(3, 5), 16),
-          parseInt(pageEdit.pageBackgroundColor.substring(5, 7), 16)
-        ];
-        doc.setFillColor(...color);
+        applyGradient(pageEdit.pageBackgroundGradient);
         doc.rect(0, 0, pageWidth, pageHeight, 'F');
         doc.restoreGraphicsState();
       } catch (e) {
-        console.error('Błąd dodawania koloru tła:', e);
+        console.error('Błąd dodawania gradientu tła:', e);
+        document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
       }
     } else if (backgroundImg) {
       try {
@@ -125,7 +141,7 @@ async function buildPDF(jsPDF, save = true) {
           borderColor: '#000000',
           backgroundTexture: null,
           backgroundOpacity: 1.0,
-          pageBackgroundColor: '#FFFFFF',
+          pageBackgroundGradient: 'none',
           pageBackgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
@@ -356,20 +372,16 @@ async function buildPDF(jsPDF, save = true) {
       doc.addPage();
       pageNumber++;
       const pageEdit = pageEdits[pageNumber - 1] || {};
-      if (pageEdit.pageBackgroundColor && pageEdit.pageBackgroundColor !== "#FFFFFF") {
+      if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
         try {
           doc.saveGraphicsState();
           doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
-          const color = [
-            parseInt(pageEdit.pageBackgroundColor.substring(1, 3), 16),
-            parseInt(pageEdit.pageBackgroundColor.substring(3, 5), 16),
-            parseInt(pageEdit.pageBackgroundColor.substring(5, 7), 16)
-          ];
-          doc.setFillColor(...color);
+          applyGradient(pageEdit.pageBackgroundGradient);
           doc.rect(0, 0, pageWidth, pageHeight, 'F');
           doc.restoreGraphicsState();
         } catch (e) {
-          console.error('Błąd dodawania koloru tła:', e);
+          console.error('Błąd dodawania gradientu tła:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
         }
       } else if (backgroundImg) {
         try {
@@ -581,10 +593,10 @@ function saveEdit(productIndex) {
     indeksFontColor: document.getElementById('editIndeksColor').value || '#000000',
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
-    cenaFont: document.getElementById('editCenaFont').value || 'Arial',
-    cenaFontColor: document.getElementById('editCenaColor').value || '#000000',
+    cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
+    cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
-    priceFontSize: document.getElementById('editCenaFontSize').value || 'medium',
+    priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
     logo: productEdits[productIndex]?.logo || null,
     borderStyle: document.getElementById('editBorderStyle').value || 'solid',
     borderColor: document.getElementById('editBorderColor').value || '#000000',
@@ -607,7 +619,7 @@ function showPageEditModal(pageIndex) {
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
     showPriceLabel: true,
-    pageBackgroundColor: '#FFFFFF',
+    pageBackgroundGradient: 'none',
     pageBackgroundOpacity: 1.0
   };
   const editForm = document.getElementById('editForm');
@@ -676,8 +688,13 @@ function showPageEditModal(pageIndex) {
       <label><input type="radio" name="priceFormat" value="false" ${!edit.showPriceLabel ? 'checked' : ''}> 1.45</label>
     </div>
     <div class="edit-field">
-      <label>Kolor tła strony:</label>
-      <input type="color" id="editPageBackgroundColor" value="${edit.pageBackgroundColor || '#FFFFFF'}">
+      <label>Gradient tła strony:</label>
+      <select id="editPageBackgroundGradient">
+        <option value="none" ${edit.pageBackgroundGradient === 'none' ? 'selected' : ''}>Brak</option>
+        <option value="blue" ${edit.pageBackgroundGradient === 'blue' ? 'selected' : ''}>Niebieski</option>
+        <option value="green" ${edit.pageBackgroundGradient === 'green' ? 'selected' : ''}>Zielony</option>
+        <option value="gray" ${edit.pageBackgroundGradient === 'gray' ? 'selected' : ''}>Szary</option>
+      </select>
       <label>Przezroczystość tła:</label>
       <input type="range" id="editPageBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.pageBackgroundOpacity || 1.0}">
     </div>
@@ -698,7 +715,7 @@ function savePageEdit(pageIndex) {
     cenaFontColor: document.getElementById('editCenaColor').value,
     priceCurrency: document.getElementById('editCenaCurrency').value,
     showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true',
-    pageBackgroundColor: document.getElementById('editPageBackgroundColor').value || '#FFFFFF',
+    pageBackgroundGradient: document.getElementById('editPageBackgroundGradient').value || 'none',
     pageBackgroundOpacity: parseFloat(document.getElementById('editPageBackgroundOpacity').value) || 1.0
   };
   console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]);
@@ -777,6 +794,8 @@ function showVirtualEditModal(productIndex) {
     stroke: edit.borderColor || '#000000',
     strokeWidth: 2,
     strokeDashArray: edit.borderStyle === 'dashed' ? [5, 5] : edit.borderStyle === 'dotted' ? [2, 2] : null,
+    rx: 5,
+    ry: 5,
     selectable: false
   });
   canvas.add(borderRect);
