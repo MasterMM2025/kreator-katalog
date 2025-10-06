@@ -7,12 +7,6 @@ function drawBox(doc, x, y, w, h, frameStyle, shadowStyle) {
     doc.roundedRect(x, y, w, h, 5, 5, 'F');
     doc.setDrawColor(80, 80, 80);
     doc.roundedRect(x, y, w, h, 5, 5, 'S');
-  } else if (frameStyle === "gradient") {
-    doc.setFillColor(240, 240, 240);
-    doc.roundedRect(x, y, w, h, 3, 3, 'F');
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(x, y, w, h, 3, 3, 'S');
   } else {
     doc.setFillColor(255, 255, 255);
     doc.rect(x, y, w, h, 'F');
@@ -38,9 +32,6 @@ function hideProgressModal() {
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
-  doc.addFont('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxM.woff', 'Roboto', 'normal');
-  doc.addFont('https://fonts.gstatic.com/s/lato/v24/S6uyw4BMUTPHjx4wXg.woff', 'Lato', 'normal');
-  doc.addFont('https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnI.woff', 'Open Sans', 'normal');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
@@ -428,9 +419,6 @@ function showEditModal(productIndex) {
         <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
         <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-        <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
-        <option value="Lato" ${edit.nazwaFont === 'Lato' ? 'selected' : ''}>Lato</option>
-        <option value="Open Sans" ${edit.nazwaFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
       </select>
       <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
     </div>
@@ -441,9 +429,6 @@ function showEditModal(productIndex) {
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
         <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-        <option value="Roboto" ${edit.indeksFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
-        <option value="Lato" ${edit.indeksFont === 'Lato' ? 'selected' : ''}>Lato</option>
-        <option value="Open Sans" ${edit.indeksFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
@@ -455,9 +440,6 @@ function showEditModal(productIndex) {
           <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
           <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-          <option value="Roboto" ${edit.rankingFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
-          <option value="Lato" ${edit.rankingFont === 'Lato' ? 'selected' : ''}>Lato</option>
-          <option value="Open Sans" ${edit.rankingFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
         </select>
         <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
       </div>
@@ -470,9 +452,6 @@ function showEditModal(productIndex) {
           <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
           <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-          <option value="Roboto" ${edit.cenaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
-          <option value="Lato" ${edit.cenaFont === 'Lato' ? 'selected' : ''}>Lato</option>
-          <option value="Open Sans" ${edit.cenaFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
@@ -501,7 +480,6 @@ function showEditModal(productIndex) {
       <label>Styl ramki:</label>
       <select id="editFrameStyle">
         <option value="3d" ${edit.frameStyle === '3d' ? 'selected' : ''}>3D</option>
-        <option value="gradient" ${edit.frameStyle === 'gradient' ? 'selected' : ''}>Gradient</option>
         <option value="simple" ${edit.frameStyle === 'simple' ? 'selected' : ''}>Prosty</option>
       </select>
     </div>
@@ -620,9 +598,6 @@ function showVirtualEditModal(productIndex) {
           <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
           <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
-          <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
-          <option value="Lato" ${edit.nazwaFont === 'Lato' ? 'selected' : ''}>Lato</option>
-          <option value="Open Sans" ${edit.nazwaFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
         </select>
         <input type="color" id="colorSelect" value="${edit.nazwaFontColor}">
         <select id="sizeSelect">
@@ -632,7 +607,6 @@ function showVirtualEditModal(productIndex) {
         </select>
         <select id="frameStyleSelect">
           <option value="3d" ${edit.frameStyle === '3d' ? 'selected' : ''}>3D</option>
-          <option value="gradient" ${edit.frameStyle === 'gradient' ? 'selected' : ''}>Gradient</option>
           <option value="simple" ${edit.frameStyle === 'simple' ? 'selected' : ''}>Prosty</option>
         </select>
         <select id="shadowStyleSelect">
