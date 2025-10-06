@@ -1,14 +1,30 @@
-function drawBox(doc, x, y, w, h, style) {
-  if (style === "3d") {
+function drawBox(doc, x, y, w, h, frameStyle, shadowStyle) {
+  doc.setLineWidth(1);
+  if (frameStyle === "3d") {
     doc.setFillColor(220, 220, 220);
     doc.roundedRect(x + 2, y + 2, w, h, 5, 5, 'F');
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(x, y, w, h, 5, 5, 'F');
     doc.setDrawColor(80, 80, 80);
     doc.roundedRect(x, y, w, h, 5, 5, 'S');
+  } else if (frameStyle === "gradient") {
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(x, y, w, h, 3, 3, 'F');
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(x, y, w, h, 3, 3, 'S');
   } else {
     doc.setFillColor(255, 255, 255);
     doc.rect(x, y, w, h, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(x, y, w, h, 'S');
+  }
+  if (shadowStyle === "light") {
+    doc.setFillColor(0, 0, 0, 0.1);
+    doc.rect(x + 3, y + 3, w, h, 'F');
+  } else if (shadowStyle === "strong") {
+    doc.setFillColor(0, 0, 0, 0.3);
+    doc.rect(x + 5, y + 5, w, h, 'F');
   }
 }
 function showProgressModal() {
@@ -22,6 +38,9 @@ function hideProgressModal() {
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
+  doc.addFont('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxM.woff', 'Roboto', 'normal');
+  doc.addFont('https://fonts.gstatic.com/s/lato/v24/S6uyw4BMUTPHjx4wXg.woff', 'Lato', 'normal');
+  doc.addFont('https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnI.woff', 'Open Sans', 'normal');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const bannerHeight = 85;
@@ -67,7 +86,6 @@ async function buildPDF(jsPDF, save = true) {
   const marginBottom = 28;
   const marginLeftRight = 14;
   const layout = document.getElementById('layoutSelect')?.value || "16";
-  const frameStyle = document.querySelector('input[name="frameStyle"]:checked')?.value || "3d";
   const showEan = document.getElementById('showEan')?.checked || false;
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
@@ -100,11 +118,25 @@ async function buildPDF(jsPDF, save = true) {
           cenaFont: 'Arial',
           cenaFontColor: '#000000',
           priceCurrency: globalCurrency,
-          showPriceLabel: true
+          showPriceLabel: true,
+          frameStyle: '3d',
+          shadowStyle: 'none',
+          backgroundTexture: null,
+          backgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
-        drawBox(doc, x, y, boxWidth, boxHeight, frameStyle);
+        if (finalEdit.backgroundTexture) {
+          try {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
+            doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
+            doc.restoreGraphicsState();
+          } catch (e) {
+            console.error('Błąd dodawania tekstury tła:', e);
+          }
+        }
+        drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.frameStyle || '3d', finalEdit.shadowStyle || 'none');
         let imgSrc = uploadedImages[p.indeks] || p.img;
         let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
         if (isLarge) {
@@ -126,7 +158,7 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 5 + (boxHeight * 0.4) + 10;
-          doc.setFont(finalEdit.nazwaFont, "bold");
+          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
@@ -136,21 +168,21 @@ async function buildPDF(jsPDF, save = true) {
             doc.text(line, x + boxWidth / 2, textY + (index * 18), { align: "center" });
           });
           textY += Math.min(lines.length, maxLines) * 18 + 10;
-          doc.setFont(finalEdit.indeksFont, "normal");
+          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
           if (showRanking && p.ranking) {
-            doc.setFont(finalEdit.rankingFont, "normal");
+            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showCena && p.cena) {
-            doc.setFont(finalEdit.cenaFont, "bold");
+            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
             const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
             const cenaFontColor = finalEdit.cenaFontColor || '#000000';
@@ -205,27 +237,27 @@ async function buildPDF(jsPDF, save = true) {
             }
           }
           let textY = y + 20;
-          doc.setFont(finalEdit.nazwaFont, "bold");
+          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
           doc.setFontSize(8);
           const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
-          doc.setFont(finalEdit.indeksFont, "normal");
+          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
           doc.setFontSize(7);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
           textY += 12;
           if (showRanking && p.ranking) {
-            doc.setFont(finalEdit.rankingFont, "normal");
+            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
             doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
             textY += 12;
           }
           if (showCena && p.cena) {
-            doc.setFont(finalEdit.cenaFont, "bold");
+            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
             const priceFontSize = (finalEdit.priceFontSize || 'medium') === 'small' ? 10 : (finalEdit.priceFontSize || 'medium') === 'medium' ? 12 : 14;
             doc.setFontSize(priceFontSize);
             const cenaFontColor = finalEdit.cenaFontColor || '#000000';
@@ -372,7 +404,11 @@ function showEditModal(productIndex) {
     cenaFontColor: '#000000',
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
-    logo: null
+    logo: null,
+    frameStyle: '3d',
+    shadowStyle: 'none',
+    backgroundTexture: null,
+    backgroundOpacity: 1.0
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
@@ -392,6 +428,9 @@ function showEditModal(productIndex) {
         <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
         <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
+        <option value="Lato" ${edit.nazwaFont === 'Lato' ? 'selected' : ''}>Lato</option>
+        <option value="Open Sans" ${edit.nazwaFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
       </select>
       <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
     </div>
@@ -401,7 +440,10 @@ function showEditModal(productIndex) {
       <select id="editIndeksFont">
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
         <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        <option value="Roboto" ${edit.indeksFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
+        <option value="Lato" ${edit.indeksFont === 'Lato' ? 'selected' : ''}>Lato</option>
+        <option value="Open Sans" ${edit.indeksFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
@@ -413,6 +455,9 @@ function showEditModal(productIndex) {
           <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
           <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+          <option value="Roboto" ${edit.rankingFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
+          <option value="Lato" ${edit.rankingFont === 'Lato' ? 'selected' : ''}>Lato</option>
+          <option value="Open Sans" ${edit.rankingFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
         </select>
         <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
       </div>
@@ -424,7 +469,10 @@ function showEditModal(productIndex) {
         <select id="editCenaFont">
           <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+          <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+          <option value="Roboto" ${edit.cenaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
+          <option value="Lato" ${edit.cenaFont === 'Lato' ? 'selected' : ''}>Lato</option>
+          <option value="Open Sans" ${edit.cenaFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
@@ -449,6 +497,28 @@ function showEditModal(productIndex) {
         <input type="file" id="editLogo" accept="image/*">
       </div>
     ` : ''}
+    <div class="edit-field">
+      <label>Styl ramki:</label>
+      <select id="editFrameStyle">
+        <option value="3d" ${edit.frameStyle === '3d' ? 'selected' : ''}>3D</option>
+        <option value="gradient" ${edit.frameStyle === 'gradient' ? 'selected' : ''}>Gradient</option>
+        <option value="simple" ${edit.frameStyle === 'simple' ? 'selected' : ''}>Prosty</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Cień:</label>
+      <select id="editShadowStyle">
+        <option value="none" ${edit.shadowStyle === 'none' ? 'selected' : ''}>Brak</option>
+        <option value="light" ${edit.shadowStyle === 'light' ? 'selected' : ''}>Delikatny</option>
+        <option value="strong" ${edit.shadowStyle === 'strong' ? 'selected' : ''}>Mocny</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Tekstura tła:</label>
+      <input type="file" id="editBackgroundTexture" accept="image/*">
+      <label>Przezroczystość:</label>
+      <input type="range" id="editBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.backgroundOpacity || 1.0}">
+    </div>
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
   `;
   document.getElementById('editModal').style.display = 'block';
@@ -479,6 +549,19 @@ function saveEdit(productIndex) {
     productEdits[productIndex].logo = selectedLogo ? manufacturerLogos[selectedLogo] : null;
     product.producent = selectedLogo || product.producent;
   }
+  const editBackgroundTexture = document.getElementById('editBackgroundTexture').files[0];
+  if (editBackgroundTexture) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      productEdits[productIndex] = productEdits[productIndex] || {};
+      productEdits[productIndex].backgroundTexture = e.target.result;
+      renderCatalog();
+    };
+    reader.readAsDataURL(editBackgroundTexture);
+  } else {
+    productEdits[productIndex] = productEdits[productIndex] || {};
+    productEdits[productIndex].backgroundTexture = null;
+  }
   product.nazwa = document.getElementById('editNazwa').value;
   product.indeks = document.getElementById('editIndeks').value;
   if (document.getElementById('showRanking')?.checked) {
@@ -498,7 +581,11 @@ function saveEdit(productIndex) {
     cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
-    logo: productEdits[productIndex]?.logo || null
+    logo: productEdits[productIndex]?.logo || null,
+    frameStyle: document.getElementById('editFrameStyle').value || '3d',
+    shadowStyle: document.getElementById('editShadowStyle').value || 'none',
+    backgroundTexture: productEdits[productIndex]?.backgroundTexture || null,
+    backgroundOpacity: parseFloat(document.getElementById('editBackgroundOpacity').value) || 1.0
   };
   console.log('Saved Edit for Product Index:', productIndex, productEdits[productIndex]);
   renderCatalog();
@@ -518,7 +605,11 @@ function showVirtualEditModal(productIndex) {
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
     positionX: 320,
-    positionY: 10
+    positionY: 10,
+    frameStyle: '3d',
+    shadowStyle: 'none',
+    backgroundTexture: null,
+    backgroundOpacity: 1.0
   };
   const modal = document.getElementById('virtualEditModal');
   modal.innerHTML = `
@@ -529,6 +620,9 @@ function showVirtualEditModal(productIndex) {
           <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
           <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
           <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+          <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
+          <option value="Lato" ${edit.nazwaFont === 'Lato' ? 'selected' : ''}>Lato</option>
+          <option value="Open Sans" ${edit.nazwaFont === 'Open Sans' ? 'selected' : ''}>Open Sans</option>
         </select>
         <input type="color" id="colorSelect" value="${edit.nazwaFontColor}">
         <select id="sizeSelect">
@@ -536,6 +630,19 @@ function showVirtualEditModal(productIndex) {
           <option value="medium" ${edit.priceFontSize === 'medium' ? 'selected' : ''}>Średni</option>
           <option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option>
         </select>
+        <select id="frameStyleSelect">
+          <option value="3d" ${edit.frameStyle === '3d' ? 'selected' : ''}>3D</option>
+          <option value="gradient" ${edit.frameStyle === 'gradient' ? 'selected' : ''}>Gradient</option>
+          <option value="simple" ${edit.frameStyle === 'simple' ? 'selected' : ''}>Prosty</option>
+        </select>
+        <select id="shadowStyleSelect">
+          <option value="none" ${edit.shadowStyle === 'none' ? 'selected' : ''}>Brak</option>
+          <option value="light" ${edit.shadowStyle === 'light' ? 'selected' : ''}>Delikatny</option>
+          <option value="strong" ${edit.shadowStyle === 'strong' ? 'selected' : ''}>Mocny</option>
+        </select>
+        <input type="file" id="backgroundTextureSelect" accept="image/*">
+        <label>Przezroczystość tła:</label>
+        <input type="range" id="backgroundOpacitySelect" min="0.1" max="1.0" step="0.1" value="${edit.backgroundOpacity || 1.0}">
         <button onclick="applyTextEdit()">Zastosuj</button>
       </div>
       <button id="saveVirtualEdit" style="position: absolute; bottom: 10px; right: 10px;">Zapisz</button>
@@ -543,6 +650,13 @@ function showVirtualEditModal(productIndex) {
   `;
   modal.style.display = 'block';
   const canvas = new fabric.Canvas('virtualEditCanvas');
+  if (edit.backgroundTexture) {
+    fabric.Image.fromURL(edit.backgroundTexture, (bgImg) => {
+      bgImg.scaleToWidth(800);
+      bgImg.set({ opacity: edit.backgroundOpacity || 1.0 });
+      canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
+    });
+  }
   fabric.Image.fromURL(uploadedImages[product.indeks] || product.img, (img) => {
     img.scaleToWidth(300);
     canvas.add(img);
@@ -600,12 +714,38 @@ function showVirtualEditModal(productIndex) {
     document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
+    document.getElementById('frameStyleSelect').value = edit.frameStyle || '3d';
+    document.getElementById('shadowStyleSelect').value = edit.shadowStyle || 'none';
+    document.getElementById('backgroundOpacitySelect').value = edit.backgroundOpacity || 1.0;
     window.applyTextEdit = function() {
       obj.set({
         fontFamily: document.getElementById('fontSelect').value,
         fill: document.getElementById('colorSelect').value,
         fontSize: document.getElementById('sizeSelect').value === 'small' ? 16 : document.getElementById('sizeSelect').value === 'medium' ? 20 : 24
       });
+      const frameStyle = document.getElementById('frameStyleSelect').value;
+      const shadowStyle = document.getElementById('shadowStyleSelect').value;
+      const backgroundOpacity = parseFloat(document.getElementById('backgroundOpacitySelect').value);
+      const backgroundTextureInput = document.getElementById('backgroundTextureSelect').files[0];
+      if (backgroundTextureInput) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          fabric.Image.fromURL(e.target.result, (bgImg) => {
+            bgImg.scaleToWidth(800);
+            bgImg.set({ opacity: backgroundOpacity });
+            canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
+            edit.backgroundTexture = e.target.result;
+            edit.backgroundOpacity = backgroundOpacity;
+          });
+        };
+        reader.readAsDataURL(backgroundTextureInput);
+      } else {
+        canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+        edit.backgroundTexture = null;
+      }
+      edit.frameStyle = frameStyle;
+      edit.shadowStyle = shadowStyle;
+      edit.backgroundOpacity = backgroundOpacity;
       canvas.renderAll();
     };
   });
@@ -628,7 +768,11 @@ function showVirtualEditModal(productIndex) {
         cenaFontColor: activeObject === cenaText ? activeObject.fill : edit.cenaFontColor,
         priceFontSize: activeObject === nazwaText || activeObject === cenaText ? (activeObject.fontSize === 16 ? 'small' : activeObject.fontSize === 20 ? 'medium' : 'large') : edit.priceFontSize,
         positionX: activeObject.left,
-        positionY: activeObject.top
+        positionY: activeObject.top,
+        frameStyle: edit.frameStyle || '3d',
+        shadowStyle: edit.shadowStyle || 'none',
+        backgroundTexture: edit.backgroundTexture || null,
+        backgroundOpacity: edit.backgroundOpacity || 1.0
       };
     }
     console.log('Saved Virtual Edit for Product Index:', productIndex, productEdits[productIndex]);
