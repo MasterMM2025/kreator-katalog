@@ -1,81 +1,3 @@
-let products = [];
-let uploadedImages = {};
-let productEdits = {};
-let pageEdits = {};
-let selectedBanner = null;
-let selectedBackground = null;
-let selectedCover = null;
-let manufacturerLogos = {};
-let globalCurrency = 'EUR';
-let globalLanguage = 'pl';
-
-function loadProducts() {
-  const catalog = document.getElementById('catalog');
-  catalog.innerHTML = '';
-  products.forEach((product, index) => {
-    const productDiv = document.createElement('div');
-    productDiv.className = 'product';
-    productDiv.innerHTML = `
-      <img src="${uploadedImages[product.indeks] || product.img || 'https://dummyimage.com/120x84/eee/000&text=brak'}" style="width:100px;height:100px;object-fit:contain;">
-      <p><strong>${product.nazwa || 'Brak nazwy'}</strong></p>
-      <p>Indeks: ${product.indeks || '-'}</p>
-      ${document.getElementById('showRanking')?.checked && product.ranking ? `<p>Ranking: ${product.ranking}</p>` : ''}
-      ${document.getElementById('showCena')?.checked && product.cena ? `<p>Cena: ${product.cena} ${globalCurrency === 'EUR' ? '€' : '£'}</p>` : ''}
-      <button onclick="showEditModal(${index})">Edytuj</button>
-      <button onclick="showVirtualEditModal(${index})">Edytuj wizualnie</button>
-    `;
-    catalog.appendChild(productDiv);
-  });
-  document.getElementById('pdfButton').disabled = products.length === 0;
-  document.getElementById('previewButton').disabled = products.length === 0;
-}
-
-async function importExcel() {
-  const fileInput = document.getElementById('excelFile');
-  const file = fileInput.files[0];
-  if (!file) {
-    alert('Wybierz plik Excel lub CSV!');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      products = jsonData.map(row => ({
-        nazwa: row.Nazwa || row.nazwa || '',
-        indeks: row.Indeks || row.indeks || '',
-        ranking: row.Ranking || row.ranking || '',
-        cena: row.Cena || row.cena || '',
-        ean: row.EAN || row.ean || '',
-        producent: row.Producent || row.producent || '',
-        img: row.Zdjęcie || row.zdjęcie || '',
-        barcode: row.EAN ? generateBarcode(row.EAN) : null
-      }));
-      loadProducts();
-      document.getElementById('fileLabel').textContent = file.name;
-    } catch (e) {
-      console.error('Błąd importu pliku Excel:', e);
-      document.getElementById('debug').innerText = "Błąd importu pliku Excel";
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function generateBarcode(ean) {
-  const canvas = document.createElement('canvas');
-  try {
-    JsBarcode(canvas, ean, { format: 'EAN13', displayValue: false });
-    return canvas.toDataURL('image/png');
-  } catch (e) {
-    console.error('Błąd generowania kodu kreskowego:', e);
-    return null;
-  }
-}
-
 function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   doc.setFillColor(220, 220, 220);
   doc.roundedRect(x + 2, y + 2, w, h, 5, 5, 'F');
@@ -96,100 +18,14 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   }
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
-
-function createGradientCanvas(gradientType, width, height) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  let gradient;
-  switch (gradientType) {
-    case 'ocean-breeze':
-      gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#A5FECB');
-      gradient.addColorStop(0.3, '#20BDFF');
-      gradient.addColorStop(1, '#043B5C');
-      break;
-    case 'sunset-glow':
-      gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#FFE5B4');
-      gradient.addColorStop(0.4, '#FF6B6B');
-      gradient.addColorStop(1, '#4A00E0');
-      break;
-    case 'forest-mist':
-      gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#D4F4DD');
-      gradient.addColorStop(0.5, '#4CAF50');
-      gradient.addColorStop(1, '#1B5E20');
-      break;
-    case 'lavender-dream':
-      gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#F3E7FA');
-      gradient.addColorStop(0.3, '#D6A4F5');
-      gradient.addColorStop(1, '#6B46C1');
-      break;
-    case 'desert-sunset':
-      gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#FBD38D');
-      gradient.addColorStop(0.4, '#F56565');
-      gradient.addColorStop(1, '#9B2C2C');
-      break;
-    case 'midnight-sky':
-      gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#EBF4FF');
-      gradient.addColorStop(0.5, '#7F9CF5');
-      gradient.addColorStop(1, '#1A237E');
-      break;
-    default:
-      return null;
-  }
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
-  return canvas.toDataURL('image/png');
-}
-
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
-
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
-
-function showBannerModal() {
-  const modal = document.getElementById('bannerModal');
-  const bannerOptions = document.getElementById('bannerOptions');
-  bannerOptions.innerHTML = `
-    <button onclick="selectBanner(null)">Brak banera</button>
-    ${Object.keys(manufacturerLogos).map(name => `<button onclick="selectBanner('${name}')">${name}</button>`).join('')}
-    <input type="file" id="customBanner" accept="image/*" onchange="uploadCustomBanner(event)">
-  `;
-  modal.style.display = 'block';
-}
-
-function hideBannerModal() {
-  document.getElementById('bannerModal').style.display = 'none';
-}
-
-function selectBanner(name) {
-  selectedBanner = name ? { data: manufacturerLogos[name], name } : null;
-  hideBannerModal();
-}
-
-function uploadCustomBanner(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      selectedBanner = { data: e.target.result, name: file.name };
-      hideBannerModal();
-    };
-    reader.readAsDataURL(file);
-  }
-}
-
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -213,17 +49,32 @@ async function buildPDF(jsPDF, save = true) {
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+  const applyGradient = (gradientType, opacity) => {
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
+    if (gradientType === "blue") {
+      doc.setFillColor(230, 240, 250);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(49, 130, 206);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    } else if (gradientType === "green") {
+      doc.setFillColor(230, 255, 230);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(56, 161, 105);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    } else if (gradientType === "gray") {
+      doc.setFillColor(247, 250, 252);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(160, 174, 192);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    }
+    doc.restoreGraphicsState();
+  };
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
       try {
-        const gradientImage = createGradientCanvas(pageEdit.pageBackgroundGradient, pageWidth, pageHeight);
-        if (gradientImage) {
-          doc.saveGraphicsState();
-          doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
-          doc.addImage(gradientImage, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
-          doc.restoreGraphicsState();
-        }
+        applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
       } catch (e) {
         console.error('Błąd dodawania gradientu tła:', e);
         document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
@@ -364,7 +215,7 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+              await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; });
               const logoW = 120;
               const logoH = 60;
               const logoX = x + (boxWidth - logoW) / 2;
@@ -522,13 +373,7 @@ async function buildPDF(jsPDF, save = true) {
       const pageEdit = pageEdits[pageNumber - 1] || {};
       if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
         try {
-          const gradientImage = createGradientCanvas(pageEdit.pageBackgroundGradient, pageWidth, pageHeight);
-          if (gradientImage) {
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
-            doc.addImage(gradientImage, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
-            doc.restoreGraphicsState();
-          }
+          applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
         } catch (e) {
           console.error('Błąd dodawania gradientu tła:', e);
           document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
@@ -561,12 +406,10 @@ async function buildPDF(jsPDF, save = true) {
   if (save) doc.save("katalog.pdf");
   return doc;
 }
-
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
-
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -575,7 +418,6 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -692,7 +534,6 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -761,7 +602,6 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial',
@@ -846,12 +686,9 @@ function showPageEditModal(pageIndex) {
       <label>Gradient tła strony:</label>
       <select id="editPageBackgroundGradient">
         <option value="none" ${edit.pageBackgroundGradient === 'none' ? 'selected' : ''}>Brak</option>
-        <option value="ocean-breeze" ${edit.pageBackgroundGradient === 'ocean-breeze' ? 'selected' : ''}>Ocean Breeze</option>
-        <option value="sunset-glow" ${edit.pageBackgroundGradient === 'sunset-glow' ? 'selected' : ''}>Sunset Glow</option>
-        <option value="forest-mist" ${edit.pageBackgroundGradient === 'forest-mist' ? 'selected' : ''}>Forest Mist</option>
-        <option value="lavender-dream" ${edit.pageBackgroundGradient === 'lavender-dream' ? 'selected' : ''}>Lavender Dream</option>
-        <option value="desert-sunset" ${edit.pageBackgroundGradient === 'desert-sunset' ? 'selected' : ''}>Desert Sunset</option>
-        <option value="midnight-sky" ${edit.pageBackgroundGradient === 'midnight-sky' ? 'selected' : ''}>Midnight Sky</option>
+        <option value="blue" ${edit.pageBackgroundGradient === 'blue' ? 'selected' : ''}>Niebieski</option>
+        <option value="green" ${edit.pageBackgroundGradient === 'green' ? 'selected' : ''}>Zielony</option>
+        <option value="gray" ${edit.pageBackgroundGradient === 'gray' ? 'selected' : ''}>Szary</option>
       </select>
       <label>Przezroczystość tła:</label>
       <input type="range" id="editPageBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.pageBackgroundOpacity || 1.0}">
@@ -860,7 +697,6 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function savePageEdit(pageIndex) {
   const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
   pageEdits[newPageIndex] = {
@@ -881,7 +717,6 @@ function savePageEdit(pageIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -1084,16 +919,10 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-
-function renderCatalog() {
-  loadProducts();
-}
-
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -1102,10 +931,4 @@ window.showVirtualEditModal = showVirtualEditModal;
 window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
-window.loadProducts = loadProducts;
-window.showBannerModal = showBannerModal;
-window.hideBannerModal = hideBannerModal;
-window.selectBanner = selectBanner;
-window.uploadCustomBanner = uploadCustomBanner;
-
 loadProducts();
