@@ -58,34 +58,37 @@ async function buildPDF(jsPDF, save = true) {
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
-    const gradient = doc.linearGradient(0, 0, 0, pageHeight);
     if (gradientType === "blue") {
-      gradient.addColorStop(0, '#E6F0FA');
-      gradient.addColorStop(0.5, '#B3CDE3');
-      gradient.addColorStop(1, '#3182CE');
+      doc.setFillColor(240, 248, 255); // AliceBlue
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(30, 144, 255); // DodgerBlue
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "green") {
-      gradient.addColorStop(0, '#E6FFE6');
-      gradient.addColorStop(0.5, '#A3E4D7');
-      gradient.addColorStop(1, '#38A169');
+      doc.setFillColor(245, 255, 250); // MintCream
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(34, 139, 34); // ForestGreen
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "gray") {
-      gradient.addColorStop(0, '#F7FAFC');
-      gradient.addColorStop(0.5, '#CBD5E0');
-      gradient.addColorStop(1, '#A0AEC0');
+      doc.setFillColor(245, 245, 245); // WhiteSmoke
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(105, 105, 105); // DimGray
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "red") {
-      gradient.addColorStop(0, '#FFF5F5');
-      gradient.addColorStop(0.5, '#FED7D7');
-      gradient.addColorStop(1, '#E53E3E');
+      doc.setFillColor(255, 245, 245); // Snow
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(220, 20, 60); // Crimson
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "purple") {
-      gradient.addColorStop(0, '#F5F3FF');
-      gradient.addColorStop(0.5, '#D6BCFA');
-      gradient.addColorStop(1, '#805AD5');
+      doc.setFillColor(245, 243, 255); // Lavender
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(138, 43, 226); // BlueViolet
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     } else if (gradientType === "orange") {
-      gradient.addColorStop(0, '#FFFAF0');
-      gradient.addColorStop(0.5, '#FEEBC8');
-      gradient.addColorStop(1, '#ED8936');
+      doc.setFillColor(255, 250, 240); // FloralWhite
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(255, 140, 0); // DarkOrange
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     }
-    doc.setFillColor(gradient);
-    doc.rect(0, 0, pageWidth, pageHeight, 'F');
     doc.restoreGraphicsState();
   };
 
@@ -417,7 +420,7 @@ async function buildPDF(jsPDF, save = true) {
       if (bannerImg) {
         try {
           doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
-        } catch (e) {
+        }aco {
           console.error('Błąd dodawania banera:', e);
           document.getElementById('debug').innerText = "Błąd dodawania banera";
         }
@@ -632,7 +635,7 @@ function saveEdit(productIndex) {
     nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
     nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
     indeksFont: document.getElementById('editIndeksFont').value || 'Arial',
-    indeksFontColor: document.getElementById('editIndeksColor').value || '#000000',
+    indeksFontColor: document.getElementById('editIndeksColor').value || 'Arial',
     rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
     cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
