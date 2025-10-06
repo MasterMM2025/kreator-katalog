@@ -18,6 +18,56 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   }
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
+function createGradientCanvas(gradientType, width, height) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  let gradient;
+  switch (gradientType) {
+    case 'ocean-breeze':
+      gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#A5FECB');
+      gradient.addColorStop(0.3, '#20BDFF');
+      gradient.addColorStop(1, '#043B5C');
+      break;
+    case 'sunset-glow':
+      gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#FFE5B4');
+      gradient.addColorStop(0.4, '#FF6B6B');
+      gradient.addColorStop(1, '#4A00E0');
+      break;
+    case 'forest-mist':
+      gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#D4F4DD');
+      gradient.addColorStop(0.5, '#4CAF50');
+      gradient.addColorStop(1, '#1B5E20');
+      break;
+    case 'lavender-dream':
+      gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#F3E7FA');
+      gradient.addColorStop(0.3, '#D6A4F5');
+      gradient.addColorStop(1, '#6B46C1');
+      break;
+    case 'desert-sunset':
+      gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#FBD38D');
+      gradient.addColorStop(0.4, '#F56565');
+      gradient.addColorStop(1, '#9B2C2C');
+      break;
+    case 'midnight-sky':
+      gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#EBF4FF');
+      gradient.addColorStop(0.5, '#7F9CF5');
+      gradient.addColorStop(1, '#1A237E');
+      break;
+    default:
+      return null;
+  }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+  return canvas.toDataURL('image/png');
+}
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
@@ -49,58 +99,21 @@ async function buildPDF(jsPDF, save = true) {
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-  const applyGradient = (gradientType, opacity) => {
-    doc.saveGraphicsState();
-    doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
-    try {
-      if (gradientType === "ocean-breeze") {
-        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-        gradient.addColorStop(0, '#A5FECB');
-        gradient.addColorStop(0.3, '#20BDFF');
-        gradient.addColorStop(1, '#043B5C');
-        doc.setFillColor(gradient);
-      } else if (gradientType === "sunset-glow") {
-        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-        gradient.addColorStop(0, '#FFE5B4');
-        gradient.addColorStop(0.4, '#FF6B6B');
-        gradient.addColorStop(1, '#4A00E0');
-        doc.setFillColor(gradient);
-      } else if (gradientType === "forest-mist") {
-        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-        gradient.addColorStop(0, '#D4F4DD');
-        gradient.addColorStop(0.5, '#4CAF50');
-        gradient.addColorStop(1, '#1B5E20');
-        doc.setFillColor(gradient);
-      } else if (gradientType === "lavender-dream") {
-        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-        gradient.addColorStop(0, '#F3E7FA');
-        gradient.addColorStop(0.3, '#D6A4F5');
-        gradient.addColorStop(1, '#6B46C1');
-        doc.setFillColor(gradient);
-      } else if (gradientType === "desert-sunset") {
-        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-        gradient.addColorStop(0, '#FBD38D');
-        gradient.addColorStop(0.4, '#F56565');
-        gradient.addColorStop(1, '#9B2C2C');
-        doc.setFillColor(gradient);
-      } else if (gradientType === "midnight-sky") {
-        const gradient = doc.linearGradient(0, 0, pageWidth, pageHeight);
-        gradient.addColorStop(0, '#EBF4FF');
-        gradient.addColorStop(0.5, '#7F9CF5');
-        gradient.addColorStop(1, '#1A237E');
-        doc.setFillColor(gradient);
-      }
-      doc.rect(0, 0, pageWidth, pageHeight, 'F');
-    } catch (e) {
-      console.error('Błąd renderowania gradientu:', e);
-      document.getElementById('debug').innerText = "Błąd renderowania gradientu";
-    }
-    doc.restoreGraphicsState();
-  };
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
-      applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
+      try {
+        const gradientImage = createGradientCanvas(pageEdit.pageBackgroundGradient, pageWidth, pageHeight);
+        if (gradientImage) {
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
+          doc.addImage(gradientImage, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+          doc.restoreGraphicsState();
+        }
+      } catch (e) {
+        console.error('Błąd dodawania gradientu tła:', e);
+        document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
+      }
     } else if (backgroundImg) {
       try {
         doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -394,11 +407,22 @@ async function buildPDF(jsPDF, save = true) {
       pageNumber++;
       const pageEdit = pageEdits[pageNumber - 1] || {};
       if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
-        applyGradient(pageEdit.pageBackgroundGradient, pageEdit.pageBackgroundOpacity);
+        try {
+          const gradientImage = createGradientCanvas(pageEdit.pageBackgroundGradient, pageWidth, pageHeight);
+          if (gradientImage) {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: pageEdit.pageBackgroundOpacity || 1.0 }));
+            doc.addImage(gradientImage, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+            doc.restoreGraphicsState();
+          }
+        } catch (e) {
+          console.error('Błąd dodawania gradientu tła:', e);
+          document.getElementById('debug').innerText = "Błąd dodawania gradientu tła";
+        }
       } else if (backgroundImg) {
         try {
           doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-        } catch (e) {
+        }<Action to take> {
           console.error('Błąd dodawania tła:', e);
           document.getElementById('debug').innerText = "Błąd dodawania tła";
         }
