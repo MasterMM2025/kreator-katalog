@@ -9,6 +9,7 @@ let pageEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 let manufacturerLogos = {};
+
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -24,6 +25,7 @@ async function toBase64(url) {
     return null;
   }
 }
+
 async function loadManufacturerLogos() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/MasterMM2025/kreator-katalog/main/Producenci.json");
@@ -50,6 +52,7 @@ async function loadManufacturerLogos() {
     document.getElementById('debug').innerText = "Błąd ładowania logów producentów: " + error.message;
   }
 }
+
 async function loadProducts() {
   try {
     const response = await fetch("https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/UKRAINA.json");
@@ -85,6 +88,7 @@ async function loadProducts() {
     console.error("Błąd loadProducts:", error);
   }
 }
+
 function handleFiles(files, callback) {
   if (!files || files.length === 0) {
     console.error("Brak plików do załadowania");
@@ -104,24 +108,29 @@ function handleFiles(files, callback) {
     reader.readAsDataURL(file);
   });
 }
+
 function loadCustomBanner(file, data) {
   selectedBanner = { id: "custom", data };
   console.log("Załadowano baner:", file.name);
 }
+
 function loadCustomBackground(file, data) {
   selectedBackground = { id: "customBackground", data };
   console.log("Załadowano tło:", file.name);
 }
+
 function loadCustomCover(file, data) {
   selectedCover = { id: "customCover", data };
   console.log("Załadowano okładkę:", file.name);
 }
+
 function loadCustomImages(file, data) {
   const fileName = file.name.split('.')[0];
   uploadedImages[fileName] = data;
   console.log(`Załadowano obraz dla indeksu: ${fileName}`);
   renderCatalog();
 }
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -216,9 +225,11 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
 }
+
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -270,6 +281,7 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial',
@@ -352,6 +364,7 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function savePageEdit(pageIndex) {
   const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
   pageEdits[newPageIndex] = {
@@ -370,9 +383,7 @@ function savePageEdit(pageIndex) {
   renderCatalog();
   hideEditModal();
 }
-function hideEditModal() {
-  document.getElementById('editModal').style.display = 'none';
-}
+
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
   const uploadArea = document.getElementById("uploadArea");
@@ -541,6 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
   pageEditButton.onclick = () => showPageEditModal(0);
   document.querySelector('.improved-panel').appendChild(pageEditButton);
 });
+
 function showBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
@@ -551,12 +563,14 @@ function showBannerModal() {
     document.getElementById('debug').innerText = "Błąd: Brak modalu banera";
   }
 }
+
 function hideBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
     bannerModal.style.display = 'none';
   }
 }
+
 async function loadBanners() {
   const bannerOptions = document.getElementById('bannerOptions');
   if (!bannerOptions) {
@@ -586,12 +600,14 @@ async function loadBanners() {
     }
   }
 }
+
 function selectBanner(id, data) {
   selectedBanner = { id, data };
   document.querySelectorAll('.banner-preview').forEach(p => p.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
   hideBannerModal();
 }
+
 function renderCatalog() {
   const container = document.getElementById("catalog");
   if (!container) {
@@ -631,19 +647,20 @@ function renderCatalog() {
     img.src = uploadedImages[p.indeks] || p.img || "https://dummyimage.com/120x84/eee/000&text=brak";
     const details = document.createElement('div');
     details.className = "details";
-    details.innerHTML = `<b>${p.nazwa || 'Brak nazwy'}</b><br>Indeks: ${p.indeks || 'Brak indeksu'}`;
+    const edit = productEdits[i] || {};
+    const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
+    const finalEdit = { ...pageEdit, ...edit };
+    details.innerHTML = `<b style="font-family: ${finalEdit.nazwaFont || 'Arial'}; color: ${finalEdit.nazwaFontColor || '#000000'}">${p.nazwa || 'Brak nazwy'}</b><br>` +
+                       `<span style="font-family: ${finalEdit.indeksFont || 'Arial'}; color: ${finalEdit.indeksFontColor || '#000000'}">Indeks: ${p.indeks || 'Brak indeksu'}</span>`;
     if (showCena && p.cena) {
-      const edit = productEdits[i] || {};
-      const pageEdit = pageEdits[Math.floor(i / itemsPerPage)] || {};
-      const finalEdit = { ...pageEdit, ...edit };
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-      details.innerHTML += `<br>${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+      details.innerHTML += `<br><span style="font-family: ${finalEdit.cenaFont || 'Arial'}; color: ${finalEdit.cenaFontColor || '#000000'}; font-size: ${finalEdit.priceFontSize || 'medium'}">${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}</span>`;
     }
-    if (showLogo && layout === "4" && (productEdits[i]?.logo || (p.producent && manufacturerLogos[p.producent]))) {
+    if (showLogo && layout === "4" && (finalEdit.logo || (p.producent && manufacturerLogos[p.producent]))) {
       const logoImg = document.createElement('img');
-      logoImg.src = productEdits[i]?.logo || manufacturerLogos[p.producent];
+      logoImg.src = finalEdit.logo || manufacturerLogos[p.producent];
       logoImg.style.width = '120px';
       logoImg.style.height = '60px';
       logoImg.style.objectFit = 'contain';
@@ -660,6 +677,7 @@ function renderCatalog() {
     pageDiv.appendChild(item);
   });
 }
+
 function importExcel() {
   const file = document.getElementById('excelFile').files[0];
   if (!file) {
