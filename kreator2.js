@@ -52,20 +52,35 @@ async function buildPDF(jsPDF, save = true) {
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
-    if (gradientType === "blue") {
-      doc.setFillColor(230, 240, 250);
+    if (gradientType === "blue-purple") {
+      doc.setFillColor(235, 245, 255);
       doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(49, 130, 206);
+      doc.setFillColor(103, 71, 171);
       doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "green") {
-      doc.setFillColor(230, 255, 230);
+    } else if (gradientType === "orange-red") {
+      doc.setFillColor(255, 237, 213);
       doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(56, 161, 105);
+      doc.setFillColor(220, 38, 38);
       doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
-    } else if (gradientType === "gray") {
-      doc.setFillColor(247, 250, 252);
+    } else if (gradientType === "green-teal") {
+      doc.setFillColor(209, 250, 229);
       doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(160, 174, 192);
+      doc.setFillColor(13, 148, 136);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    } else if (gradientType === "pink-purple") {
+      doc.setFillColor(250, 219, 235);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(139, 92, 246);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    } else if (gradientType === "gray-blue") {
+      doc.setFillColor(241, 245, 249);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(59, 130, 246);
+      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+    } else if (gradientType === "gold-yellow") {
+      doc.setFillColor(254, 243, 199);
+      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
+      doc.setFillColor(202, 138, 4);
       doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
     }
     doc.restoreGraphicsState();
@@ -190,7 +205,7 @@ async function buildPDF(jsPDF, save = true) {
           doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
-          doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
+          doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
           if (showRanking && p.ranking) {
@@ -686,9 +701,12 @@ function showPageEditModal(pageIndex) {
       <label>Gradient tła strony:</label>
       <select id="editPageBackgroundGradient">
         <option value="none" ${edit.pageBackgroundGradient === 'none' ? 'selected' : ''}>Brak</option>
-        <option value="blue" ${edit.pageBackgroundGradient === 'blue' ? 'selected' : ''}>Niebieski</option>
-        <option value="green" ${edit.pageBackgroundGradient === 'green' ? 'selected' : ''}>Zielony</option>
-        <option value="gray" ${edit.pageBackgroundGradient === 'gray' ? 'selected' : ''}>Szary</option>
+        <option value="blue-purple" ${edit.pageBackgroundGradient === 'blue-purple' ? 'selected' : ''}>Niebiesko-fioletowy</option>
+        <option value="orange-red" ${edit.pageBackgroundGradient === 'orange-red' ? 'selected' : ''}>Pomarańczowo-czerwony</option>
+        <option value="green-teal" ${edit.pageBackgroundGradient === 'green-teal' ? 'selected' : ''}>Zielono-turkusowy</option>
+        <option value="pink-purple" ${edit.pageBackgroundGradient === 'pink-purple' ? 'selected' : ''}>Różowo-fioletowy</option>
+        <option value="gray-blue" ${edit.pageBackgroundGradient === 'gray-blue' ? 'selected' : ''}>Szaro-niebieski</option>
+        <option value="gold-yellow" ${edit.pageBackgroundGradient === 'gold-yellow' ? 'selected' : ''}>Złoto-żółty</option>
       </select>
       <label>Przezroczystość tła:</label>
       <input type="range" id="editPageBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.pageBackgroundOpacity || 1.0}">
