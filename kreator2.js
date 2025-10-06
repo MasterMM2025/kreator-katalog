@@ -1,3 +1,81 @@
+let products = [];
+let uploadedImages = {};
+let productEdits = {};
+let pageEdits = {};
+let selectedBanner = null;
+let selectedBackground = null;
+let selectedCover = null;
+let manufacturerLogos = {};
+let globalCurrency = 'EUR';
+let globalLanguage = 'pl';
+
+function loadProducts() {
+  const catalog = document.getElementById('catalog');
+  catalog.innerHTML = '';
+  products.forEach((product, index) => {
+    const productDiv = document.createElement('div');
+    productDiv.className = 'product';
+    productDiv.innerHTML = `
+      <img src="${uploadedImages[product.indeks] || product.img || 'https://dummyimage.com/120x84/eee/000&text=brak'}" style="width:100px;height:100px;object-fit:contain;">
+      <p><strong>${product.nazwa || 'Brak nazwy'}</strong></p>
+      <p>Indeks: ${product.indeks || '-'}</p>
+      ${document.getElementById('showRanking')?.checked && product.ranking ? `<p>Ranking: ${product.ranking}</p>` : ''}
+      ${document.getElementById('showCena')?.checked && product.cena ? `<p>Cena: ${product.cena} ${globalCurrency === 'EUR' ? '€' : '£'}</p>` : ''}
+      <button onclick="showEditModal(${index})">Edytuj</button>
+      <button onclick="showVirtualEditModal(${index})">Edytuj wizualnie</button>
+    `;
+    catalog.appendChild(productDiv);
+  });
+  document.getElementById('pdfButton').disabled = products.length === 0;
+  document.getElementById('previewButton').disabled = products.length === 0;
+}
+
+async function importExcel() {
+  const fileInput = document.getElementById('excelFile');
+  const file = fileInput.files[0];
+  if (!file) {
+    alert('Wybierz plik Excel lub CSV!');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      products = jsonData.map(row => ({
+        nazwa: row.Nazwa || row.nazwa || '',
+        indeks: row.Indeks || row.indeks || '',
+        ranking: row.Ranking || row.ranking || '',
+        cena: row.Cena || row.cena || '',
+        ean: row.EAN || row.ean || '',
+        producent: row.Producent || row.producent || '',
+        img: row.Zdjęcie || row.zdjęcie || '',
+        barcode: row.EAN ? generateBarcode(row.EAN) : null
+      }));
+      loadProducts();
+      document.getElementById('fileLabel').textContent = file.name;
+    } catch (e) {
+      console.error('Błąd importu pliku Excel:', e);
+      document.getElementById('debug').innerText = "Błąd importu pliku Excel";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function generateBarcode(ean) {
+  const canvas = document.createElement('canvas');
+  try {
+    JsBarcode(canvas, ean, { format: 'EAN13', displayValue: false });
+    return canvas.toDataURL('image/png');
+  } catch (e) {
+    console.error('Błąd generowania kodu kreskowego:', e);
+    return null;
+  }
+}
+
 function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   doc.setFillColor(220, 220, 220);
   doc.roundedRect(x + 2, y + 2, w, h, 5, 5, 'F');
@@ -18,6 +96,7 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   }
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
+
 function createGradientCanvas(gradientType, width, height) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -68,14 +147,49 @@ function createGradientCanvas(gradientType, width, height) {
   ctx.fillRect(0, 0, width, height);
   return canvas.toDataURL('image/png');
 }
+
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
+
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
+
+function showBannerModal() {
+  const modal = document.getElementById('bannerModal');
+  const bannerOptions = document.getElementById('bannerOptions');
+  bannerOptions.innerHTML = `
+    <button onclick="selectBanner(null)">Brak banera</button>
+    ${Object.keys(manufacturerLogos).map(name => `<button onclick="selectBanner('${name}')">${name}</button>`).join('')}
+    <input type="file" id="customBanner" accept="image/*" onchange="uploadCustomBanner(event)">
+  `;
+  modal.style.display = 'block';
+}
+
+function hideBannerModal() {
+  document.getElementById('bannerModal').style.display = 'none';
+}
+
+function selectBanner(name) {
+  selectedBanner = name ? { data: manufacturerLogos[name], name } : null;
+  hideBannerModal();
+}
+
+function uploadCustomBanner(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      selectedBanner = { data: e.target.result, name: file.name };
+      hideBannerModal();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -250,7 +364,7 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
-              await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; });
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
               const logoW = 120;
               const logoH = 60;
               const logoX = x + (boxWidth - logoW) / 2;
@@ -447,10 +561,12 @@ async function buildPDF(jsPDF, save = true) {
   if (save) doc.save("katalog.pdf");
   return doc;
 }
+
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
+
 async function previewPDF() {
   showProgressModal();
   const { jsPDF } = window.jspdf;
@@ -459,6 +575,7 @@ async function previewPDF() {
   document.getElementById("pdfIframe").src = blobUrl;
   document.getElementById("pdfPreview").style.display = "block";
 }
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -575,6 +692,7 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -643,6 +761,7 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial',
@@ -741,6 +860,7 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function savePageEdit(pageIndex) {
   const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
   pageEdits[newPageIndex] = {
@@ -761,6 +881,7 @@ function savePageEdit(pageIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -963,10 +1084,16 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
+
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
+
+function renderCatalog() {
+  loadProducts();
+}
+
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -976,4 +1103,9 @@ window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
 window.loadProducts = loadProducts;
+window.showBannerModal = showBannerModal;
+window.hideBannerModal = hideBannerModal;
+window.selectBanner = selectBanner;
+window.uploadCustomBanner = uploadCustomBanner;
+
 loadProducts();
