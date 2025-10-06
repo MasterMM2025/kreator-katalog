@@ -18,14 +18,17 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   }
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
+
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
+
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
+
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -35,6 +38,23 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
+
+  // Dodanie fontów Open Sans i Roboto (lokalne lub fallback na Arial)
+  try {
+    // Zakładamy, że fonty są dostępne lokalnie w projekcie
+    doc.addFont('assets/fonts/OpenSans-Regular.ttf', 'OpenSans', 'normal');
+    doc.addFont('assets/fonts/OpenSans-Bold.ttf', 'OpenSans', 'bold');
+    doc.addFont('assets/fonts/OpenSans-Italic.ttf', 'OpenSans', 'italic');
+    doc.addFont('assets/fonts/OpenSans-BoldItalic.ttf', 'OpenSans', 'bolditalic');
+    doc.addFont('assets/fonts/Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.addFont('assets/fonts/Roboto-Bold.ttf', 'Roboto', 'bold');
+    doc.addFont('assets/fonts/Roboto-Italic.ttf', 'Roboto', 'italic');
+    doc.addFont('assets/fonts/Roboto-BoldItalic.ttf', 'Roboto', 'bolditalic');
+  } catch (e) {
+    console.error('Błąd ładowania fontów, używam Arial:', e);
+    document.getElementById('debug').innerText = "Błąd ładowania fontów, używam Arial";
+  }
+
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -46,30 +66,39 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
+
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
+    const gradient = doc.linearGradient(0, 0, 0, pageHeight);
     if (gradientType === "blue") {
-      doc.setFillColor(230, 240, 250);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(49, 130, 206);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+      gradient.addColorStop(0, '#E6F0FA');
+      gradient.addColorStop(1, '#3182CE');
     } else if (gradientType === "green") {
-      doc.setFillColor(230, 255, 230);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(56, 161, 105);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+      gradient.addColorStop(0, '#E6FFE6');
+      gradient.addColorStop(1, '#38A169');
     } else if (gradientType === "gray") {
-      doc.setFillColor(247, 250, 252);
-      doc.rect(0, 0, pageWidth, pageHeight / 2, 'F');
-      doc.setFillColor(160, 174, 192);
-      doc.rect(0, pageHeight / 2, pageWidth, pageHeight / 2, 'F');
+      gradient.addColorStop(0, '#F7FAFC');
+      gradient.addColorStop(1, '#A0AEC0');
+    } else if (gradientType === "red") {
+      gradient.addColorStop(0, '#FFF5F5');
+      gradient.addColorStop(1, '#E53E3E');
+    } else if (gradientType === "purple") {
+      gradient.addColorStop(0, '#F5F3FF');
+      gradient.addColorStop(1, '#805AD5');
+    } else if (gradientType === "orange") {
+      gradient.addColorStop(0, '#FFFAF0');
+      gradient.addColorStop(1, '#ED8936');
     }
+    doc.setFillColor(gradient);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
     doc.restoreGraphicsState();
   };
+
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
@@ -95,10 +124,11 @@ async function buildPDF(jsPDF, save = true) {
         document.getElementById('debug').innerText = "Błąd dodawania banera";
       }
     }
-    doc.setFont("Arial", "bold");
+    doc.setFont("OpenSans", "bold");
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -110,6 +140,7 @@ async function buildPDF(jsPDF, save = true) {
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
+
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -119,21 +150,27 @@ async function buildPDF(jsPDF, save = true) {
     if (layout === "4-2-4") return 10;
     return 4;
   };
+
   const itemsPerPage = getItemsPerPage();
+
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
         const p = products[productIndex];
         const edit = productEdits[productIndex] || {};
         const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {
-          nazwaFont: 'Arial',
+          nazwaFont: 'OpenSans',
           nazwaFontColor: '#000000',
-          indeksFont: 'Arial',
+          nazwaFontStyle: 'normal',
+          indeksFont: 'OpenSans',
           indeksFontColor: '#000000',
-          rankingFont: 'Arial',
+          indeksFontStyle: 'normal',
+          rankingFont: 'OpenSans',
           rankingFontColor: '#000000',
-          cenaFont: 'Arial',
+          rankingFontStyle: 'normal',
+          cenaFont: 'OpenSans',
           cenaFontColor: '#000000',
+          cenaFontStyle: 'normal',
           priceCurrency: globalCurrency,
           showPriceLabel: true,
           borderStyle: 'solid',
@@ -145,6 +182,7 @@ async function buildPDF(jsPDF, save = true) {
         };
         const finalEdit = { ...pageEdit, ...edit };
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
+
         if (finalEdit.backgroundTexture) {
           try {
             doc.saveGraphicsState();
@@ -153,17 +191,24 @@ async function buildPDF(jsPDF, save = true) {
             doc.restoreGraphicsState();
           } catch (e) {
             console.error('Błąd dodawania tekstury tła:', e);
+            document.getElementById('debug').innerText = "Błąd dodawania tekstury tła";
           }
         }
+
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
         let imgSrc = uploadedImages[p.indeks] || p.img;
         let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
+
         if (isLarge) {
           if (imgSrc) {
             try {
               const img = new Image();
               img.src = imgSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+              await Promise.race([
+                new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout ładowania obrazu')), 5000))
+              ]);
               const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
               const maxH = boxHeight * 0.4;
               let scale = Math.min(maxW / img.width, maxH / img.height);
@@ -171,59 +216,81 @@ async function buildPDF(jsPDF, save = true) {
               let h = img.height * scale;
               let imgX = x + (boxWidth - w) / 2;
               let imgY = y + 5;
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
+              document.getElementById('debug').innerText = "Błąd dodawania obrazka";
             }
           }
           let textY = y + 5 + (boxHeight * 0.4) + 10;
-          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
+          doc.setFont(finalEdit.nazwaFont || 'Arial', finalEdit.nazwaFontStyle || "bold");
           doc.setFontSize(sectionCols === 1 ? 14 : 11);
           const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
+          doc.setGState(new doc.GState({ opacity: 1.0 }));
           const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
           const maxLines = 3;
           lines.slice(0, maxLines).forEach((line, index) => {
+            // Dodanie cienia tekstu
+            doc.setTextColor(0, 0, 0);
+            doc.setGState(new doc.GState({ opacity: 0.3 }));
+            doc.text(line, x + boxWidth / 2 + 1, textY + (index * 18) + 1, { align: "center" });
+            doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
+            doc.setGState(new doc.GState({ opacity: 1.0 }));
             doc.text(line, x + boxWidth / 2, textY + (index * 18), { align: "center" });
           });
           textY += Math.min(lines.length, maxLines) * 18 + 10;
-          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
+          doc.setFont(finalEdit.indeksFont || 'Arial', finalEdit.indeksFontStyle || "normal");
           doc.setFontSize(sectionCols === 1 ? 11 : 9);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
+          doc.setGState(new doc.GState({ opacity: 0.3 }));
+          doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2 + 1, textY + 1, { align: "center" });
+          doc.setGState(new doc.GState({ opacity: 1.0 }));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
           textY += sectionCols === 1 ? 22 : 18;
           if (showRanking && p.ranking) {
-            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+            doc.setFont(finalEdit.rankingFont || 'Arial', finalEdit.rankingFontStyle || "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
+            doc.setGState(new doc.GState({ opacity: 0.3 }));
+            doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2 + 1, textY + 1, { align: "center" });
+            doc.setGState(new doc.GState({ opacity: 1.0 }));
             doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showCena && p.cena) {
-            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+            doc.setFont(finalEdit.cenaFont || 'Arial', finalEdit.cenaFontStyle || "bold");
             const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
             const cenaFontColor = finalEdit.cenaFontColor || '#000000';
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            const priceText = `${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+            doc.setGState(new doc.GState({ opacity: 0.3 }));
+            doc.text(priceText, x + boxWidth / 2 + 1, textY + 1, { align: "center" });
+            doc.setGState(new doc.GState({ opacity: 1.0 }));
+            doc.text(priceText, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showLogo && layout === "4" && logoSrc) {
             try {
               const logoImg = new Image();
               logoImg.src = logoSrc;
-              await new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; });
+              await Promise.race([
+                new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; }),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout ładowania loga')), 5000))
+              ]);
               const logoW = 120;
               const logoH = 60;
               const logoX = x + (boxWidth - logoW) / 2;
               const logoY = textY;
-              doc.addImage(logoSrc, logoSrc.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH, undefined, 'SLOW');
+              doc.addImage(logoSrc, logoSrc.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH, undefined, save ? "SLOW" : "FAST");
               textY += logoH + 5;
             } catch (e) {
               console.error('Błąd dodawania loga:', e);
+              document.getElementById('debug').innerText = "Błąd dodawania loga";
             }
           }
           if (showEan && p.ean && p.barcode) {
@@ -232,9 +299,10 @@ async function buildPDF(jsPDF, save = true) {
               const bh = sectionCols === 1 ? 50 : 40;
               const bx = x + (boxWidth - bw) / 2;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
+              document.getElementById('debug').innerText = "Błąd dodawania kodu kreskowego";
             }
           }
         } else {
@@ -242,7 +310,10 @@ async function buildPDF(jsPDF, save = true) {
             try {
               const img = new Image();
               img.src = imgSrc;
-              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+              await Promise.race([
+                new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout ładowania obrazu')), 5000))
+              ]);
               const maxW = 90;
               const maxH = 60;
               let scale = Math.min(maxW / img.width, maxH / img.height);
@@ -250,40 +321,54 @@ async function buildPDF(jsPDF, save = true) {
               let h = img.height * scale;
               let imgX = x + 5 + (maxW - w) / 2;
               let imgY = y + 8 + (maxH - h) / 2;
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h);
+              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
             } catch (e) {
               console.error('Błąd dodawania obrazka:', e);
+              document.getElementById('debug').innerText = "Błąd dodawania obrazka";
             }
           }
           let textY = y + 20;
-          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
+          doc.setFont(finalEdit.nazwaFont || 'Arial', finalEdit.nazwaFontStyle || "bold");
           doc.setFontSize(8);
           const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
           doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
+          doc.setGState(new doc.GState({ opacity: 0.3 }));
+          doc.text(p.nazwa || "Brak nazwy", x + 105 + 1, textY + 1, { maxWidth: boxWidth - 110 });
+          doc.setGState(new doc.GState({ opacity: 1.0 }));
           doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
           textY += 25;
-          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
+          doc.setFont(finalEdit.indeksFont || 'Arial', finalEdit.indeksFontStyle || "normal");
           doc.setFontSize(7);
           const indeksFontColor = finalEdit.indeksFontColor || '#000000';
           doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
+          doc.setGState(new doc.GState({ opacity: 0.3 }));
+          doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105 + 1, textY + 1, { maxWidth: 150 });
+          doc.setGState(new doc.GState({ opacity: 1.0 }));
           doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
           textY += 12;
           if (showRanking && p.ranking) {
-            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+            doc.setFont(finalEdit.rankingFont || 'Arial', finalEdit.rankingFontStyle || "normal");
             const rankingFontColor = finalEdit.rankingFontColor || '#000000';
             doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
+            doc.setGState(new doc.GState({ opacity: 0.3 }));
+            doc.text(`RANKING: ${p.ranking}`, x + 105 + 1, textY + 1, { maxWidth: 150 });
+            doc.setGState(new doc.GState({ opacity: 1.0 }));
             doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
             textY += 12;
           }
           if (showCena && p.cena) {
-            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+            doc.setFont(finalEdit.cenaFont || 'Arial', finalEdit.cenaFontStyle || "bold");
             const priceFontSize = (finalEdit.priceFontSize || 'medium') === 'small' ? 10 : (finalEdit.priceFontSize || 'medium') === 'medium' ? 12 : 14;
             doc.setFontSize(priceFontSize);
             const cenaFontColor = finalEdit.cenaFontColor || '#000000';
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150});
+            const priceText = `${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+            doc.setGState(new doc.GState({ opacity: 0.3 }));
+            doc.text(priceText, x + 105 + 1, textY + 1, { maxWidth: 150 });
+            doc.setGState(new doc.GState({ opacity: 1.0 }));
+            doc.text(priceText, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
@@ -292,9 +377,10 @@ async function buildPDF(jsPDF, save = true) {
               const bh = 32;
               const bx = x + boxWidth - bw - 10;
               const by = y + boxHeight - bh - 5;
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh);
+              doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
             } catch (e) {
               console.error('Błąd dodawania kodu kreskowego:', e);
+              document.getElementById('debug').innerText = "Błąd dodawania kodu kreskowego";
             }
           }
         }
@@ -310,6 +396,7 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
+
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -394,7 +481,7 @@ async function buildPDF(jsPDF, save = true) {
           document.getElementById('debug').innerText = "Błąd dodawania banera";
         }
       }
-      doc.setFont("Arial", "bold");
+      doc.setFont("OpenSans", "bold");
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
@@ -402,33 +489,50 @@ async function buildPDF(jsPDF, save = true) {
       y = marginTop;
     }
   }
+
   hideProgressModal();
   if (save) doc.save("katalog.pdf");
   return doc;
 }
+
 async function generatePDF() {
   const { jsPDF } = window.jspdf;
   await buildPDF(jsPDF, true);
 }
+
 async function previewPDF() {
-  showProgressModal();
-  const { jsPDF } = window.jspdf;
-  const doc = await buildPDF(jsPDF, false);
-  const blobUrl = doc.output("bloburl");
-  document.getElementById("pdfIframe").src = blobUrl;
-  document.getElementById("pdfPreview").style.display = "block";
+  try {
+    showProgressModal();
+    const { jsPDF } = window.jspdf;
+    const doc = await buildPDF(jsPDF, false);
+    const blobUrl = doc.output("bloburl");
+    const pdfIframe = document.getElementById("pdfIframe");
+    pdfIframe.src = "";
+    pdfIframe.src = blobUrl;
+    document.getElementById("pdfPreview").style.display = "block";
+    hideProgressModal();
+  } catch (e) {
+    console.error('Błąd generowania podglądu PDF:', e);
+    document.getElementById('debug').innerText = "Błąd generowania podglądu PDF";
+    hideProgressModal();
+  }
 }
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
-    nazwaFont: 'Arial',
+    nazwaFont: 'OpenSans',
     nazwaFontColor: '#000000',
-    indeksFont: 'Arial',
+    nazwaFontStyle: 'normal',
+    indeksFont: 'OpenSans',
     indeksFontColor: '#000000',
-    rankingFont: 'Arial',
+    indeksFontStyle: 'normal',
+    rankingFont: 'OpenSans',
     rankingFontColor: '#000000',
-    cenaFont: 'Arial',
+    rankingFontStyle: 'normal',
+    cenaFont: 'OpenSans',
     cenaFontColor: '#000000',
+    cenaFontStyle: 'normal',
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
     logo: null,
@@ -452,9 +556,15 @@ function showEditModal(productIndex) {
       <label>Nazwa:</label>
       <input type="text" id="editNazwa" value="${product.nazwa || ''}">
       <select id="editNazwaFont">
+        <option value="OpenSans" ${edit.nazwaFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+        <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
         <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <select id="editNazwaFontStyle">
+        <option value="normal" ${edit.nazwaFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+        <option value="bold" ${edit.nazwaFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+        <option value="italic" ${edit.nazwaFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+        <option value="bolditalic" ${edit.nazwaFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
       </select>
       <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
     </div>
@@ -462,9 +572,15 @@ function showEditModal(productIndex) {
       <label>Indeks:</label>
       <input type="text" id="editIndeks" value="${product.indeks || ''}">
       <select id="editIndeksFont">
+        <option value="OpenSans" ${edit.indeksFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+        <option value="Roboto" ${edit.indeksFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <select id="editIndeksFontStyle">
+        <option value="normal" ${edit.indeksFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+        <option value="bold" ${edit.indeksFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+        <option value="italic" ${edit.indeksFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+        <option value="bolditalic" ${edit.indeksFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
@@ -473,9 +589,15 @@ function showEditModal(productIndex) {
         <label>Ranking:</label>
         <input type="text" id="editRanking" value="${product.ranking || ''}">
         <select id="editRankingFont">
+          <option value="OpenSans" ${edit.rankingFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+          <option value="Roboto" ${edit.rankingFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
           <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
-          <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        </select>
+        <select id="editRankingFontStyle">
+          <option value="normal" ${edit.rankingFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+          <option value="bold" ${edit.rankingFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+          <option value="italic" ${edit.rankingFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+          <option value="bolditalic" ${edit.rankingFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
         </select>
         <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
       </div>
@@ -485,9 +607,15 @@ function showEditModal(productIndex) {
         <label>${priceLabel}:</label>
         <input type="text" id="editCena" value="${product.cena || ''}">
         <select id="editCenaFont">
+          <option value="OpenSans" ${edit.cenaFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+          <option value="Roboto" ${edit.cenaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
           <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-          <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        </select>
+        <select id="editCenaFontStyle">
+          <option value="normal" ${edit.cenaFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+          <option value="bold" ${edit.cenaFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+          <option value="italic" ${edit.cenaFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+          <option value="bolditalic" ${edit.cenaFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
@@ -534,6 +662,7 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -582,14 +711,18 @@ function saveEdit(productIndex) {
     product.cena = document.getElementById('editCena')?.value || '';
   }
   productEdits[productIndex] = {
-    nazwaFont: document.getElementById('editNazwaFont').value || 'Arial',
+    nazwaFont: document.getElementById('editNazwaFont').value || 'OpenSans',
     nazwaFontColor: document.getElementById('editNazwaColor').value || '#000000',
-    indeksFont: document.getElementById('editIndeksFont').value || 'Arial',
+    nazwaFontStyle: document.getElementById('editNazwaFontStyle').value || 'normal',
+    indeksFont: document.getElementById('editIndeksFont').value || 'OpenSans',
     indeksFontColor: document.getElementById('editIndeksColor').value || '#000000',
-    rankingFont: document.getElementById('editRankingFont')?.value || 'Arial',
+    indeksFontStyle: document.getElementById('editIndeksFontStyle').value || 'normal',
+    rankingFont: document.getElementById('editRankingFont')?.value || 'OpenSans',
     rankingFontColor: document.getElementById('editRankingColor')?.value || '#000000',
-    cenaFont: document.getElementById('editCenaFont')?.value || 'Arial',
+    rankingFontStyle: document.getElementById('editRankingFontStyle')?.value || 'normal',
+    cenaFont: document.getElementById('editCenaFont')?.value || 'OpenSans',
     cenaFontColor: document.getElementById('editCenaColor')?.value || '#000000',
+    cenaFontStyle: document.getElementById('editCenaFontStyle')?.value || 'normal',
     priceCurrency: document.getElementById('editCenaCurrency')?.value || globalCurrency,
     priceFontSize: document.getElementById('editCenaFontSize')?.value || 'medium',
     logo: productEdits[productIndex]?.logo || null,
@@ -602,16 +735,21 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
-    nazwaFont: 'Arial',
+    nazwaFont: 'OpenSans',
     nazwaFontColor: '#000000',
-    indeksFont: 'Arial',
+    nazwaFontStyle: 'normal',
+    indeksFont: 'OpenSans',
     indeksFontColor: '#000000',
-    rankingFont: 'Arial',
+    indeksFontStyle: 'normal',
+    rankingFont: 'OpenSans',
     rankingFontColor: '#000000',
-    cenaFont: 'Arial',
+    rankingFontStyle: 'normal',
+    cenaFont: 'OpenSans',
     cenaFontColor: '#000000',
+    cenaFontStyle: 'normal',
     priceCurrency: globalCurrency,
     showPriceLabel: true,
     pageBackgroundGradient: 'none',
@@ -637,36 +775,60 @@ function showPageEditModal(pageIndex) {
     <div class="edit-field">
       <label>Czcionka nazwy:</label>
       <select id="editNazwaFont">
+        <option value="OpenSans" ${edit.nazwaFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+        <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
         <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <select id="editNazwaFontStyle">
+        <option value="normal" ${edit.nazwaFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+        <option value="bold" ${edit.nazwaFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+        <option value="italic" ${edit.nazwaFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+        <option value="bolditalic" ${edit.nazwaFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
       </select>
       <input type="color" id="editNazwaColor" value="${edit.nazwaFontColor}">
     </div>
     <div class="edit-field">
       <label>Czcionka indeksu:</label>
       <select id="editIndeksFont">
+        <option value="OpenSans" ${edit.indeksFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+        <option value="Roboto" ${edit.indeksFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
         <option value="Arial" ${edit.indeksFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.indeksFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.indeksFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <select id="editIndeksFontStyle">
+        <option value="normal" ${edit.indeksFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+        <option value="bold" ${edit.indeksFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+        <option value="italic" ${edit.indeksFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+        <option value="bolditalic" ${edit.indeksFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
       </select>
       <input type="color" id="editIndeksColor" value="${edit.indeksFontColor}">
     </div>
     <div class="edit-field">
       <label>Czcionka rankingu:</label>
       <select id="editRankingFont">
+        <option value="OpenSans" ${edit.rankingFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+        <option value="Roboto" ${edit.rankingFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
         <option value="Arial" ${edit.rankingFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.rankingFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.rankingFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <select id="editRankingFontStyle">
+        <option value="normal" ${edit.rankingFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+        <option value="bold" ${edit.rankingFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+        <option value="italic" ${edit.rankingFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+        <option value="bolditalic" ${edit.rankingFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
       </select>
       <input type="color" id="editRankingColor" value="${edit.rankingFontColor}">
     </div>
     <div class="edit-field">
       <label>Czcionka ceny:</label>
       <select id="editCenaFont">
+        <option value="OpenSans" ${edit.cenaFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+        <option value="Roboto" ${edit.cenaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
         <option value="Arial" ${edit.cenaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-        <option value="Helvetica" ${edit.cenaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-        <option value="Times" ${edit.cenaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+      </select>
+      <select id="editCenaFontStyle">
+        <option value="normal" ${edit.cenaFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+        <option value="bold" ${edit.cenaFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+        <option value="italic" ${edit.cenaFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+        <option value="bolditalic" ${edit.cenaFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
       </select>
       <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
     </div>
@@ -689,6 +851,9 @@ function showPageEditModal(pageIndex) {
         <option value="blue" ${edit.pageBackgroundGradient === 'blue' ? 'selected' : ''}>Niebieski</option>
         <option value="green" ${edit.pageBackgroundGradient === 'green' ? 'selected' : ''}>Zielony</option>
         <option value="gray" ${edit.pageBackgroundGradient === 'gray' ? 'selected' : ''}>Szary</option>
+        <option value="red" ${edit.pageBackgroundGradient === 'red' ? 'selected' : ''}>Czerwony</option>
+        <option value="purple" ${edit.pageBackgroundGradient === 'purple' ? 'selected' : ''}>Fioletowy</option>
+        <option value="orange" ${edit.pageBackgroundGradient === 'orange' ? 'selected' : ''}>Pomarańczowy</option>
       </select>
       <label>Przezroczystość tła:</label>
       <input type="range" id="editPageBackgroundOpacity" min="0.1" max="1.0" step="0.1" value="${edit.pageBackgroundOpacity || 1.0}">
@@ -697,17 +862,22 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function savePageEdit(pageIndex) {
   const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
   pageEdits[newPageIndex] = {
     nazwaFont: document.getElementById('editNazwaFont').value,
     nazwaFontColor: document.getElementById('editNazwaColor').value,
+    nazwaFontStyle: document.getElementById('editNazwaFontStyle').value,
     indeksFont: document.getElementById('editIndeksFont').value,
     indeksFontColor: document.getElementById('editIndeksColor').value,
+    indeksFontStyle: document.getElementById('editIndeksFontStyle').value,
     rankingFont: document.getElementById('editRankingFont').value,
     rankingFontColor: document.getElementById('editRankingColor').value,
+    rankingFontStyle: document.getElementById('editRankingFontStyle').value,
     cenaFont: document.getElementById('editCenaFont').value,
     cenaFontColor: document.getElementById('editCenaColor').value,
+    cenaFontStyle: document.getElementById('editCenaFontStyle').value,
     priceCurrency: document.getElementById('editCenaCurrency').value,
     showPriceLabel: document.querySelector('input[name="priceFormat"]:checked').value === 'true',
     pageBackgroundGradient: document.getElementById('editPageBackgroundGradient').value || 'none',
@@ -717,17 +887,22 @@ function savePageEdit(pageIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
-    nazwaFont: 'Arial',
+    nazwaFont: 'OpenSans',
     nazwaFontColor: '#000000',
-    indeksFont: 'Arial',
+    nazwaFontStyle: 'normal',
+    indeksFont: 'OpenSans',
     indeksFontColor: '#000000',
-    rankingFont: 'Arial',
+    indeksFontStyle: 'normal',
+    rankingFont: 'OpenSans',
     rankingFontColor: '#000000',
-    cenaFont: 'Arial',
+    rankingFontStyle: 'normal',
+    cenaFont: 'OpenSans',
     cenaFontColor: '#000000',
+    cenaFontStyle: 'normal',
     priceCurrency: globalCurrency,
     priceFontSize: 'medium',
     positionX: 320,
@@ -743,9 +918,15 @@ function showVirtualEditModal(productIndex) {
       <canvas id="virtualEditCanvas" width="800" height="600"></canvas>
       <div id="editPanel" style="position: absolute; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; display: none;">
         <select id="fontSelect">
+          <option value="OpenSans" ${edit.nazwaFont === 'OpenSans' ? 'selected' : ''}>Open Sans</option>
+          <option value="Roboto" ${edit.nazwaFont === 'Roboto' ? 'selected' : ''}>Roboto</option>
           <option value="Arial" ${edit.nazwaFont === 'Arial' ? 'selected' : ''}>Arial</option>
-          <option value="Helvetica" ${edit.nazwaFont === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-          <option value="Times" ${edit.nazwaFont === 'Times' ? 'selected' : ''}>Times New Roman</option>
+        </select>
+        <select id="fontStyleSelect">
+          <option value="normal" ${edit.nazwaFontStyle === 'normal' ? 'selected' : ''}>Normalny</option>
+          <option value="bold" ${edit.nazwaFontStyle === 'bold' ? 'selected' : ''}>Pogrubiony</option>
+          <option value="italic" ${edit.nazwaFontStyle === 'italic' ? 'selected' : ''}>Kursywa</option>
+          <option value="bolditalic" ${edit.nazwaFontStyle === 'bolditalic' ? 'selected' : ''}>Pogrubiona kursywa</option>
         </select>
         <input type="color" id="colorSelect" value="${edit.nazwaFontColor}">
         <select id="sizeSelect">
@@ -774,12 +955,12 @@ function showVirtualEditModal(productIndex) {
       bgImg.scaleToWidth(800);
       bgImg.set({ opacity: edit.backgroundOpacity || 1.0 });
       canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
-    });
+    }, { crossOrigin: 'anonymous' });
   }
   fabric.Image.fromURL(uploadedImages[product.indeks] || product.img, (img) => {
     img.scaleToWidth(300);
     canvas.add(img);
-  });
+  }, { crossOrigin: 'anonymous' });
   const borderRect = new fabric.Rect({
     left: 0,
     top: 0,
@@ -799,7 +980,9 @@ function showVirtualEditModal(productIndex) {
     top: edit.positionY || 10,
     fontSize: edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24,
     fill: edit.nazwaFontColor,
-    fontFamily: edit.nazwaFont,
+    fontFamily: edit.nazwaFont || 'Arial',
+    fontStyle: edit.nazwaFontStyle,
+    shadow: 'rgba(0,0,0,0.3) 1px 1px 2px',
     selectable: true
   });
   canvas.add(nazwaText);
@@ -808,7 +991,9 @@ function showVirtualEditModal(productIndex) {
     top: 40,
     fontSize: 16,
     fill: edit.indeksFontColor,
-    fontFamily: edit.indeksFont,
+    fontFamily: edit.indeksFont || 'Arial',
+    fontStyle: edit.indeksFontStyle,
+    shadow: 'rgba(0,0,0,0.3) 1px 1px 2px',
     selectable: true
   });
   canvas.add(indeksText);
@@ -818,7 +1003,9 @@ function showVirtualEditModal(productIndex) {
       top: 60,
       fontSize: 16,
       fill: edit.rankingFontColor,
-      fontFamily: edit.rankingFont,
+      fontFamily: edit.rankingFont || 'Arial',
+      fontStyle: edit.rankingFontStyle,
+      shadow: 'rgba(0,0,0,0.3) 1px 1px 2px',
       selectable: true
     });
     canvas.add(rankingText);
@@ -829,7 +1016,9 @@ function showVirtualEditModal(productIndex) {
       top: 80,
       fontSize: edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24,
       fill: edit.cenaFontColor,
-      fontFamily: edit.cenaFont,
+      fontFamily: edit.cenaFont || 'Arial',
+      fontStyle: edit.cenaFontStyle,
+      shadow: 'rgba(0,0,0,0.3) 1px 1px 2px',
       selectable: true
     });
     canvas.add(cenaText);
@@ -839,12 +1028,13 @@ function showVirtualEditModal(productIndex) {
       barcodeImg.scaleToWidth(100);
       barcodeImg.set({ left: 320, top: 100, selectable: true });
       canvas.add(barcodeImg);
-    });
+    }, { crossOrigin: 'anonymous' });
   }
   canvas.on('object:selected', (e) => {
     const obj = e.target;
     document.getElementById('editPanel').style.display = 'block';
-    document.getElementById('fontSelect').value = obj.fontFamily || 'Arial';
+    document.getElementById('fontSelect').value = obj.fontFamily || 'OpenSans';
+    document.getElementById('fontStyleSelect').value = obj.fontStyle || 'normal';
     document.getElementById('colorSelect').value = obj.fill || '#000000';
     document.getElementById('sizeSelect').value = obj.fontSize === 16 ? 'small' : obj.fontSize === 20 ? 'medium' : 'large';
     document.getElementById('borderStyleSelect').value = edit.borderStyle || 'solid';
@@ -853,8 +1043,10 @@ function showVirtualEditModal(productIndex) {
     window.applyTextEdit = function() {
       obj.set({
         fontFamily: document.getElementById('fontSelect').value,
+        fontStyle: document.getElementById('fontStyleSelect').value,
         fill: document.getElementById('colorSelect').value,
-        fontSize: document.getElementById('sizeSelect').value === 'small' ? 16 : document.getElementById('sizeSelect').value === 'medium' ? 20 : 24
+        fontSize: document.getElementById('sizeSelect').value === 'small' ? 16 : document.getElementById('sizeSelect').value === 'medium' ? 20 : 24,
+        shadow: 'rgba(0,0,0,0.3) 1px 1px 2px'
       });
       const borderStyle = document.getElementById('borderStyleSelect').value;
       const borderColor = document.getElementById('borderColorSelect').value;
@@ -869,7 +1061,7 @@ function showVirtualEditModal(productIndex) {
             canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
             edit.backgroundTexture = e.target.result;
             edit.backgroundOpacity = backgroundOpacity;
-          });
+          }, { crossOrigin: 'anonymous' });
         };
         reader.readAsDataURL(backgroundTextureInput);
       } else {
@@ -897,12 +1089,16 @@ function showVirtualEditModal(productIndex) {
         ...productEdits[productIndex],
         nazwaFont: activeObject === nazwaText ? activeObject.fontFamily : edit.nazwaFont,
         nazwaFontColor: activeObject === nazwaText ? activeObject.fill : edit.nazwaFontColor,
+        nazwaFontStyle: activeObject === nazwaText ? activeObject.fontStyle : edit.nazwaFontStyle,
         indeksFont: activeObject === indeksText ? activeObject.fontFamily : edit.indeksFont,
         indeksFontColor: activeObject === indeksText ? activeObject.fill : edit.indeksFontColor,
+        indeksFontStyle: activeObject === indeksText ? activeObject.fontStyle : edit.indeksFontStyle,
         rankingFont: activeObject === rankingText ? activeObject.fontFamily : edit.rankingFont,
         rankingFontColor: activeObject === rankingText ? activeObject.fill : edit.rankingFontColor,
+        rankingFontStyle: activeObject === rankingText ? activeObject.fontStyle : edit.rankingFontStyle,
         cenaFont: activeObject === cenaText ? activeObject.fontFamily : edit.cenaFont,
         cenaFontColor: activeObject === cenaText ? activeObject.fill : edit.cenaFontColor,
+        cenaFontStyle: activeObject === cenaText ? activeObject.fontStyle : edit.cenaFontStyle,
         priceFontSize: activeObject === nazwaText || activeObject === cenaText ? (activeObject.fontSize === 16 ? 'small' : activeObject.fontSize === 20 ? 'medium' : 'large') : edit.priceFontSize,
         positionX: activeObject.left,
         positionY: activeObject.top,
@@ -919,10 +1115,12 @@ function showVirtualEditModal(productIndex) {
     previewPDF();
   };
 }
+
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
+
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
