@@ -133,6 +133,7 @@ function showEditModal(productIndex) {
   };
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
@@ -192,6 +193,12 @@ function showEditModal(productIndex) {
           <option value="medium" ${edit.priceFontSize === 'medium' ? 'selected' : ''}>Średni</option>
           <option value="large" ${edit.priceFontSize === 'large' ? 'selected' : ''}>Duży</option>
         </select>
+      </div>
+    ` : ''}
+    ${showLogo ? `
+      <div class="edit-field">
+        <label>Logo:</label>
+        <input type="file" id="editLogo" accept="image/*">
       </div>
     ` : ''}
     <button onclick="saveEdit(${productIndex})" class="btn-primary">Zapisz</button>
@@ -471,6 +478,7 @@ function renderCatalog() {
   }
   const layout = document.getElementById('layoutSelect')?.value || "16";
   const showCena = document.getElementById('showCena')?.checked || false;
+  const showLogo = document.getElementById('showLogo')?.checked || false;
   const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   let itemsPerPage = 4;
   if (layout === "1") itemsPerPage = 1;
@@ -519,7 +527,12 @@ function importExcel() {
   reader.onload = (e) => {
     let rows;
     if (file.name.endsWith('.csv')) {
-      const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true, encoding: 'UTF-8' });
+      const parsed = Papa.parse(e.target.result, { 
+        header: true, 
+        skipEmptyLines: true, 
+        encoding: 'UTF-8',
+        delimiter: ',' // Jawnie określ separator
+      });
       rows = parsed.data;
       if (rows.length === 0) {
         console.error("Plik CSV jest pusty lub niepoprawny");
@@ -530,17 +543,18 @@ function importExcel() {
       console.log("Nagłówki CSV:", headers);
       rows = rows.map((row, index) => {
         let obj = {};
+        console.log(`Surowy wiersz ${index}:`, row);
         Object.keys(row).forEach(key => {
           const value = row[key];
           const lowerKey = key.toLowerCase().trim();
           console.log(`Wiersz ${index}, klucz: ${lowerKey}, wartość: ${value}`);
-          if (lowerKey === 'index-cell' || lowerKey.includes('index')) {
+          if (lowerKey === 'index-cell') {
             obj['indeks'] = value ? value.toString().trim() : '';
           }
-          if (lowerKey === 'text-decoration-none' || lowerKey.includes('nazwa') || lowerKey.includes('name')) {
+          if (lowerKey === 'text-decoration-none') {
             obj['nazwa'] = value ? value.toString().trim() : '';
           }
-          if (lowerKey === 'kod ean' || lowerKey.includes('ean')) {
+          if (lowerKey === 'kod ean') {
             obj['ean'] = value ? value.toString().trim() : '';
           }
         });
@@ -555,16 +569,17 @@ function importExcel() {
       console.log("Nagłówki Excel:", headers);
       rows = rows.slice(1).map((row, index) => {
         let obj = {};
+        console.log(`Surowy wiersz ${index}:`, row);
         headers.forEach((header, i) => {
           const value = row[i];
           console.log(`Wiersz ${index}, klucz: ${header}, wartość: ${value}`);
-          if (header === 'index-cell' || header.includes('index')) {
+          if (header === 'index-cell') {
             obj['indeks'] = value ? value.toString().trim() : '';
           }
-          if (header === 'text-decoration-none' || header.includes('nazwa') || header.includes('name')) {
+          if (header === 'text-decoration-none') {
             obj['nazwa'] = value ? value.toString().trim() : '';
           }
-          if (header === 'kod ean' || header.includes('ean')) {
+          if (header === 'kod ean') {
             obj['ean'] = value ? value.toString().trim() : '';
           }
         });
