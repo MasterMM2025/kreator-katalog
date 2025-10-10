@@ -510,18 +510,21 @@ function importExcel() {
         return;
       }
       const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
+      console.log("Nagłówki CSV:", headers); // Logowanie nagłówków
       rows = rows.map(row => {
         let obj = {};
         headers.forEach((header, i) => {
           const value = row[Object.keys(row)[i]];
-          if (header.includes('index-cell')) obj['indeks'] = value ? value.toString().trim() : '';
-          if (header.includes('kod ean')) obj['ean'] = value || '';
-          if (header.includes('text-decoration-none')) obj['nazwa'] = value || '';
+          if (header.includes('index') || header.includes('index-cell')) obj['indeks'] = value ? value.toString().trim() : '';
+          if (header.includes('kod ean') || header.includes('ean')) obj['ean'] = value ? value.toString().trim() : '';
+          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) obj['nazwa'] = value ? value.toString().trim() : '';
         });
-        // Jeśli brak nazwy, spróbuj użyć pierwszej kolumny po indeksie
-        if (!obj['nazwa'] && row[headers.findIndex(h => h.includes('text-decoration-none'))]) {
-          obj['nazwa'] = row[headers.findIndex(h => h.includes('text-decoration-none'))].toString().trim();
+        // Jeśli brak nazwy, spróbuj użyć drugiej kolumny
+        const nazwaIndex = headers.findIndex(h => h.includes('text-decoration-none') || h.includes('nazwa') || h.includes('name'));
+        if (!obj['nazwa'] && nazwaIndex !== -1 && row[Object.keys(row)[nazwaIndex]]) {
+          obj['nazwa'] = row[Object.keys(row)[nazwaIndex]].toString().trim();
         }
+        console.log("Przetworzony wiersz CSV:", obj); // Logowanie wiersza
         return obj;
       });
     } else {
@@ -529,25 +532,28 @@ function importExcel() {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
       const headers = rows[0].map(h => h.toString().toLowerCase().trim());
+      console.log("Nagłówki Excel:", headers); // Logowanie nagłówków
       rows = rows.slice(1).map(row => {
         let obj = {};
         headers.forEach((header, i) => {
           const value = row[i];
-          if (header.includes('index-cell')) obj['indeks'] = value ? value.toString().trim() : '';
-          if (header.includes('kod ean')) obj['ean'] = value || '';
-          if (header.includes('text-decoration-none')) obj['nazwa'] = value || '';
+          if (header.includes('index') || header.includes('index-cell')) obj['indeks'] = value ? value.toString().trim() : '';
+          if (header.includes('kod ean') || header.includes('ean')) obj['ean'] = value ? value.toString().trim() : '';
+          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) obj['nazwa'] = value ? value.toString().trim() : '';
         });
-        // Jeśli brak nazwy, spróbuj użyć pierwszej kolumny po indeksie
-        if (!obj['nazwa'] && row[headers.findIndex(h => h.includes('text-decoration-none'))]) {
-          obj['nazwa'] = row[headers.findIndex(h => h.includes('text-decoration-none'))].toString().trim();
+        // Jeśli brak nazwy, spróbuj użyć drugiej kolumny
+        const nazwaIndex = headers.findIndex(h => h.includes('text-decoration-none') || h.includes('nazwa') || h.includes('name'));
+        if (!obj['nazwa'] && nazwaIndex !== -1 && row[nazwaIndex]) {
+          obj['nazwa'] = row[nazwaIndex].toString().trim();
         }
+        console.log("Przetworzony wiersz Excel:", obj); // Logowanie wiersza
         return obj;
       });
     }
     console.log("Przetworzone wiersze CSV/Excel:", rows);
     const newProducts = [];
     rows.forEach(row => {
-      const indeks = row['indeks'] || row[0];
+      const indeks = row['indeks'] || (row[0] ? row[0].toString().trim() : null);
       if (indeks) {
         const matched = jsonProducts.find(p => p.indeks === indeks.toString());
         let barcodeImg = null;
