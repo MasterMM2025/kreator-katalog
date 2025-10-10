@@ -528,28 +528,23 @@ function importExcel() {
       }
       const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
       console.log("Nagłówki CSV:", headers);
-      rows = rows.map(row => {
+      rows = rows.map((row, index) => {
         let obj = {};
-        headers.forEach((header, i) => {
-          const value = row[Object.keys(row)[i]];
-          if (header.includes('index') || header.includes('index-cell')) {
+        Object.keys(row).forEach(key => {
+          const value = row[key];
+          const lowerKey = key.toLowerCase().trim();
+          console.log(`Wiersz ${index}, klucz: ${lowerKey}, wartość: ${value}`);
+          if (lowerKey === 'index-cell' || lowerKey.includes('index')) {
             obj['indeks'] = value ? value.toString().trim() : '';
           }
-          if (header.includes('kod ean') || header.includes('ean')) {
-            obj['ean'] = value ? value.toString().trim() : '';
-          }
-          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) {
+          if (lowerKey === 'text-decoration-none' || lowerKey.includes('nazwa') || lowerKey.includes('name')) {
             obj['nazwa'] = value ? value.toString().trim() : '';
           }
+          if (lowerKey === 'kod ean' || lowerKey.includes('ean')) {
+            obj['ean'] = value ? value.toString().trim() : '';
+          }
         });
-        // Awaryjne wczytywanie nazwy z drugiej kolumny
-        const nazwaIndex = headers.findIndex(h => h.includes('text-decoration-none') || h.includes('nazwa') || h.includes('name'));
-        if (!obj['nazwa'] && nazwaIndex !== -1 && row[Object.keys(row)[nazwaIndex]]) {
-          obj['nazwa'] = row[Object.keys(row)[nazwaIndex]].toString().trim();
-        } else if (!obj['nazwa'] && row[1]) {
-          obj['nazwa'] = row[1].toString().trim();
-        }
-        console.log("Przetworzony wiersz CSV:", obj);
+        console.log(`Przetworzony wiersz CSV ${index}:`, obj);
         return obj;
       });
     } else {
@@ -558,28 +553,22 @@ function importExcel() {
       rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
       const headers = rows[0].map(h => h.toString().toLowerCase().trim());
       console.log("Nagłówki Excel:", headers);
-      rows = rows.slice(1).map(row => {
+      rows = rows.slice(1).map((row, index) => {
         let obj = {};
         headers.forEach((header, i) => {
           const value = row[i];
-          if (header.includes('index') || header.includes('index-cell')) {
+          console.log(`Wiersz ${index}, klucz: ${header}, wartość: ${value}`);
+          if (header === 'index-cell' || header.includes('index')) {
             obj['indeks'] = value ? value.toString().trim() : '';
           }
-          if (header.includes('kod ean') || header.includes('ean')) {
-            obj['ean'] = value ? value.toString().trim() : '';
-          }
-          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) {
+          if (header === 'text-decoration-none' || header.includes('nazwa') || header.includes('name')) {
             obj['nazwa'] = value ? value.toString().trim() : '';
           }
+          if (header === 'kod ean' || header.includes('ean')) {
+            obj['ean'] = value ? value.toString().trim() : '';
+          }
         });
-        // Awaryjne wczytywanie nazwy z drugiej kolumny
-        const nazwaIndex = headers.findIndex(h => h.includes('text-decoration-none') || h.includes('nazwa') || h.includes('name'));
-        if (!obj['nazwa'] && nazwaIndex !== -1 && row[nazwaIndex]) {
-          obj['nazwa'] = row[nazwaIndex].toString().trim();
-        } else if (!obj['nazwa'] && row[1]) {
-          obj['nazwa'] = row[1].toString().trim();
-        }
-        console.log("Przetworzony wiersz Excel:", obj);
+        console.log(`Przetworzony wiersz Excel ${index}:`, obj);
         return obj;
       });
     }
@@ -621,7 +610,6 @@ function importExcel() {
     if (newProducts.length) {
       pendingProducts = newProducts; // Zapisujemy produkty tymczasowo
       document.getElementById('debug').innerText = `Zaimportowano ${newProducts.length} produktów. Wybierz zdjęcia, aby kontynuować.`;
-      // Wyświetl powiadomienie o konieczności wybrania zdjęć
       alert('Dane z Excela zaimportowane. Teraz wybierz zdjęcia produktów.');
     } else {
       document.getElementById('debug').innerText = "Brak produktów po imporcie. Sprawdź format pliku.";
