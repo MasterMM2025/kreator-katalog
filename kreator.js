@@ -7,6 +7,7 @@ let uploadedImages = {};
 let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
+let pendingProducts = null; // Tymczasowe przechowywanie produktów z Excela
 
 async function toBase64(url) {
   try {
@@ -97,7 +98,23 @@ function loadCustomImages(file, data) {
   const fileName = file.name.split('.')[0];
   uploadedImages[fileName] = data;
   console.log(`Załadowano obraz dla indeksu: ${fileName}`);
-  renderCatalog();
+  // Jeśli mamy oczekujące produkty, przypisz obrazy i renderuj katalog
+  if (pendingProducts) {
+    console.log("Przypisuję obrazy do oczekujących produktów");
+    pendingProducts.forEach(p => {
+      if (uploadedImages[p.indeks]) {
+        p.img = uploadedImages[p.indeks];
+      }
+    });
+    products = pendingProducts;
+    pendingProducts = null;
+    renderCatalog();
+    document.getElementById('pdfButton').disabled = false;
+    document.getElementById('previewButton').disabled = false;
+    document.getElementById('debug').innerText = `Zaimportowano ${products.length} produktów z obrazami`;
+  } else {
+    renderCatalog();
+  }
 }
 
 function showEditModal(productIndex) {
@@ -502,7 +519,7 @@ function importExcel() {
   reader.onload = (e) => {
     let rows;
     if (file.name.endsWith('.csv')) {
-      const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
+      const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true, encoding: 'UTF-8' });
       rows = parsed.data;
       if (rows.length === 0) {
         console.error("Plik CSV jest pusty lub niepoprawny");
@@ -510,21 +527,29 @@ function importExcel() {
         return;
       }
       const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
-      console.log("Nagłówki CSV:", headers); // Logowanie nagłówków
+      console.log("Nagłówki CSV:", headers);
       rows = rows.map(row => {
         let obj = {};
         headers.forEach((header, i) => {
           const value = row[Object.keys(row)[i]];
-          if (header.includes('index') || header.includes('index-cell')) obj['indeks'] = value ? value.toString().trim() : '';
-          if (header.includes('kod ean') || header.includes('ean')) obj['ean'] = value ? value.toString().trim() : '';
-          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) obj['nazwa'] = value ? value.toString().trim() : '';
+          if (header.includes('index') || header.includes('index-cell')) {
+            obj['indeks'] = value ? value.toString().trim() : '';
+          }
+          if (header.includes('kod ean') || header.includes('ean')) {
+            obj['ean'] = value ? value.toString().trim() : '';
+          }
+          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) {
+            obj['nazwa'] = value ? value.toString().trim() : '';
+          }
         });
-        // Jeśli brak nazwy, spróbuj użyć drugiej kolumny
+        // Awaryjne wczytywanie nazwy z drugiej kolumny
         const nazwaIndex = headers.findIndex(h => h.includes('text-decoration-none') || h.includes('nazwa') || h.includes('name'));
         if (!obj['nazwa'] && nazwaIndex !== -1 && row[Object.keys(row)[nazwaIndex]]) {
           obj['nazwa'] = row[Object.keys(row)[nazwaIndex]].toString().trim();
+        } else if (!obj['nazwa'] && row[1]) {
+          obj['nazwa'] = row[1].toString().trim();
         }
-        console.log("Przetworzony wiersz CSV:", obj); // Logowanie wiersza
+        console.log("Przetworzony wiersz CSV:", obj);
         return obj;
       });
     } else {
@@ -532,21 +557,29 @@ function importExcel() {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
       const headers = rows[0].map(h => h.toString().toLowerCase().trim());
-      console.log("Nagłówki Excel:", headers); // Logowanie nagłówków
+      console.log("Nagłówki Excel:", headers);
       rows = rows.slice(1).map(row => {
         let obj = {};
         headers.forEach((header, i) => {
           const value = row[i];
-          if (header.includes('index') || header.includes('index-cell')) obj['indeks'] = value ? value.toString().trim() : '';
-          if (header.includes('kod ean') || header.includes('ean')) obj['ean'] = value ? value.toString().trim() : '';
-          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) obj['nazwa'] = value ? value.toString().trim() : '';
+          if (header.includes('index') || header.includes('index-cell')) {
+            obj['indeks'] = value ? value.toString().trim() : '';
+          }
+          if (header.includes('kod ean') || header.includes('ean')) {
+            obj['ean'] = value ? value.toString().trim() : '';
+          }
+          if (header.includes('text-decoration-none') || header.includes('nazwa') || header.includes('name')) {
+            obj['nazwa'] = value ? value.toString().trim() : '';
+          }
         });
-        // Jeśli brak nazwy, spróbuj użyć drugiej kolumny
+        // Awaryjne wczytywanie nazwy z drugiej kolumny
         const nazwaIndex = headers.findIndex(h => h.includes('text-decoration-none') || h.includes('nazwa') || h.includes('name'));
         if (!obj['nazwa'] && nazwaIndex !== -1 && row[nazwaIndex]) {
           obj['nazwa'] = row[nazwaIndex].toString().trim();
+        } else if (!obj['nazwa'] && row[1]) {
+          obj['nazwa'] = row[1].toString().trim();
         }
-        console.log("Przetworzony wiersz Excel:", obj); // Logowanie wiersza
+        console.log("Przetworzony wiersz Excel:", obj);
         return obj;
       });
     }
@@ -586,12 +619,10 @@ function importExcel() {
     });
     console.log("Nowe produkty:", newProducts);
     if (newProducts.length) {
-      products = newProducts;
-      productEdits = {};
-      renderCatalog();
-      document.getElementById('pdfButton').disabled = false;
-      document.getElementById('previewButton').disabled = false;
-      document.getElementById('debug').innerText = `Zaimportowano ${newProducts.length} produktów`;
+      pendingProducts = newProducts; // Zapisujemy produkty tymczasowo
+      document.getElementById('debug').innerText = `Zaimportowano ${newProducts.length} produktów. Wybierz zdjęcia, aby kontynuować.`;
+      // Wyświetl powiadomienie o konieczności wybrania zdjęć
+      alert('Dane z Excela zaimportowane. Teraz wybierz zdjęcia produktów.');
     } else {
       document.getElementById('debug').innerText = "Brak produktów po imporcie. Sprawdź format pliku.";
     }
