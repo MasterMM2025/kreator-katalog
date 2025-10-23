@@ -380,6 +380,175 @@ function savePageEdit(pageIndex) {
   hideEditModal();
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  const imageInput = document.getElementById("imageInput");
+  const uploadArea = document.getElementById("uploadArea");
+  if (imageInput && uploadArea) {
+    imageInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w imageInput, pliki:", e.target.files.length);
+        handleFiles(e.target.files, loadCustomImages);
+      }
+    });
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("dragover");
+    });
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("dragover");
+    });
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop zdjęć:", e.dataTransfer.files.length);
+        handleFiles(e.dataTransfer.files, loadCustomImages);
+      }
+    });
+    uploadArea.querySelector('.file-label').addEventListener("click", (e) => {
+      e.preventDefault();
+      imageInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: imageInput lub uploadArea");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi zdjęć";
+  }
+  const bannerFileInput = document.getElementById("bannerFileInput");
+  const bannerUpload = document.getElementById("bannerUpload");
+  if (bannerFileInput && bannerUpload) {
+    bannerFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w bannerFileInput, pliki:", e.target.files.length);
+        handleFiles(e.target.files, loadCustomBanner);
+      }
+    });
+    bannerUpload.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      bannerUpload.classList.add("dragover");
+    });
+    bannerUpload.addEventListener("dragleave", () => {
+      bannerUpload.classList.remove("dragover");
+    });
+    bannerUpload.addEventListener("drop", (e) => {
+      e.preventDefault();
+      bannerUpload.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop banera:", e.dataTransfer.files.length);
+        handleFiles(e.dataTransfer.files, loadCustomBanner);
+      }
+    });
+    bannerUpload.querySelector('.file-label').addEventListener("click", (e) => {
+      e.preventDefault();
+      bannerFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: bannerFileInput lub bannerUpload");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi banera";
+  }
+  const backgroundFileInput = document.getElementById("backgroundFileInput");
+  const backgroundUpload = document.getElementById("backgroundUpload");
+  if (backgroundFileInput && backgroundUpload) {
+    backgroundFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w backgroundFileInput, pliki:", e.target.files.length);
+        handleFiles(e.target.files, loadCustomBackground);
+      }
+    });
+    backgroundUpload.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      backgroundUpload.classList.add("dragover");
+    });
+    backgroundUpload.addEventListener("dragleave", () => {
+      backgroundUpload.classList.remove("dragover");
+    });
+    backgroundUpload.addEventListener("drop", (e) => {
+      e.preventDefault();
+      backgroundUpload.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop tła:", e.dataTransfer.files.length);
+        handleFiles(e.dataTransfer.files, loadCustomBackground);
+      }
+    });
+    backgroundUpload.querySelector('.file-label').addEventListener("click", (e) => {
+      e.preventDefault();
+      backgroundFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: backgroundFileInput lub backgroundUpload");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi tła";
+  }
+  const coverFileInput = document.getElementById("coverFileInput");
+  const coverUpload = document.getElementById("coverUpload");
+  if (coverFileInput && coverUpload) {
+    coverFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w coverFileInput, pliki:", e.target.files.length);
+        handleFiles(e.target.files, loadCustomCover);
+      }
+    });
+    coverUpload.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      coverUpload.classList.add("dragover");
+    });
+    coverUpload.addEventListener("dragleave", () => {
+      coverUpload.classList.remove("dragover");
+    });
+    coverUpload.addEventListener("drop", (e) => {
+      e.preventDefault();
+      coverUpload.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        console.log("Drop okładki:", e.dataTransfer.files.length);
+        handleFiles(e.dataTransfer.files, loadCustomCover);
+      }
+    });
+    coverUpload.querySelector('.file-label').addEventListener("click", (e) => {
+      e.preventDefault();
+      coverFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: coverFileInput lub coverUpload");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi okładki";
+  }
+  const excelFileInput = document.getElementById("excelFile");
+  const fileLabelWrapper = document.querySelector(".file-label-wrapper");
+  if (excelFileInput && fileLabelWrapper) {
+    excelFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        console.log("Zmiana w excelFileInput, plik:", e.target.files[0].name);
+        importExcel();
+      }
+    });
+    fileLabelWrapper.addEventListener("click", (e) => {
+      e.preventDefault();
+      excelFileInput.click();
+    });
+  } else {
+    console.error("Nie znaleziono elementów: excelFileInput lub fileLabelWrapper");
+    document.getElementById('debug').innerText = "Błąd: Brak elementów do obsługi importu Excel";
+  }
+  const currencySelect = document.getElementById('currencySelect');
+  if (currencySelect) {
+    currencySelect.addEventListener('change', (e) => {
+      globalCurrency = e.target.value;
+      console.log("Zmieniono walutę na:", globalCurrency);
+      renderCatalog();
+    });
+  }
+  const languageSelect = document.getElementById('languageSelect');
+  if (languageSelect) {
+    languageSelect.addEventListener('change', (e) => {
+      globalLanguage = e.target.value;
+      console.log("Zmieniono język na:", globalLanguage);
+      renderCatalog();
+    });
+  }
+  const pageEditButton = document.createElement('button');
+  pageEditButton.className = 'btn-secondary';
+  pageEditButton.innerHTML = '<i class="fas fa-file-alt"></i> Edytuj stronę PDF';
+  pageEditButton.onclick = () => showPageEditModal(0);
+  document.querySelector('.improved-panel').appendChild(pageEditButton);
+}
+
 function showBannerModal() {
   const bannerModal = document.getElementById('bannerModal');
   if (bannerModal) {
@@ -483,7 +652,7 @@ function renderCatalog() {
       const currency = finalEdit.priceCurrency || globalCurrency;
       const currencySymbol = currency === 'EUR' ? '€' : '£';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-      details.innerHTML += `<br><span style="font-family: ${finalEdit.cenaFont || 'Arial'}; color: ${finalEdit.cenaFontColor || '#000000'}; font-size: ${finalEdit.priceFontSize || 'medium'}">${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol}${p.cena}</span>`;
+      details.innerHTML += `<br><span style="font-family: ${finalEdit.cenaFont || 'Arial'}; color: ${finalEdit.cenaFontColor || '#000000'}; font-size: ${finalEdit.priceFontSize || 'medium'}">${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}</span>`;
     }
     if (showLogo && layout === "4" && (finalEdit.logo || (p.producent && manufacturerLogos[p.producent]))) {
       const logoImg = document.createElement('img');
@@ -844,7 +1013,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol}${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showLogo && layout === "4" && logoSrc) {
@@ -928,7 +1097,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol}${p.cena}`, x + 105, textY, { maxWidth: 150 });
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
