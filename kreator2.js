@@ -18,17 +18,14 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   }
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
-
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
-
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
-
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -38,7 +35,6 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
-
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -50,11 +46,9 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
-
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
@@ -91,7 +85,6 @@ async function buildPDF(jsPDF, save = true) {
     }
     doc.restoreGraphicsState();
   };
-
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
@@ -121,7 +114,6 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
-
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -133,7 +125,6 @@ async function buildPDF(jsPDF, save = true) {
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
-
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -143,9 +134,7 @@ async function buildPDF(jsPDF, save = true) {
     if (layout === "4-2-4") return 10;
     return 4;
   };
-
   const itemsPerPage = getItemsPerPage();
-
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -171,7 +160,6 @@ async function buildPDF(jsPDF, save = true) {
         };
         const finalEdit = { ...pageEdit, ...edit };
         console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
-
         if (finalEdit.backgroundTexture) {
           try {
             doc.saveGraphicsState();
@@ -183,12 +171,9 @@ async function buildPDF(jsPDF, save = true) {
             document.getElementById('debug').innerText = "Błąd dodawania tekstury tła";
           }
         }
-
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
-
         let imgSrc = uploadedImages[p.indeks] || p.img;
         let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
-
         if (isLarge) {
           if (imgSrc) {
             try {
@@ -243,7 +228,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showLogo && layout === "4" && logoSrc) {
@@ -327,7 +312,7 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
+            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
@@ -355,7 +340,6 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
-
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
     if (layout === "1") {
@@ -448,7 +432,6 @@ async function buildPDF(jsPDF, save = true) {
       y = marginTop;
     }
   }
-
   hideProgressModal();
   if (save) {
     try {
@@ -460,7 +443,6 @@ async function buildPDF(jsPDF, save = true) {
   }
   return doc;
 }
-
 async function generatePDF() {
   try {
     const { jsPDF } = window.jspdf;
@@ -471,7 +453,6 @@ async function generatePDF() {
     hideProgressModal();
   }
 }
-
 async function previewPDF() {
   try {
     showProgressModal();
@@ -489,7 +470,6 @@ async function previewPDF() {
     hideProgressModal();
   }
 }
-
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -622,7 +602,6 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -693,7 +672,6 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
-
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial',
@@ -792,7 +770,6 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
-
 function savePageEdit(pageIndex) {
   try {
     const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
@@ -818,7 +795,6 @@ function savePageEdit(pageIndex) {
     document.getElementById('debug').innerText = "Błąd zapisywania edycji strony";
   }
 }
-
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -936,7 +912,7 @@ function showVirtualEditModal(productIndex) {
     canvas.add(rankingText);
   }
   if (showCena && product.cena) {
-    const cenaText = new fabric.Text(`${priceLabel}: ${product.cena} ${(edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£'}`, {
+    const cenaText = new fabric.Text(`${priceLabel}: ${(edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£'} ${product.cena}`, {
       left: 320,
       top: 80,
       fontSize: edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24,
@@ -1046,12 +1022,10 @@ function showVirtualEditModal(productIndex) {
     }
   };
 }
-
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
-
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
