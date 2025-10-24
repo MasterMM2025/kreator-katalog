@@ -228,7 +228,10 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}`, x + boxWidth / 2, textY, { align: "center" });
+            const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP' 
+              ? `${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}` 
+              : `${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+            doc.text(priceText, x + boxWidth / 2, textY, { align: "center" });
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showLogo && layout === "4" && logoSrc) {
@@ -312,7 +315,10 @@ async function buildPDF(jsPDF, save = true) {
             doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
             const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            doc.text(`${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}`, x + 105, textY, { maxWidth: 150 });
+            const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP' 
+              ? `${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}` 
+              : `${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+            doc.text(priceText, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
           if (showEan && p.ean && p.barcode) {
@@ -912,7 +918,12 @@ function showVirtualEditModal(productIndex) {
     canvas.add(rankingText);
   }
   if (showCena && product.cena) {
-    const cenaText = new fabric.Text(`${priceLabel}: ${(edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£'} ${product.cena}`, {
+    const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+    const currencySymbol = (edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
+    const priceText = (edit.priceCurrency || globalCurrency) === 'GBP' 
+      ? `${priceLabel}: ${currencySymbol} ${product.cena}` 
+      : `${priceLabel}: ${product.cena} ${currencySymbol}`;
+    const cenaText = new fabric.Text(priceText, {
       left: 320,
       top: 80,
       fontSize: edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24,
