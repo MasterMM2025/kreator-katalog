@@ -185,8 +185,8 @@ function showEditModal(productIndex) {
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
-          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
-          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
+          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
         </select>
         <select id="editCenaFontSize">
           <option value="small" ${edit.priceFontSize === 'small' ? 'selected' : ''}>Mały</option>
@@ -496,7 +496,7 @@ function renderCatalog() {
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
       const currency = edit.priceCurrency || globalCurrency;
-      const currencySymbol = currency === 'EUR' ? '€' : '£';
+      const currencySymbol = currency === 'EUR' ? 'EUR' : 'GBP';
       details.innerHTML += `<br>${priceLabel}: ${p.cena} ${currencySymbol}`;
     }
     const editButton = document.createElement('button');
@@ -531,7 +531,7 @@ function importExcel() {
         header: true, 
         skipEmptyLines: true, 
         encoding: 'UTF-8',
-        delimiter: ',' // Jawnie określ separator
+        delimiter: ','
       });
       rows = parsed.data;
       if (rows.length === 0) {
@@ -594,22 +594,73 @@ function importExcel() {
       if (indeks) {
         const matched = jsonProducts.find(p => p.indeks === indeks.toString());
         let barcodeImg = null;
-        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
+      
+        if (row['ean']) {
+          const rawEan = row['ean'].toString().trim();
+          let finalEan = rawEan;
+          let format = null;
+          let jsBarcodeOptions = {
+            width: 2.2,
+            height: 42,
+            displayValue: true,
+            fontSize: 11,
+            margin: 6,
+            flat: false,
+            background: "#FFFFFF",
+            lineColor: "#000000"
+          };
+
+          // 7 cyfr → dodaj 0 → EAN-8
+          if (/^\d{7}$/.test(rawEan)) {
+            finalEan = rawEan + '0';
+            format = "EAN8";
+            console.log(`7-cyfrowy → EAN8: ${rawEan} → ${finalEan}`);
+
+          // 13 cyfr → popraw cyfrę kontrolną
+          } else if (/^\d{13}$/.test(rawEan)) {
+            finalEan = fixEan13Checksum(rawEan);
+            if (finalEan !== rawEan) {
+              console.warn(`Poprawiono EAN-13: ${rawEan} → ${finalEan}`);
+            }
+            format = "EAN13";
+
+          // 8 cyfr → EAN-8
+          } else if (/^\d{8}$/.test(rawEan)) {
+            format = "EAN8";
+
+          } else {
+            console.warn(`Nieobsługiwany EAN: ${rawEan} (długość: ${rawEan.length})`);
+            return;
+          }
+
           try {
             const barcodeCanvas = document.createElement('canvas');
-            JsBarcode(barcodeCanvas, row['ean'], {
-              format: "EAN13",
-              width: 1.6,
-              height: 32,
-              displayValue: true,
-              fontSize: 9,
-              margin: 0
+            JsBarcode(barcodeCanvas, finalEan, {
+              ...jsBarcodeOptions,
+              format: format
             });
-            barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
+            barcodeImg = barcodeCanvas.toDataURL("image/png", 1.0);
+            console.log(`Wygenerowano ${format}: ${finalEan}`);
           } catch (e) {
-            console.error('Błąd generowania kodu kreskowego:', e);
+            console.error(`Błąd JsBarcode (${format}):`, finalEan, e);
+            try {
+              const fallbackCanvas = document.createElement('canvas');
+              JsBarcode(fallbackCanvas, finalEan, {
+                format: format,
+                width: 2.0,
+                height: 40,
+                displayValue: true,
+                fontSize: 10,
+                margin: 5
+              });
+              barcodeImg = fallbackCanvas.toDataURL("image/png", 1.0);
+              console.log(`Fallback: Wygenerowano ${format}: ${finalEan}`);
+            } catch (e2) {
+              console.error(`Fallback nie działa:`, e2);
+            }
           }
         }
+        
         newProducts.push({
           nazwa: row['nazwa'] || (matched ? matched.nazwa : 'Brak nazwy'),
           ean: row['ean'] || (matched ? matched.ean : ''),
@@ -623,7 +674,7 @@ function importExcel() {
     });
     console.log("Nowe produkty:", newProducts);
     if (newProducts.length) {
-      pendingProducts = newProducts; // Zapisujemy produkty tymczasowo
+      pendingProducts = newProducts;
       document.getElementById('debug').innerText = `Zaimportowano ${newProducts.length} produktów. Wybierz zdjęcia, aby kontynuować.`;
       alert('Dane z Excela zaimportowane. Teraz wybierz zdjęcia produktów.');
     } else {
@@ -769,7 +820,7 @@ async function buildPDF(jsPDF, save = true) {
             const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+            const currencySymbol = edit.priceCurrency === 'EUR' ? 'EUR' : 'GBP';
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
           }
           if (showEan && p.ean && p.barcode) {
@@ -823,7 +874,7 @@ async function buildPDF(jsPDF, save = true) {
             const priceFontSize = edit.priceFontSize === 'small' ? 10 : edit.priceFontSize === 'medium' ? 12 : 14;
             doc.setFontSize(priceFontSize);
             doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = edit.priceCurrency === 'EUR' ? '€' : '£';
+            const currencySymbol = edit.priceCurrency === 'EUR' ? 'EUR' : 'GBP';
             doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
             textY += 16;
           }
@@ -889,21 +940,18 @@ async function buildPDF(jsPDF, save = true) {
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4-2-4") {
-      // First 4 (top)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Middle 2
       cols = 2;
       rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      // Last 4 (bottom)
       cols = 2;
       rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
@@ -940,6 +988,15 @@ async function buildPDF(jsPDF, save = true) {
   hideProgressModal();
   if (save) doc.save("katalog.pdf");
   return doc;
+}
+
+// === POPRAW CYFRĘ KONTROLNĄ EAN-13 ===
+function fixEan13Checksum(ean13) {
+  if (!/^\d{13}$/.test(ean13)) return ean13;
+  const d = ean13.slice(0,12).split('').map(Number);
+  let s = 0;
+  for (let i = 0; i < 12; i++) s += d[i] * (i % 2 === 0 ? 1 : 3);
+  return ean13.slice(0,12) + ((10 - s % 10) % 10);
 }
 
 async function generatePDF() {
