@@ -10,6 +10,16 @@ let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
 let manufacturerLogos = {};
 
+// === MAPOWANIE KRAJÓW ===
+const countryMap = {
+  "Polska": "Polska", "Poland": "Polska", "PL": "Polska",
+  "Rumunia": "Rumunia", "Romania": "Rumunia", "RO": "Rumunia",
+  "Ukraina": "Ukraina", "Ukraine": "Ukraina", "UA": "Ukraina",
+  "Ukraina ": "Ukraina",
+  "Litwa": "Litwa", "Lithuania": "Litwa", "LT": "Litwa",
+  "Bułgaria": "Bułgaria", "Bulgaria": "Bułgaria", "BG": "Bułgaria"
+};
+
 async function toBase64(url) {
   try {
     const response = await fetch(url);
@@ -21,7 +31,8 @@ async function toBase64(url) {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch {
+  } catch (e) {
+    console.warn(`Błąd pobierania obrazu: ${url}`, e);
     return null;
   }
 }
@@ -97,7 +108,7 @@ function handleFiles(files, callback) {
   }
   [...files].forEach(file => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       callback(file, e.target.result);
       document.getElementById('debug').innerText = `Załadowano plik: ${file.name}`;
     };
@@ -200,8 +211,8 @@ function showEditModal(productIndex) {
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
-          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
-          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
+          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
         </select>
         <select id="editCenaFontSize">
           <option value="small" ${edit.priceFontSize === 'small' ? 'selected' : ''}>Mały</option>
@@ -309,7 +320,7 @@ function showPageEditModal(pageIndex) {
     <div class="edit-field">
       <label>Wybierz stronę:</label>
       <select id="editPageSelect">
-        ${Array.from({ length: totalPages }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`)}
+        ${Array.from({ length: totalPages }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`).join('')}
       </select>
     </div>
     <div class="edit-field">
@@ -351,8 +362,8 @@ function showPageEditModal(pageIndex) {
     <div class="edit-field">
       <label>Waluta:</label>
       <select id="editCenaCurrency">
-        <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
-        <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+        <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
+        <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
       </select>
     </div>
     <div class="edit-field">
@@ -654,7 +665,7 @@ function renderCatalog() {
                        `<span style="font-family: ${finalEdit.indeksFont || 'Arial'}; color: ${finalEdit.indeksFontColor || '#000000'}">Indeks: ${p.indeks || 'Brak indeksu'}</span>`;
     if (showCena && p.cena) {
       const currency = finalEdit.priceCurrency || globalCurrency;
-      const currencySymbol = currency === 'EUR' ? '€' : '£';
+      const currencySymbol = currency === 'EUR' ? 'EUR' : 'GBP';
       const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
       details.innerHTML += `<br><span style="font-family: ${finalEdit.cenaFont || 'Arial'}; color: ${finalEdit.cenaFontColor || '#000000'}; font-size: ${finalEdit.priceFontSize || 'medium'}">${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}</span>`;
     }
@@ -686,7 +697,8 @@ function importExcel() {
     return;
   }
   const reader = new FileReader();
-  reader.onload = (e) => {
+
+  reader.onload = async (e) => {
     let rows;
     if (file.name.endsWith('.csv')) {
       const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
@@ -707,6 +719,9 @@ function importExcel() {
           if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = value || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = value || '';
           if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = value || '';
+          if (['kraj', 'country', 'pochodzenie', 'origin', 'kraj pochodzenia', 'kraj_pochodzenia'].some(h => header.includes(h))) {
+            obj['kraj'] = value || '';
+          }
         });
         return obj;
       });
@@ -724,46 +739,79 @@ function importExcel() {
           if (['cen', 'cena', 'price', 'netto'].some(h => header.includes(h))) obj['cena'] = row[i] || '';
           if (['nazwa', 'name'].some(h => header.includes(h))) obj['nazwa'] = row[i] || '';
           if (['logo', 'nazwa_prod', 'producent', 'manufacturer'].some(h => header.includes(h))) obj['producent'] = row[i] || '';
+          if (['kraj', 'country', 'pochodzenie', 'origin', 'kraj pochodzenia', 'kraj_pochodzenia'].some(h => header.includes(h))) {
+            obj['kraj'] = row[i] || '';
+          }
         });
         return obj;
       });
     }
-    console.log("Przetworzone wiersze CSV/Excel:", rows);
+
+    console.log("Przetworzone wiersze:", rows);
     const newProducts = [];
-    rows.forEach(row => {
+
+    for (const row of rows) {
       const indeks = row['indeks'] || row[0];
-      if (indeks) {
-        const matched = jsonProducts.find(p => p.indeks === indeks.toString());
-        let barcodeImg = null;
-        if (row['ean'] && /^\d{12,13}$/.test(row['ean'])) {
-          try {
-            const barcodeCanvas = document.createElement('canvas');
-            JsBarcode(barcodeCanvas, row['ean'], {
-              format: "EAN13",
-              width: 1.6,
-              height: 32,
-              displayValue: true,
-              fontSize: 9,
-              margin: 0
-            });
-            barcodeImg = barcodeCanvas.toDataURL("image/png", 0.8);
-          } catch (e) {
-            console.error('Błąd generowania kodu kreskowego:', e);
-          }
+      if (!indeks) continue;
+
+      const matched = jsonProducts.find(p => p.indeks === indeks.toString());
+
+      let barcodeImg = null;
+      if (row['ean']) {
+        const rawEan = row['ean'].toString().trim();
+        let finalEan = rawEan;
+        let format = null;
+      
+        // 7 cyfr → EAN-8 z poprawną cyfrą kontrolną
+        if (/^\d{7}$/.test(rawEan)) {
+          finalEan = calculateEan8Checksum(rawEan);
+          format = "EAN8";
+          console.log(`7-cyfrowy → EAN8: ${rawEan} → ${finalEan}`);
+      
+        // 13 cyfr → popraw cyfrę kontrolną
+        } else if (/^\d{13}$/.test(rawEan)) {
+          finalEan = fixEan13Checksum(rawEan);
+          if (finalEan !== rawEan) console.warn(`Poprawiono EAN-13: ${rawEan} → ${finalEan}`);
+          format = "EAN13";
+      
+        // 8 cyfr → EAN-8
+        } else if (/^\d{8}$/.test(rawEan)) {
+          format = "EAN8";
+      
+        } else {
+          console.warn(`Nieobsługiwany EAN: ${rawEan}`);
+          return;
         }
-        newProducts.push({
-          nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
-          ean: row['ean'] || (matched ? matched.ean : ''),
-          ranking: row['ranking'] || (matched ? matched.ranking : ''),
-          cena: row['cena'] || (matched ? matched.cena : ''),
-          indeks: indeks.toString(),
-          img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
-          barcode: barcodeImg,
-          producent: row['producent'] || (matched ? matched.producent : '')
-        });
+      
+        try {
+          const canvas = document.createElement('canvas');
+          JsBarcode(canvas, finalEan, { format, width: 2.2, height: 42, displayValue: true, fontSize: 11, margin: 6 });
+          barcodeImg = canvas.toDataURL("image/png");
+          console.log(`Wygenerowano ${format}: ${finalEan}`);
+        } catch (e) {
+          console.error("Błąd JsBarcode:", e);
+        }
       }
-    });
-    console.log("Nowe produkty:", newProducts);
+
+      const rawKraj = (row['kraj'] || '').toString().trim();
+      const krajPochodzenia = countryMap[rawKraj] || rawKraj || 'Nieznany';
+      const flagBase64 = await loadFlagForCountry(krajPochodzenia);
+
+      newProducts.push({
+        nazwa: row['nazwa'] || (matched ? matched.nazwa : ''),
+        ean: row['ean'] || (matched ? matched.ean : ''),
+        ranking: row['ranking'] || (matched ? matched.ranking : ''),
+        cena: row['cena'] || (matched ? matched.cena : ''),
+        indeks: indeks.toString(),
+        img: uploadedImages[indeks.toString()] || (matched ? matched.img : null),
+        barcode: barcodeImg,
+        producent: row['producent'] || (matched ? matched.producent : ''),
+        krajPochodzenia: krajPochodzenia,
+        flagImg: flagBase64
+      });
+    }
+
+    console.log("Nowe produkty z flagami:", newProducts);
     if (newProducts.length) {
       products = newProducts;
       productEdits = {};
@@ -776,10 +824,65 @@ function importExcel() {
       document.getElementById('debug').innerText = "Brak produktów po imporcie. Sprawdź format pliku.";
     }
   };
+
   reader.onerror = () => {
     console.error("Błąd odczytu pliku");
     document.getElementById('debug').innerText = "Błąd odczytu pliku CSV/Excel";
   };
+
   if (file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
+}
+
+// === WCZYTYWANIE FLAGI Z GITHUB ===
+async function loadFlagForCountry(country) {
+  if (!country || country === 'Nieznany') {
+    console.log(`Brak kraju: ${country}`);
+    return null;
+  }
+
+  const cleanKey = country
+    .toLowerCase()
+    .replace(/ł/g, 'l')
+    .replace(/ą/g, 'a')
+    .replace(/ć/g, 'c')
+    .replace(/ę/g, 'e')
+    .replace(/ń/g, 'n')
+    .replace(/ó/g, 'o')
+    .replace(/ś/g, 's')
+    .replace(/ź/g, 'z')
+    .replace(/ż/g, 'z')
+    .replace(/[^a-z0-9]/g, '');
+
+  const urls = [
+    `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/flaga/${cleanKey}.png`,
+    `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/flaga/${cleanKey}.jpg`,
+    `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/flaga/${country}.png`,
+    `https://raw.githubusercontent.com/Marcin870119/masterzamowienia/main/flaga/${country}.jpg`
+  ];
+
+  for (const url of urls) {
+    const base64 = await toBase64(url);
+    if (base64) {
+      console.log(`Załadowano flagę: ${country} → ${url}`);
+      return base64;
+    }
+  }
+
+  console.warn(`Brak flagi dla kraju: ${country} (próby: ${urls.join(', ')})`);
+  return null;
+}
+
+function fixEan13Checksum(ean13) {
+  const d = ean13.slice(0,12).split('').map(Number);
+  let s = 0;
+  for (let i = 0; i < 12; i++) s += d[i] * (i % 2 === 0 ? 1 : 3);
+  return ean13.slice(0,12) + ((10 - s % 10) % 10);
+}
+
+function calculateEan8Checksum(ean7) {
+  const d = ean7.split('').map(Number);
+  let s = 0;
+  for (let i = 0; i < 7; i++) s += d[i] * (i % 2 === 0 ? 3 : 1);
+  return ean7 + ((10 - s % 10) % 10);
 }
