@@ -18,14 +18,24 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   }
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b];
+}
+
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
+
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
+
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4", compress: true });
@@ -35,6 +45,7 @@ async function buildPDF(jsPDF, save = true) {
   let pageNumber = 1;
   let totalProducts = products.length;
   let processedProducts = 0;
+
   if (selectedCover) {
     try {
       doc.addImage(selectedCover.data, selectedCover.data.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
@@ -46,45 +57,48 @@ async function buildPDF(jsPDF, save = true) {
       document.getElementById('debug').innerText = "Błąd dodawania okładki";
     }
   }
+
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
   const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
     if (gradientType === "blue") {
-      doc.setFillColor(240, 248, 255); // AliceBlue
+      doc.setFillColor(240, 248, 255);
       doc.rect(0, 0, pageWidth, pageHeight * 0.6, 'F');
-      doc.setFillColor(0, 105, 192); // DeepSkyBlue
+      doc.setFillColor(0, 105, 192);
       doc.rect(0, pageHeight * 0.6, pageWidth, pageHeight * 0.4, 'F');
     } else if (gradientType === "green") {
-      doc.setFillColor(245, 255, 245); // Honeydew
+      doc.setFillColor(245, 255, 245);
       doc.rect(0, 0, pageWidth, pageHeight * 0.6, 'F');
-      doc.setFillColor(46, 139, 87); // SeaGreen
+      doc.setFillColor(46, 139, 87);
       doc.rect(0, pageHeight * 0.6, pageWidth, pageHeight * 0.4, 'F');
     } else if (gradientType === "gray") {
-      doc.setFillColor(245, 245, 245); // WhiteSmoke
+      doc.setFillColor(245, 245, 245);
       doc.rect(0, 0, pageWidth, pageHeight * 0.6, 'F');
-      doc.setFillColor(112, 128, 144); // SlateGray
+      doc.setFillColor(112, 128, 144);
       doc.rect(0, pageHeight * 0.6, pageWidth, pageHeight * 0.4, 'F');
     } else if (gradientType === "red") {
-      doc.setFillColor(255, 240, 240); // LightPink
+      doc.setFillColor(255, 240, 240);
       doc.rect(0, 0, pageWidth, pageHeight * 0.6, 'F');
-      doc.setFillColor(178, 34, 34); // FireBrick
+      doc.setFillColor(178, 34, 34);
       doc.rect(0, pageHeight * 0.6, pageWidth, pageHeight * 0.4, 'F');
     } else if (gradientType === "purple") {
-      doc.setFillColor(245, 240, 255); // Lavender
+      doc.setFillColor(245, 240, 255);
       doc.rect(0, 0, pageWidth, pageHeight * 0.6, 'F');
-      doc.setFillColor(106, 90, 205); // SlateBlue
+      doc.setFillColor(106, 90, 205);
       doc.rect(0, pageHeight * 0.6, pageWidth, pageHeight * 0.4, 'F');
     } else if (gradientType === "orange") {
-      doc.setFillColor(255, 245, 238); // Seashell
+      doc.setFillColor(255, 245, 238);
       doc.rect(0, 0, pageWidth, pageHeight * 0.6, 'F');
-      doc.setFillColor(255, 165, 0); // Orange
+      doc.setFillColor(255, 165, 0);
       doc.rect(0, pageHeight * 0.6, pageWidth, pageHeight * 0.4, 'F');
     }
     doc.restoreGraphicsState();
   };
+
   if (products.length > 0) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     if (pageEdit.pageBackgroundGradient && pageEdit.pageBackgroundGradient !== "none") {
@@ -114,6 +128,7 @@ async function buildPDF(jsPDF, save = true) {
     doc.setFontSize(12);
     doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
   }
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -125,6 +140,7 @@ async function buildPDF(jsPDF, save = true) {
   let x = marginLeftRight;
   let y = marginTop;
   let productIndex = 0;
+
   const getItemsPerPage = () => {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -135,6 +151,261 @@ async function buildPDF(jsPDF, save = true) {
     return 4;
   };
   const itemsPerPage = getItemsPerPage();
+
+  // === MODUŁ 8 – CENA NIE WYCHODZI POZA PUDEŁKO ===
+  const drawSection8 = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
+    for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
+      for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
+        const p = products[productIndex];
+        const edit = productEdits[productIndex] || {};
+        const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {
+          nazwaFont: 'Arial', nazwaFontColor: '#000000',
+          indeksFont: 'Arial', indeksFontColor: '#000000',
+          rankingFont: 'Arial', rankingFontColor: '#000000',
+          cenaFont: 'Arial', cenaFontColor: '#000000',
+          priceCurrency: globalCurrency, showPriceLabel: true,
+          borderStyle: 'solid', borderColor: '#000000',
+          backgroundTexture: null, backgroundOpacity: 1.0
+        };
+        const finalEdit = { ...pageEdit, ...edit };
+
+        if (finalEdit.backgroundTexture) {
+          try {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
+            doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
+            doc.restoreGraphicsState();
+          } catch (e) { console.error('Błąd tekstury:', e); }
+        }
+
+        drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
+        let imgSrc = uploadedImages[p.indeks] || p.img;
+        const hasEan = showEan && p.ean && p.barcode;
+
+        const imgMaxW = 150, imgMaxH = 115;
+        const textAreaX = x + 165;
+        let currentY = y + 20;
+
+        if (imgSrc) {
+          try {
+            const img = new Image(); img.src = imgSrc;
+            await Promise.race([
+              new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), 5000))
+            ]);
+            const scale = Math.min(imgMaxW / img.width, imgMaxH / img.height);
+            const w = img.width * scale, h = img.height * scale;
+            const imgX = x + 8, imgY = y + (boxHeight - h) / 2;
+            doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
+          } catch (e) { console.error('Błąd obrazka:', e); }
+        }
+
+        // NAZWA
+        doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
+        const nazwaLines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 175);
+        const maxY = y + boxHeight - 25;
+        nazwaLines.forEach(line => {
+          if (currentY <= maxY) {
+            doc.text(line, textAreaX, currentY);
+            currentY += 10;
+          }
+        });
+        currentY += 6;
+
+        // INDEKS
+        doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
+        doc.text(`Indeks: ${p.indeks || 'Brak'}`, textAreaX, currentY);
+        currentY += 10;
+
+        // RANKING
+        if (showRanking && p.ranking) {
+          doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(...hexToRgb(finalEdit.rankingFontColor || '#000000'));
+          doc.text(`RANKING: ${p.ranking}`, textAreaX, currentY);
+          currentY += 10;
+        }
+
+        // CENA – MNIEJSZY OBSZAR, NIE WYCHODZI POZA PUDEŁKO
+        if (showCena && p.cena) {
+          const priceFontSize = (finalEdit.priceFontSize || 'medium') === 'small' ? 13 : (finalEdit.priceFontSize === 'medium' ? 15 : 17);
+          doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+          doc.setFontSize(priceFontSize);
+          doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
+
+          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? 'EUR' : 'GBP';
+          const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+          const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+          const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP'
+            ? `${showLabel ? `${labelText}: ` : ''}${currencySymbol} ${p.cena}`
+            : `${showLabel ? `${labelText}: ` : ''}${p.cena} ${currencySymbol}`;
+
+          const priceTextWidth = doc.getTextWidth(priceText);
+          
+          // MNIEJSZY OBSZAR: -195 zamiast -175
+          const textAreaWidth = boxWidth - 195;
+          const priceX = textAreaX + (textAreaWidth - priceTextWidth) / 2;
+          const priceY = y + boxHeight - (showEan ? 60 : 35);
+
+          doc.text(priceText, priceX, priceY);
+        }
+
+        // EAN
+        if (hasEan) {
+          try {
+            const bw = 100, bh = 38;
+            const bx = x + boxWidth - bw - 8;
+            const by = y + boxHeight - bh - 6;
+            doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
+          } catch (e) { console.error('Błąd EAN:', e); }
+        }
+
+        processedProducts++;
+        const progress = (processedProducts / totalProducts) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+        document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+        x += boxWidth + 6;
+        productIndex++;
+      }
+      x = marginLeftRight;
+      y += boxHeight + 6;
+    }
+    return y;
+  };
+
+  // === MODUŁ 16 – PEŁNA NAZWA PRODUKTU ===
+  const drawSection16 = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
+    for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
+      for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
+        const p = products[productIndex];
+        const edit = productEdits[productIndex] || {};
+        const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {
+          nazwaFont: 'Arial', nazwaFontColor: '#000000',
+          indeksFont: 'Arial', indeksFontColor: '#000000',
+          rankingFont: 'Arial', rankingFontColor: '#000000',
+          cenaFont: 'Arial', cenaFontColor: '#000000',
+          priceCurrency: globalCurrency, showPriceLabel: true,
+          borderStyle: 'solid', borderColor: '#000000',
+          backgroundTexture: null, backgroundOpacity: 1.0
+        };
+        const finalEdit = { ...pageEdit, ...edit };
+
+        if (finalEdit.backgroundTexture) {
+          try {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
+            doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
+            doc.restoreGraphicsState();
+          } catch (e) { console.error('Błąd tekstury:', e); }
+        }
+
+        drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
+        let imgSrc = uploadedImages[p.indeks] || p.img;
+        const hasEan = showEan && p.ean && p.barcode;
+
+        const imgMaxW = 80;
+        const imgMaxH = 60;
+        const textAreaX = x + 90;
+        let currentY = y + 14; // trochę wyżej
+
+        if (imgSrc) {
+          try {
+            const img = new Image(); img.src = imgSrc;
+            await Promise.race([
+              new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), 5000))
+            ]);
+            const scale = Math.min(imgMaxW / img.width, imgMaxH / img.height);
+            const w = img.width * scale, h = img.height * scale;
+            const imgX = x + 6, imgY = y + (boxHeight - h) / 2;
+            doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
+          } catch (e) { console.error('Błąd obrazka:', e); }
+        }
+
+        // === NAZWA – MNIEJSZA CZCIONKA, WIĘCEJ LINII ===
+        doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
+        doc.setFontSize(6.5); // MNIEJSZA: było 7.8 → teraz 6.5
+        doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
+
+        const textWidth = boxWidth - 90; // WIĘCEJ MIEJSCA
+        const nazwaLines = doc.splitTextToSize(p.nazwa || "Brak nazwy", textWidth);
+
+        const maxY = y + boxHeight - 55; // WIĘCEJ LINII
+        let lineCount = 0;
+        nazwaLines.forEach(line => {
+          if (currentY <= maxY && lineCount < 5) { // max 5 linii
+            doc.text(line, textAreaX, currentY);
+            currentY += 7.8; // mniejszy odstęp
+            lineCount++;
+          }
+        });
+        currentY += 2; // mały odstęp
+
+        // INDEKS
+        doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
+        doc.setFontSize(6.5);
+        doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
+        doc.text(`Indeks: ${p.indeks || 'Brak'}`, textAreaX, currentY);
+        currentY += 7;
+
+        // RANKING
+        if (showRanking && p.ranking) {
+          doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+          doc.setFontSize(6.5);
+          doc.setTextColor(...hexToRgb(finalEdit.rankingFontColor || '#000000'));
+          doc.text(`RANKING: ${p.ranking}`, textAreaX, currentY);
+          currentY += 7;
+        }
+
+        // CENA – £ 4.25 lub 4.25 €
+        // CENA – PRZESUNIĘTA JESZCZE NIŻEJ
+        if (showCena && p.cena) {
+          const priceY = currentY + 8;  // BYŁO: +6 → TERAZ +8
+
+          doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+          doc.setFontSize(12);
+          doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
+
+          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
+          const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+          const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+          const priceText = showLabel 
+            ? `${labelText}: ${p.cena} ${currencySymbol}` 
+            : `${p.cena} ${currencySymbol}`;
+
+          doc.text(priceText, textAreaX, priceY);
+        }
+
+        // EAN – NA DOLE
+        if (hasEan) {
+          try {
+            const bw = 90, bh = 33;
+            const bx = x + boxWidth - bw - 6;
+            const by = y + boxHeight - bh - 5;
+            doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
+          } catch (e) { console.error('Błąd EAN:', e); }
+        }
+
+        processedProducts++;
+        const progress = (processedProducts / totalProducts) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+        document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+        x += boxWidth + 6;
+        productIndex++;
+      }
+      x = marginLeftRight;
+      y += boxHeight + 6;
+    }
+    return y;
+  };
+
+  // === MODUŁ DLA 1, 2, 4, 4-2-4 (BEZ ZMIAN) ===
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -159,7 +430,7 @@ async function buildPDF(jsPDF, save = true) {
           pageBackgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
-        console.log('BuildPDF - Product Index:', productIndex, 'Final Edit:', finalEdit);
+
         if (finalEdit.backgroundTexture) {
           try {
             doc.saveGraphicsState();
@@ -171,169 +442,108 @@ async function buildPDF(jsPDF, save = true) {
             document.getElementById('debug').innerText = "Błąd dodawania tekstury tła";
           }
         }
+
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
         let imgSrc = uploadedImages[p.indeks] || p.img;
         let logoSrc = edit.logo || (p.producent && manufacturerLogos[p.producent]) || null;
+        const hasEan = showEan && p.ean && p.barcode;
+
         if (isLarge) {
+          // === ZDJĘCIE NA GÓRZE ===
           if (imgSrc) {
             try {
-              const img = new Image();
-              img.src = imgSrc;
+              const img = new Image(); img.src = imgSrc;
               await Promise.race([
                 new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
-                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout ładowania obrazu')), 5000))
+                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), 5000))
               ]);
-              const maxW = boxWidth - (sectionCols === 1 ? 80 : 40);
-              const maxH = boxHeight * 0.4;
+              const maxW = boxWidth * 0.7;
+              const maxH = boxHeight * 0.35;
               let scale = Math.min(maxW / img.width, maxH / img.height);
-              let w = img.width * scale;
-              let h = img.height * scale;
+              let w = img.width * scale, h = img.height * scale;
               let imgX = x + (boxWidth - w) / 2;
-              let imgY = y + 5;
+              let imgY = y + 20;
               doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
-            } catch (e) {
-              console.error('Błąd dodawania obrazka:', e);
-              document.getElementById('debug').innerText = "Błąd dodawania obrazka";
-            }
+            } catch (e) { console.error('Błąd obrazka:', e); }
           }
-          let textY = y + 5 + (boxHeight * 0.4) + 10;
+        
+          let textY = y + 20 + (boxHeight * 0.35) + 15;
+        
+          // === NAZWA ===
           doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
-          doc.setFontSize(sectionCols === 1 ? 14 : 11);
-          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
-          doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
-          const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (sectionCols === 1 ? 80 : 40));
-          const maxLines = 3;
-          lines.slice(0, maxLines).forEach((line, index) => {
-            doc.text(line, x + boxWidth / 2, textY + (index * 18), { align: "center" });
+          doc.setFontSize(14);
+          doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
+          const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 40);
+          lines.slice(0, 3).forEach((line, i) => {
+            doc.text(line, x + boxWidth / 2, textY + i * 18, { align: "center" });
           });
-          textY += Math.min(lines.length, maxLines) * 18 + 10;
+          textY += Math.min(lines.length, 3) * 18 + 15;
+        
+          // === INDEKS + RANKING ===
           doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
-          doc.setFontSize(sectionCols === 1 ? 11 : 9);
-          const indeksFontColor = finalEdit.indeksFontColor || '#000000';
-          doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
+          doc.setFontSize(10);
+          doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
           doc.text(`Indeks: ${p.indeks || '-'}`, x + boxWidth / 2, textY, { align: "center" });
-          textY += sectionCols === 1 ? 22 : 18;
+          textY += 16;
+        
           if (showRanking && p.ranking) {
             doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
-            const rankingFontColor = finalEdit.rankingFontColor || '#000000';
-            doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
-            doc.text(`RANKING: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
-            textY += sectionCols === 1 ? 22 : 18;
+            doc.setFontSize(10);
+            doc.setTextColor(...hexToRgb(finalEdit.rankingFontColor || '#000000'));
+            doc.text(`Ranking: ${p.ranking}`, x + boxWidth / 2, textY, { align: "center" });
+            textY += 20;
           }
+        
+          // === CENA ===
           if (showCena && p.cena) {
             doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
-            const priceFontSize = sectionCols === 1 ? (finalEdit.priceFontSize === 'small' ? 16 : finalEdit.priceFontSize === 'medium' ? 20 : 24) : (finalEdit.priceFontSize === 'small' ? 12 : finalEdit.priceFontSize === 'medium' ? 14 : 16);
-            doc.setFontSize(priceFontSize);
-            const cenaFontColor = finalEdit.cenaFontColor || '#000000';
-            doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
+            doc.setFontSize(20);
+            doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
             const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
-            const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP' 
-              ? `${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}` 
-              : `${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
+            const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+            const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+            const priceText = showLabel
+              ? `${labelText}: ${p.cena} ${currencySymbol}`
+              : `${p.cena} ${currencySymbol}`;
             doc.text(priceText, x + boxWidth / 2, textY, { align: "center" });
-            textY += sectionCols === 1 ? 22 : 18;
+            textY += 30;  // Dodano: Aktualizacja textY po cenie
           }
-          if (showLogo && layout === "4" && logoSrc) {
-            try {
-              const logoImg = new Image();
-              logoImg.src = logoSrc;
-              await Promise.race([
-                new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; }),
-                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout ładowania loga')), 5000))
-              ]);
-              const logoW = 120;
-              const logoH = 60;
-              const logoX = x + (boxWidth - logoW) / 2;
-              const logoY = textY;
-              doc.addImage(logoSrc, logoSrc.includes('image/png') ? "PNG" : "JPEG", logoX, logoY, logoW, logoH, undefined, save ? "SLOW" : "FAST");
-              textY += logoH + 5;
-            } catch (e) {
-              console.error('Błąd dodawania loga:', e);
-              document.getElementById('debug').innerText = "Błąd dodawania loga";
-            }
-          }
+        
+          // === EAN – ZAWSZE NA SAMYM DOLE ===
+          let eanY = y + boxHeight - 50;
           if (showEan && p.ean && p.barcode) {
             try {
-              const bw = sectionCols === 1 ? 180 : 140;
-              const bh = sectionCols === 1 ? 50 : 40;
+              const bw = 140, bh = 40;
               const bx = x + (boxWidth - bw) / 2;
-              const by = y + boxHeight - bh - 5;
+              const by = eanY;
               doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
-            } catch (e) {
-              console.error('Błąd dodawania kodu kreskowego:', e);
-              document.getElementById('debug').innerText = "Błąd dodawania kodu kreskowego";
-            }
+            } catch (e) { console.error('Błąd EAN:', e); }
           }
-        } else {
-          if (imgSrc) {
+        
+          // === FLAGA – TYLKO DLA UKŁADU 4 (2x2) ===
+          if (layout === "4" && p.flagImg) {
             try {
-              const img = new Image();
-              img.src = imgSrc;
-              await Promise.race([
-                new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
-                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout ładowania obrazu')), 5000))
-              ]);
-              const maxW = 90;
-              const maxH = 60;
-              let scale = Math.min(maxW / img.width, maxH / img.height);
-              let w = img.width * scale;
-              let h = img.height * scale;
-              let imgX = x + 5 + (maxW - w) / 2;
-              let imgY = y + 8 + (maxH - h) / 2;
-              doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
+              const flagWidth = 150;
+              const flagHeight = 100;
+              const flagX = x + (boxWidth - flagWidth) / 2 + 8;  // +8 pt = ok. 3 mm w prawo
+              let flagY;
+
+              if (hasEan) {
+                // Jeśli jest EAN → flaga nad EAN
+                flagY = eanY - flagHeight - 5;
+              } else {
+                // Jeśli nie ma EAN → flaga pod ceną
+                flagY = textY + 10;
+              }
+
+              doc.addImage(p.flagImg, "PNG", flagX, flagY, flagWidth, flagHeight, undefined, save ? "SLOW" : "FAST");
             } catch (e) {
-              console.error('Błąd dodawania obrazka:', e);
-              document.getElementById('debug').innerText = "Błąd dodawania obrazka";
+              console.error('Błąd dodawania flagi:', e);
             }
           }
-          let textY = y + 20;
-          doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
-          doc.setFontSize(8);
-          const nazwaFontColor = finalEdit.nazwaFontColor || '#000000';
-          doc.setTextColor(parseInt(nazwaFontColor.substring(1, 3), 16), parseInt(nazwaFontColor.substring(3, 5), 16), parseInt(nazwaFontColor.substring(5, 7), 16));
-          doc.text(p.nazwa || "Brak nazwy", x + 105, textY, { maxWidth: boxWidth - 110 });
-          textY += 25;
-          doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
-          doc.setFontSize(7);
-          const indeksFontColor = finalEdit.indeksFontColor || '#000000';
-          doc.setTextColor(parseInt(indeksFontColor.substring(1, 3), 16), parseInt(indeksFontColor.substring(3, 5), 16), parseInt(indeksFontColor.substring(5, 7), 16));
-          doc.text(`Indeks: ${p.indeks || 'Brak indeksu'}`, x + 105, textY, { maxWidth: 150 });
-          textY += 12;
-          if (showRanking && p.ranking) {
-            doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
-            const rankingFontColor = finalEdit.rankingFontColor || '#000000';
-            doc.setTextColor(parseInt(rankingFontColor.substring(1, 3), 16), parseInt(rankingFontColor.substring(3, 5), 16), parseInt(rankingFontColor.substring(5, 7), 16));
-            doc.text(`RANKING: ${p.ranking}`, x + 105, textY, { maxWidth: 150 });
-            textY += 12;
-          }
-          if (showCena && p.cena) {
-            doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
-            const priceFontSize = (finalEdit.priceFontSize || 'medium') === 'small' ? 10 : (finalEdit.priceFontSize || 'medium') === 'medium' ? 12 : 14;
-            doc.setFontSize(priceFontSize);
-            const cenaFontColor = finalEdit.cenaFontColor || '#000000';
-            doc.setTextColor(parseInt(cenaFontColor.substring(1, 3), 16), parseInt(cenaFontColor.substring(3, 5), 16), parseInt(cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
-            const showPriceLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
-            const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP' 
-              ? `${showPriceLabel ? `${priceLabel}: ` : ''}${currencySymbol} ${p.cena}` 
-              : `${showPriceLabel ? `${priceLabel}: ` : ''}${p.cena} ${currencySymbol}`;
-            doc.text(priceText, x + 105, textY, { maxWidth: 150 });
-            textY += 16;
-          }
-          if (showEan && p.ean && p.barcode) {
-            try {
-              const bw = 85;
-              const bh = 32;
-              const bx = x + boxWidth - bw - 10;
-              const by = y + boxHeight - bh - 5;
-              doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
-            } catch (e) {
-              console.error('Błąd dodawania kodu kreskowego:', e);
-              document.getElementById('debug').innerText = "Błąd dodawania kodu kreskowego";
-            }
-          }
-        }
+        }                                  
+        
         processedProducts++;
         const progress = (processedProducts / totalProducts) * 100;
         document.getElementById('progressBar').style.width = `${progress}%`;
@@ -346,63 +556,180 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
+
+  // === NOWA FUNKCJA DLA 4-2-4 (GÓRNE I DOLNE 4) – BEZ FLAGI ===
+  const drawSectionSmall = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
+    for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
+      for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
+        const p = products[productIndex];
+        const edit = productEdits[productIndex] || {};
+        const pageEdit = pageEdits[Math.floor(productIndex / itemsPerPage)] || {
+          nazwaFont: 'Arial', nazwaFontColor: '#000000',
+          indeksFont: 'Arial', indeksFontColor: '#000000',
+          rankingFont: 'Arial', rankingFontColor: '#000000',
+          cenaFont: 'Arial', cenaFontColor: '#000000',
+          priceCurrency: globalCurrency, showPriceLabel: true,
+          borderStyle: 'solid', borderColor: '#000000',
+          backgroundTexture: null, backgroundOpacity: 1.0
+        };
+        const finalEdit = { ...pageEdit, ...edit };
+
+        if (finalEdit.backgroundTexture) {
+          try {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
+            doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
+            doc.restoreGraphicsState();
+          } catch (e) { console.error('Błąd tekstury:', e); }
+        }
+
+        drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
+        let imgSrc = uploadedImages[p.indeks] || p.img;
+        const hasEan = showEan && p.ean && p.barcode;
+
+        const imgMaxW = 80, imgMaxH = 60;
+        const textAreaX = x + 90;
+        let currentY = y + 16;
+
+        if (imgSrc) {
+          try {
+            const img = new Image(); img.src = imgSrc;
+            await Promise.race([
+              new Promise((res, rej) => { img.onload = res; img.onerror = rej; }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), 5000))
+            ]);
+            const scale = Math.min(imgMaxW / img.width, imgMaxH / img.height);
+            const w = img.width * scale, h = img.height * scale;
+            const imgX = x + 6, imgY = y + (boxHeight - h) / 2;
+            doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
+          } catch (e) { console.error('Błąd obrazka:', e); }
+        }
+
+        doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
+        const nazwaLines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - 100);
+        const maxY = y + boxHeight - 50;
+        nazwaLines.forEach(line => {
+          if (currentY <= maxY) {
+            doc.text(line, textAreaX, currentY);
+            currentY += 8;
+          }
+        });
+        currentY += 2;
+
+        doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
+        doc.setFontSize(6.5);
+        doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
+        doc.text(`Indeks: ${p.indeks || 'Brak'}`, textAreaX, currentY);
+        currentY += 7;
+
+        if (showRanking && p.ranking) {
+          doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
+          doc.setFontSize(6.5);
+          doc.setTextColor(...hexToRgb(finalEdit.rankingFontColor || '#000000'));
+          doc.text(`RANKING: ${p.ranking}`, textAreaX, currentY);
+          currentY += 7;
+        }
+
+        // === CENA – WIĘCEJ ODSTĘPU OD INDEKSU ===
+        if (showCena && p.cena) {
+          doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
+          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
+          const currencyPosition = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? 'right' : 'left';
+          const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
+          const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
+          const priceText = showLabel 
+            ? `${labelText}: ${p.cena} ${currencySymbol}` 
+            : `${p.cena} ${currencySymbol}`;
+          
+          // PRZESUŃ CENĘ 3 pt NIŻEJ
+          const priceY = currentY + 3;  // BYŁO: currentY → TERAZ +3
+          doc.text(priceText, textAreaX, priceY);
+          currentY += 15; // WIĘCEJ ODSTĘPU NA EAN
+        }
+
+        if (hasEan) {
+          try {
+            const bw = 80, bh = 28;
+            const bx = x + boxWidth - bw - 6;
+            const by = y + boxHeight - bh - 5;
+            doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
+          } catch (e) { console.error('Błąd EAN:', e); }
+        }
+        // Usunięto blok z flagą – nie chcemy flagi w 4-2-4
+        
+        processedProducts++;
+        const progress = (processedProducts / totalProducts) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+        document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+        x += boxWidth + 6;
+        productIndex++;
+      }
+      x = marginLeftRight;
+      y += boxHeight + 6;
+    }
+    return y;
+  };
+
+  // === GŁÓWNA PĘTLA ===
   while (productIndex < products.length) {
     let cols, rows, boxWidth, boxHeight, isLarge;
+
     if (layout === "1") {
-      cols = 1;
-      rows = 1;
+      cols = 1; rows = 1;
       boxWidth = pageWidth - marginLeftRight * 2;
       boxHeight = pageHeight - marginTop - marginBottom;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "2") {
-      cols = 2;
-      rows = 1;
+      cols = 2; rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = pageHeight - marginTop - marginBottom;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "4") {
-      cols = 2;
-      rows = 2;
+      cols = 2; rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
     } else if (layout === "8") {
-      cols = 2;
-      rows = 4;
+      cols = 2; rows = 4;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-      isLarge = false;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      y = await drawSection8(cols, rows, boxWidth, boxHeight);
     } else if (layout === "16") {
-      cols = 2;
-      rows = 8;
+      cols = 2; rows = 8;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = (pageHeight - marginTop - marginBottom - (rows - 1) * 6) / rows;
-      isLarge = false;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      y = await drawSection16(cols, rows, boxWidth, boxHeight);
     } else if (layout === "4-2-4") {
-      cols = 2;
-      rows = 2;
+      // GÓRNE 4 (2x2) – mały układ
+      cols = 2; rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      cols = 2;
-      rows = 1;
+      y = await drawSectionSmall(cols, rows, boxWidth, boxHeight); // nowa funkcja
+    
+      // ŚRODKOWE 2 (2x1) – duży układ
+      cols = 2; rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.4 - (rows - 1) * 6) / rows;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
-      cols = 2;
-      rows = 2;
+    
+      // DOLNE 4 (2x2) – mały układ
+      cols = 2; rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - (cols - 1) * 6) / cols;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - (rows - 1) * 6) / rows;
       isLarge = false;
-      y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+      y = await drawSectionSmall(cols, rows, boxWidth, boxHeight); // ta sama funkcja
     }
+
     if (productIndex < products.length) {
       doc.addPage();
       pageNumber++;
@@ -438,6 +765,7 @@ async function buildPDF(jsPDF, save = true) {
       y = marginTop;
     }
   }
+
   hideProgressModal();
   if (save) {
     try {
@@ -449,6 +777,7 @@ async function buildPDF(jsPDF, save = true) {
   }
   return doc;
 }
+
 async function generatePDF() {
   try {
     const { jsPDF } = window.jspdf;
@@ -459,6 +788,7 @@ async function generatePDF() {
     hideProgressModal();
   }
 }
+
 async function previewPDF() {
   try {
     showProgressModal();
@@ -476,6 +806,7 @@ async function previewPDF() {
     hideProgressModal();
   }
 }
+
 function showEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -551,8 +882,8 @@ function showEditModal(productIndex) {
         </select>
         <input type="color" id="editCenaColor" value="${edit.cenaFontColor}">
         <select id="editCenaCurrency">
-          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
-          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+          <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
+          <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
         </select>
         <select id="editCenaFontSize">
           <option value="small" ${edit.priceFontSize === 'small' ? 'selected' : ''}>Mały</option>
@@ -608,6 +939,7 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -678,6 +1010,7 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showPageEditModal(pageIndex) {
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial',
@@ -707,7 +1040,7 @@ function showPageEditModal(pageIndex) {
     <div class="edit-field">
       <label>Wybierz stronę:</label>
       <select id="editPageSelect">
-        ${Array.from({ length: totalPages }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`)}
+        ${Array.from({ length: totalPages }, (_, i) => `<option value="${i}" ${i === pageIndex ? 'selected' : ''}>Strona ${i + 1}</option>`).join('')}
       </select>
     </div>
     <div class="edit-field">
@@ -749,8 +1082,8 @@ function showPageEditModal(pageIndex) {
     <div class="edit-field">
       <label>Waluta:</label>
       <select id="editCenaCurrency">
-        <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>€ (EUR)</option>
-        <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>£ (GBP)</option>
+        <option value="EUR" ${edit.priceCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
+        <option value="GBP" ${edit.priceCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
       </select>
     </div>
     <div class="edit-field">
@@ -776,6 +1109,7 @@ function showPageEditModal(pageIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function savePageEdit(pageIndex) {
   try {
     const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
@@ -801,6 +1135,7 @@ function savePageEdit(pageIndex) {
     document.getElementById('debug').innerText = "Błąd zapisywania edycji strony";
   }
 }
+
 function showVirtualEditModal(productIndex) {
   const product = products[productIndex];
   const edit = productEdits[productIndex] || {
@@ -853,6 +1188,8 @@ function showVirtualEditModal(productIndex) {
   `;
   modal.style.display = 'block';
   const canvas = new fabric.Canvas('virtualEditCanvas');
+
+  // Tło (tekstura)
   if (edit.backgroundTexture) {
     try {
       fabric.Image.fromURL(edit.backgroundTexture, (bgImg) => {
@@ -865,6 +1202,8 @@ function showVirtualEditModal(productIndex) {
       document.getElementById('debug').innerText = "Błąd ładowania tekstury tła w podglądzie";
     }
   }
+
+  // Obraz produktu
   try {
     fabric.Image.fromURL(uploadedImages[product.indeks] || product.img, (img) => {
       img.scaleToWidth(300);
@@ -874,6 +1213,8 @@ function showVirtualEditModal(productIndex) {
     console.error('Błąd ładowania obrazu produktu w podglądzie:', e);
     document.getElementById('debug').innerText = "Błąd ładowania obrazu produktu w podglądzie";
   }
+
+  // Obramowanie
   const borderRect = new fabric.Rect({
     left: 0,
     top: 0,
@@ -888,6 +1229,8 @@ function showVirtualEditModal(productIndex) {
     selectable: false
   });
   canvas.add(borderRect);
+
+  // Teksty
   const nazwaText = new fabric.Text(product.nazwa || 'Brak nazwy', {
     left: edit.positionX || 320,
     top: edit.positionY || 10,
@@ -897,6 +1240,7 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(nazwaText);
+
   const indeksText = new fabric.Text(`Indeks: ${product.indeks || '-'}`, {
     left: 320,
     top: 40,
@@ -906,8 +1250,10 @@ function showVirtualEditModal(productIndex) {
     selectable: true
   });
   canvas.add(indeksText);
+
+  let rankingText, cenaText;
   if (showRanking && product.ranking) {
-    const rankingText = new fabric.Text(`RANKING: ${product.ranking}`, {
+    rankingText = new fabric.Text(`RANKING: ${product.ranking}`, {
       left: 320,
       top: 60,
       fontSize: 16,
@@ -917,13 +1263,14 @@ function showVirtualEditModal(productIndex) {
     });
     canvas.add(rankingText);
   }
+
   if (showCena && product.cena) {
     const priceLabel = globalLanguage === 'en' ? 'PRICE' : 'CENA';
-    const currencySymbol = (edit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
-    const priceText = (edit.priceCurrency || globalCurrency) === 'GBP' 
-      ? `${priceLabel}: ${currencySymbol} ${product.cena}` 
+    const currencySymbol = (edit.priceCurrency || globalCurrency) === 'EUR' ? 'EUR' : 'GBP';
+    const priceText = (edit.priceCurrency || globalCurrency) === 'GBP'
+      ? `${priceLabel}: ${currencySymbol} ${product.cena}`
       : `${priceLabel}: ${product.cena} ${currencySymbol}`;
-    const cenaText = new fabric.Text(priceText, {
+    cenaText = new fabric.Text(priceText, {
       left: 320,
       top: 80,
       fontSize: edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24,
@@ -933,6 +1280,8 @@ function showVirtualEditModal(productIndex) {
     });
     canvas.add(cenaText);
   }
+
+  // Kod kreskowy
   if (showEan && product.ean && product.barcode) {
     try {
       fabric.Image.fromURL(product.barcode, (barcodeImg) => {
@@ -945,6 +1294,8 @@ function showVirtualEditModal(productIndex) {
       document.getElementById('debug').innerText = "Błąd ładowania kodu kreskowego w podglądzie";
     }
   }
+
+  // Edycja po zaznaczeniu
   canvas.on('object:selected', (e) => {
     const obj = e.target;
     document.getElementById('editPanel').style.display = 'block';
@@ -954,17 +1305,20 @@ function showVirtualEditModal(productIndex) {
     document.getElementById('borderStyleSelect').value = edit.borderStyle || 'solid';
     document.getElementById('borderColorSelect').value = edit.borderColor || '#000000';
     document.getElementById('backgroundOpacitySelect').value = edit.backgroundOpacity || 1.0;
-    window.applyTextEdit = function() {
+
+    window.applyTextEdit = function () {
       try {
         obj.set({
           fontFamily: document.getElementById('fontSelect').value,
           fill: document.getElementById('colorSelect').value,
           fontSize: document.getElementById('sizeSelect').value === 'small' ? 16 : document.getElementById('sizeSelect').value === 'medium' ? 20 : 24
         });
+
         const borderStyle = document.getElementById('borderStyleSelect').value;
         const borderColor = document.getElementById('borderColorSelect').value;
         const backgroundOpacity = parseFloat(document.getElementById('backgroundOpacitySelect').value);
         const backgroundTextureInput = document.getElementById('backgroundTextureSelect').files[0];
+
         if (backgroundTextureInput) {
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -981,10 +1335,12 @@ function showVirtualEditModal(productIndex) {
           canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
           edit.backgroundTexture = null;
         }
+
         borderRect.set({
           stroke: borderColor,
           strokeDashArray: borderStyle === 'dashed' ? [5, 5] : borderStyle === 'dotted' ? [2, 2] : null
         });
+
         edit.borderStyle = borderStyle;
         edit.borderColor = borderColor;
         edit.backgroundOpacity = backgroundOpacity;
@@ -995,10 +1351,13 @@ function showVirtualEditModal(productIndex) {
       }
     };
   });
+
   canvas.on('object:moving', (e) => {
     const obj = e.target;
     console.log('Przesunięto:', obj.left, obj.top);
   });
+
+  // Zapis edycji
   document.getElementById('saveVirtualEdit').onclick = () => {
     try {
       const activeObject = canvas.getActiveObject();
@@ -1009,11 +1368,13 @@ function showVirtualEditModal(productIndex) {
           nazwaFontColor: activeObject === nazwaText ? activeObject.fill : edit.nazwaFontColor,
           indeksFont: activeObject === indeksText ? activeObject.fontFamily : edit.indeksFont,
           indeksFontColor: activeObject === indeksText ? activeObject.fill : edit.indeksFontColor,
-          rankingFont: activeObject === rankingText ? activeObject.fontFamily : edit.rankingFont,
-          rankingFontColor: activeObject === rankingText ? activeObject.fill : edit.rankingFontColor,
-          cenaFont: activeObject === cenaText ? activeObject.fontFamily : edit.cenaFont,
-          cenaFontColor: activeObject === cenaText ? activeObject.fill : edit.cenaFontColor,
-          priceFontSize: activeObject === nazwaText || activeObject === cenaText ? (activeObject.fontSize === 16 ? 'small' : activeObject.fontSize === 20 ? 'medium' : 'large') : edit.priceFontSize,
+          rankingFont: rankingText && activeObject === rankingText ? activeObject.fontFamily : edit.rankingFont,
+          rankingFontColor: rankingText && activeObject === rankingText ? activeObject.fill : edit.rankingFontColor,
+          cenaFont: cenaText && activeObject === cenaText ? activeObject.fontFamily : edit.cenaFont,
+          cenaFontColor: cenaText && activeObject === cenaText ? activeObject.fill : edit.cenaFontColor,
+          priceFontSize: (activeObject === nazwaText || activeObject === cenaText)
+            ? (activeObject.fontSize === 16 ? 'small' : activeObject.fontSize === 20 ? 'medium' : 'large')
+            : edit.priceFontSize,
           positionX: activeObject.left,
           positionY: activeObject.top,
           borderStyle: edit.borderStyle || 'solid',
@@ -1033,10 +1394,13 @@ function showVirtualEditModal(productIndex) {
     }
   };
 }
+
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
+
+// Eksport funkcji do globalnego zakresu
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
 window.previewPDF = previewPDF;
@@ -1045,4 +1409,14 @@ window.showVirtualEditModal = showVirtualEditModal;
 window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
+
+// Uruchomienie po załadowaniu strony
 loadProducts();
+
+// Konwersja hex → RGB
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b];
+}
