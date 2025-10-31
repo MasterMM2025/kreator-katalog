@@ -1,156 +1,257 @@
-<html lang="pl"></html>
+<!DOCTYPE html>
+<html lang="pl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Katalog produktów</title>
-<link rel="icon" href="data:;base64,iVBORw0KGgo=">
-<link rel="stylesheet" href="kreator.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Katalog produktów</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="stylesheet" href="kreator.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<!-- Sidebar -->
-<div class="sidebar">
-<h3>Opcje PDF</h3>
-<label><input type="checkbox" id="showEan" checked> Kod EAN</label>
-<label><input type="checkbox" id="showRanking" checked> Ranking</label>
-<label><input type="checkbox" id="showCena" checked> Cena</label>
-<label><input type="checkbox" id="showLogo" checked> Logo</label>
-<label>
-Waluta:
-<select id="currencySelect">
-<option value="EUR" selected>€ (EUR)</option>
-<option value="GBP">£ (GBP)</option>
-</select>
-</label>
-<label>
-Język:
-<select id="languageSelect">
-<option value="pl" selected>Polski</option>
-<option value="en">Angielski</option>
-</select>
-</label>
-<h3>Układ modułów</h3>
-<select id="layoutSelect">
-<option value="1">1 moduł</option>
-<option value="2">2 moduły</option>
-<option value="4">4 moduły</option>
-<option value="8">8 modułów</option>
-<option value="16" selected>16 modułów</option>
-<option value="4-2-4">4-2-4 moduły</option>
-</select>
-<h3>Wygląd ramek</h3>
-<label><input type="radio" name="frameStyle" value="3d" checked> Z ramką 3D</label>
-<label><input type="radio" name="frameStyle" value="none"> Bez ramek</label>
-</div>
-<!-- Main Content -->
-<div class="main-content">
-<!-- Panel -->
-<div class="panel improved-panel">
-<h2><i class="fas fa-cogs"></i> Import i ustawienia</h2>
-<!-- Import pliku Excel -->
-<div class="import-row">
-<div class="file-section">
-<label for="excelFile" class="file-label-wrapper">
-<span id="fileLabel">Nie wybrano pliku</span>
-</label>
-<input type="file" id="excelFile" accept=".xls,.xlsx,.csv" style="display:none;">
-</div>
-<button class="btn-primary" onclick="importExcel()"><i class="fas fa-file-import"></i> Importuj Excel</button>
-</div>
-<!-- Wybór banera -->
-<div class="upload-block">
-<div class="banner-wrapper">
-<button id="chooseBannerBtn" onclick="showBannerModal()" class="btn-banner">
-<i class="fas fa-image"></i> Wybierz baner
-</button>
-<div id="bannerUpload" class="upload-zone">
-<p>Przeciągnij baner tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
-</div>
-</div>
-</div>
-<!-- Import tła -->
-<div class="upload-block">
-<div id="backgroundUpload" class="upload-zone">
-<p>Przeciągnij tło tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="backgroundFileInput" accept="image/*" style="display:none;">
-</div>
-</div>
-<!-- Import okładki -->
-<div class="upload-block">
-<div id="coverUpload" class="upload-zone">
-<p>Przeciągnij okładkę tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="coverFileInput" accept="image/*" style="display:none;">
-</div>
-</div>
-<!-- Import zdjęć -->
-<div class="upload-block">
-<div id="uploadArea" class="upload-zone">
-<p>Przeciągnij zdjęcia tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
-</div>
-</div>
-<!-- Generowanie PDF -->
-<div class="pdf-buttons">
-<button onclick="generatePDF()" disabled id="pdfButton" class="btn-primary">
-<i class="fas fa-file-pdf"></i> Generuj PDF
-</button>
-<button onclick="previewPDF()" disabled id="previewButton" class="btn-secondary">
-<i class="fas fa-eye"></i> Podgląd PDF
-</button>
-</div>
-</div>
-<!-- Podgląd PDF -->
-<div id="pdfPreview" style="margin-top:15px; display:none;">
-<h3><i class="fas fa-file-pdf"></i> Podgląd PDF</h3>
-<iframe id="pdfIframe" width="100%" height="600px" style="border:1px solid #ccc;"></iframe>
-</div>
-<!-- Katalog produktów -->
-<h1>Katalog produktów</h1>
-<div id="debug"></div>
-<div id="catalog"></div>
-<!-- Modal wyboru banera -->
-<div id="bannerModal" class="modal">
-<div class="modal-content">
-<span class="close" onclick="hideBannerModal()">&times;</span>
-<h3>Wybierz baner</h3>
-<div class="banner-options" id="bannerOptions"></div>
-</div>
-</div>
-<!-- Modal edycji produktu -->
-<div id="editModal" class="modal">
-<div class="modal-content">
-<span class="close" onclick="hideEditModal()">&times;</span>
-<h3>Edytuj produkt</h3>
-<div id="editForm"></div>
-</div>
-</div>
-<!-- Modal paska postępu -->
-<div id="progressModal" class="modal" style="display:none;">
-<div class="modal-content" style="text-align:center;">
-<span class="close" onclick="hideProgressModal()" style="display:none;">&times;</span>
-<h3>Generowanie podglądu...</h3>
-<div id="progressBarContainer" style="width:80%; margin:20px auto;">
-<div id="progressBar" style="height:20px; background:#3182ce; width:0%; transition:width 0.1s;"></div>
-</div>
-<span id="progressText">0%</span>
-</div>
-</div>
-<!-- Modal edycji wirtualnej -->
-<div id="virtualEditModal" class="modal" style="display:none;">
-<div class="modal-content">
-<span class="close" onclick="hideEditModal()">&times;</span>
-<h3>Edytuj produkt wizualnie</h3>
-</div>
-</div>
-<!-- Skrypty -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-gradient@latest/dist/jspdf-gradient.min.js"></script>
-<script src="kreator1.js" defer></script>
-<script src="kreator2.js" defer></script>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h3>Opcje PDF</h3>
+    <label><input type="checkbox" id="showEan" checked> Kod EAN</label>
+    <label><input type="checkbox" id="showRanking" checked> Ranking</label>
+    <label><input type="checkbox" id="showCena" checked> Cena</label>
+    <label><input type="checkbox" id="showLogo" checked> Logo</label>
+    <label>
+      Waluta:
+      <select id="currencySelect">
+        <option value="EUR" selected>€ (EUR)</option>
+        <option value="GBP">£ (GBP)</option>
+      </select>
+    </label>
+    <label>
+      Język:
+      <select id="languageSelect">
+        <option value="pl" selected>Polski</option>
+        <option value="en">Angielski</option>
+      </select>
+    </label>
+    <h3>Układ modułów</h3>
+    <select id="layoutSelect">
+      <option value="1">1 moduł</option>
+      <option value="2">2 moduły</option>
+      <option value="4">4 moduły</option>
+      <option value="8">8 modułów</option>
+      <option value="16" selected>16 modułów</option>
+      <option value="4-2-4">4-2-4 moduły</option>
+    </select>
+
+    <button class="btn-primary" onclick="openPageSettings()" style="margin-top:10px; width:100%;">
+      Ustawienia stron
+    </button>
+
+    <h3>Wygląd ramek</h3>
+    <label><input type="radio" name="frameStyle" value="3d" checked> Z ramką 3D</label>
+    <label><input type="radio" name="frameStyle" value="none"> Bez ramek</label>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="panel improved-panel">
+      <h2>Import i ustawienia</h2>
+      <div class="import-row">
+        <div class="file-section">
+          <label for="excelFile" class="file-label-wrapper">
+            <span id="fileLabel">Nie wybrano pliku</span>
+          </label>
+          <input type="file" id="excelFile" accept=".xls,.xlsx,.csv" style="display:none;">
+        </div>
+        <button class="btn-primary" onclick="importExcel()">Importuj Excel</button>
+      </div>
+
+      <div class="upload-block">
+        <div class="banner-wrapper">
+          <button id="chooseBannerBtn" onclick="showBannerModal()" class="btn-banner">
+            Wybierz baner
+          </button>
+          <div id="bannerUpload" class="upload-zone">
+            <p>Przeciągnij baner tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+            <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-block">
+        <div id="backgroundUpload" class="upload-zone">
+          <p>Przeciągnij tło tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="backgroundFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <div class="upload-block">
+        <div id="coverUpload" class="upload-zone">
+          <p>Przeciągnij okładkę tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="coverFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <div class="upload-block">
+        <div id="uploadArea" class="upload-zone">
+          <p>Przeciągnij zdjęcia tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
+        </div>
+      </div>
+
+      <div class="pdf-buttons">
+        <button onclick="generatePDF()" disabled id="pdfButton" class="btn-primary">
+          Generuj PDF
+        </button>
+        <button onclick="previewPDF()" disabled id="previewButton" class="btn-secondary">
+          Podgląd PDF
+        </button>
+      </div>
+    </div>
+
+    <div id="pdfPreview" style="margin-top:15px; display:none;">
+      <h3>Podgląd PDF</h3>
+      <iframe id="pdfIframe" width="100%" height="600px" style="border:1px solid #ccc;"></iframe>
+    </div>
+
+    <h1>Katalog produktów</h1>
+    <div id="debug"></div>
+    <div id="catalog"></div>
+
+    <!-- Modal wyboru banera -->
+    <div id="bannerModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideBannerModal()">×</span>
+        <h3>Wybierz baner</h3>
+        <div class="banner-options" id="bannerOptions"></div>
+      </div>
+    </div>
+
+    <!-- Modal edycji produktu -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideEditModal()">×</span>
+        <h3>Edytuj produkt</h3>
+        <div id="editForm"></div>
+      </div>
+    </div>
+
+    <!-- Modal ustawień stron -->
+    <div id="pageSettingsModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="closePageSettings()">×</span>
+        <h3>Ustawienia stron</h3>
+        <div id="pageSettingsContainer"></div>
+        <div style="margin-top:15px; text-align:right;">
+          <button class="btn-secondary" onclick="applyLayoutToAll()">Zastosuj do wszystkich</button>
+          <button class="btn-primary" onclick="closePageSettings()">Zamknij</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal postępu -->
+    <div id="progressModal" class="modal" style="display:none;">
+      <div class="modal-content" style="text-align:center;">
+        <h3>Generowanie podglądu...</h3>
+        <div id="progressBarContainer" style="width:80%; margin:20px auto;">
+          <div id="progressBar" style="height:20px; background:#3182ce; width:0%; transition:width 0.1s;"></div>
+        </div>
+        <span id="progressText">0%</span>
+      </div>
+    </div>
+
+    <!-- Modal edycji wirtualnej -->
+    <div id="virtualEditModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="hideEditModal()">×</span>
+        <h3>Edytuj produkt wizualnie</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skrypty -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-gradient@latest/dist/jspdf-gradient.min.js"></script>
+
+  <!-- ŁADUJ KOLEJNO: 1 → 2 → 2.1 -->
+  <script src="kreator1.js" defer></script>
+  <script src="kreator2.js" defer></script>
+  <script src="kreator2.1.js" defer></script>
+
+  <!-- INICJALIZACJA I NAPRAWA KONFLIKTU -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicjalizuj pageEdits
+      window.pageEdits = window.pageEdits || {};
+
+      // Napraw konflikt: kreator2.js ma być nadrzędny
+      if (typeof buildPDF === 'function' && buildPDF.toString().includes('currentPageIndex')) {
+        console.log('kreator2.js załadowany poprawnie');
+      }
+
+      // Funkcje modalu
+      window.openPageSettings = function() {
+        const modal = document.getElementById('pageSettingsModal');
+        if (!modal || !products || products.length === 0) return;
+
+        const defaultLayout = document.getElementById('layoutSelect').value;
+        const itemsPerPage = getItemsPerPage(defaultLayout);
+        const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
+
+        let html = '';
+        for (let i = 0; i < totalPages; i++) {
+          const edit = pageEdits[i] || {};
+          const currentLayout = edit.layout || defaultLayout;
+          html += `
+            <div style="margin:8px 0; padding:8px; border:1px solid #ddd; border-radius:4px;">
+              <strong>Strona ${i + 1}</strong>
+              <select onchange="setPageLayout(${i}, this.value)" style="margin-left:10px;">
+                <option value="1" ${currentLayout==='1'?'selected':''}>1 moduł</option>
+                <option value="2" ${currentLayout==='2'?'selected':''}>2 moduły</option>
+                <option value="4" ${currentLayout==='4'?'selected':''}>4 moduły</option>
+                <option value="8" ${currentLayout==='8'?'selected':''}>8 modułów</option>
+                <option value="16" ${currentLayout==='16'?'selected':''}>16 modułów</option>
+                <option value="4-2-4" ${currentLayout==='4-2-4'?'selected':''}>4-2-4 moduły</option>
+              </select>
+            </div>`;
+        }
+        document.getElementById('pageSettingsContainer').innerHTML = html;
+        modal.style.display = 'block';
+      };
+
+      window.setPageLayout = function(pageIndex, layout) {
+        pageEdits[pageIndex] = pageEdits[pageIndex] || {};
+        pageEdits[pageIndex].layout = layout;
+        renderCatalog();
+        previewPDF(); // odśwież podgląd
+      };
+
+      window.applyLayoutToAll = function() {
+        const layout = document.getElementById('layoutSelect').value;
+        if (!confirm(`Czy zastosować układ "${layout}" do wszystkich stron?`)) return;
+
+        const itemsPerPage = getItemsPerPage(layout);
+        const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
+
+        for (let i = 0; i < totalPages; i++) {
+          pageEdits[i] = pageEdits[i] || {};
+          pageEdits[i].layout = layout;
+        }
+        renderCatalog();
+        previewPDF();
+        openPageSettings();
+      };
+
+      window.closePageSettings = function() {
+        document.getElementById('pageSettingsModal').style.display = 'none';
+      };
+
+      function getItemsPerPage(layout) {
+        const map = { "1":1, "2":2, "4":4, "8":8, "16":16, "4-2-4":10 };
+        return map[layout] || 16;
+      }
+    });
+  </script>
 </body>
 </html>
