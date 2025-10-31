@@ -423,7 +423,7 @@ if (imgSrc) {
         doc.text(`Indeks: ${p.indeks || '-'}`, tx, textY, { align });
 
         if (showCena && p.cena) {
-          textY += isLarge ? 36 : 10;
+          textY += isLarge ? 20 : 8;
           doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
           doc.setFontSize(isLarge ? 20 : 12);
           doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
