@@ -382,19 +382,27 @@ async function buildPDF(jsPDF, save = true) {
         let imgSrc = uploadedImages[p.indeks] || p.img;
         const hasEan = showEan && p.ean && p.barcode;
 
-        if (isLarge && imgSrc) {
-          const img = new Image(); img.src = imgSrc;
-          await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
-        
-          // ZWIĘKSZONE ZDJĘCIE: 180x140 (zamiast 150x115)
-          const maxW = 180, maxH = 140;
-          const scale = Math.min(maxW / img.width, maxH / img.height);
-          const w = img.width * scale, h = img.height * scale;
-          const imgX = x + (boxWidth - w) / 2;
-          const imgY = y + 25; // lekko niżej, by zmieścić większe zdjęcie
-        
-          doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
-        }
+        // RYSUJ ZDJĘCIE – ZAWSZE, DLA MAŁYCH I DUŻYCH MODUŁÓW
+if (imgSrc) {
+  const img = new Image(); img.src = imgSrc;
+  await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
+  let maxW, maxH, imgX, imgY, w, h, scale;
+
+  if (isLarge) {
+    maxW = 180; maxH = 140;
+    scale = Math.min(maxW / img.width, maxH / img.height);
+    w = img.width * scale; h = img.height * scale;
+    imgX = x + (boxWidth - w) / 2;
+    imgY = y + 25;
+  } else {
+    maxW = 80; maxH = 60;
+    scale = Math.min(maxW / img.width, maxH / img.height);
+    w = img.width * scale; h = img.height * scale;
+    imgX = x + 6;
+    imgY = y + (boxHeight - h) / 2;
+  }
+  doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
+}
         
         // NAZWA PRZESUNIĘTA NIŻEJ (o 20 pt więcej)
         let textY = y + (isLarge ? 25 + 140 + 20 : 20); // 25 (góra) + 140 (zdjęcie) + 20 (odstęp)
