@@ -15,20 +15,24 @@ function drawBox(doc, x, y, w, h, borderStyle, borderColor) {
   else doc.setLineDash([]);
   doc.roundedRect(x, y, w, h, 5, 5, 'S');
 }
+
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return [r, g, b];
 }
+
 function showProgressModal() {
   document.getElementById('progressModal').style.display = 'block';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('progressText').textContent = '0%';
 }
+
 function hideProgressModal() {
   document.getElementById('progressModal').style.display = 'none';
 }
+
 // === BUDOWANIE PDF ===
 async function buildPDF(jsPDF, save = true) {
   showProgressModal();
@@ -38,8 +42,10 @@ async function buildPDF(jsPDF, save = true) {
   const bannerHeight = 85;
   let totalProducts = products.length;
   let processedProducts = 0;
+
   let productIndex = 0;
   let pageNumber = 1;
+
   // === OKŁADKA ===
   if (selectedCover) {
     try {
@@ -49,9 +55,11 @@ async function buildPDF(jsPDF, save = true) {
       console.error('Błąd okładki:', e);
     }
   }
+
   // === DEKLARACJE TŁA I BANNERA ===
   const bannerImg = selectedBanner ? selectedBanner.data : null;
   const backgroundImg = selectedBackground ? selectedBackground.data : null;
+
   const applyGradient = (gradientType, opacity) => {
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: opacity || 1.0 }));
@@ -76,6 +84,7 @@ async function buildPDF(jsPDF, save = true) {
     }
     doc.restoreGraphicsState();
   };
+
   const marginTop = 20 + bannerHeight;
   const marginBottom = 28;
   const marginLeftRight = 14;
@@ -84,6 +93,7 @@ async function buildPDF(jsPDF, save = true) {
   const showCena = document.getElementById('showCena')?.checked || false;
   let x = marginLeftRight;
   let y = marginTop;
+
   function getItemsPerPage(layout) {
     if (layout === "1") return 1;
     if (layout === "2") return 2;
@@ -93,11 +103,13 @@ async function buildPDF(jsPDF, save = true) {
     if (layout === "4-2-4") return 10;
     return 16;
   }
+
   // === FUNKCJA DODAJĄCA TŁO I BANNER (GLOBALNY + INDYWIDUALNY) ===
   const addBackgroundAndBanner = (pageIndex) => {
     if (backgroundImg) {
       doc.addImage(backgroundImg, backgroundImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
     }
+
     // 1. Indywidualny banner – jeśli istnieje
     if (typeof addPageBanner === 'function' && pageBanners[pageIndex]) {
       addPageBanner(doc, pageIndex, pageWidth, bannerHeight);
@@ -107,10 +119,12 @@ async function buildPDF(jsPDF, save = true) {
       doc.addImage(bannerImg, bannerImg.includes('image/png') ? "PNG" : "JPEG", 0, 0, pageWidth, bannerHeight, undefined, "FAST");
     }
   };
+
   // === PIERWSZA STRONA Z PRODUKTAMI ===
   if (products.length > 0) {
     addBackgroundAndBanner(0); // strona 0
   }
+
   // === MODUŁ 8 ===
   const drawSection8 = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
@@ -127,18 +141,23 @@ async function buildPDF(jsPDF, save = true) {
           backgroundTexture: null, backgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
+
         if (finalEdit.backgroundTexture) {
           doc.saveGraphicsState();
           doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
           doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
           doc.restoreGraphicsState();
         }
+
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
         let imgSrc = uploadedImages[p.indeks] || p.img;
         const hasEan = showEan && p.ean && p.barcode;
+
         const imgMaxW = 150, imgMaxH = 115;
         const textAreaX = x + 165;
         let currentY = y + 20;
+
         if (imgSrc) {
           const img = new Image(); img.src = imgSrc;
           await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
@@ -147,6 +166,7 @@ async function buildPDF(jsPDF, save = true) {
           const imgX = x + 8, imgY = y + (boxHeight - h) / 2;
           doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
         }
+
         doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
         doc.setFontSize(9);
         doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
@@ -159,11 +179,13 @@ async function buildPDF(jsPDF, save = true) {
           }
         });
         currentY += 6;
+
         doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
         doc.setFontSize(8);
         doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
         doc.text(`Indeks: ${p.indeks || 'Brak'}`, textAreaX, currentY);
         currentY += 10;
+
         if (showRanking && p.ranking) {
           doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
           doc.setFontSize(8);
@@ -171,24 +193,29 @@ async function buildPDF(jsPDF, save = true) {
           doc.text(`RANKING: ${p.ranking}`, textAreaX, currentY);
           currentY += 10;
         }
+
         let priceY = y + boxHeight - 60;
         if (showCena && p.cena) {
           const priceFontSize = (finalEdit.priceFontSize || 'medium') === 'small' ? 13 : (finalEdit.priceFontSize === 'medium' ? 15 : 17);
           doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
           doc.setFontSize(priceFontSize);
           doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
+
           const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? 'EUR' : 'GBP';
           const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
           const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
           const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP'
             ? `${showLabel ? `${labelText}: ` : ''}${currencySymbol} ${p.cena}`
             : `${showLabel ? `${labelText}: ` : ''}${p.cena} ${currencySymbol}`;
+
           const priceTextWidth = doc.getTextWidth(priceText);
           const textAreaWidth = boxWidth - 195;
           const priceX = textAreaX + (textAreaWidth - priceTextWidth) / 2;
           priceY = y + boxHeight - (hasEan ? 60 : 35);
+
           doc.text(priceText, priceX, priceY);
         }
+
         let by = y + boxHeight - 44;
         if (hasEan) {
           const bw = 100, bh = 38;
@@ -196,6 +223,7 @@ async function buildPDF(jsPDF, save = true) {
           by = y + boxHeight - bh - 6;
           doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
         }
+
         if (p.flagImg) {
           const flagWidth = 100;
           const flagHeight = 80;
@@ -208,6 +236,7 @@ async function buildPDF(jsPDF, save = true) {
           }
           doc.addImage(p.flagImg, "PNG", flagX, flagY, flagWidth, flagHeight, undefined, save ? "SLOW" : "FAST");
         }
+
         processedProducts++;
         document.getElementById('progressBar').style.width = `${(processedProducts / totalProducts) * 100}%`;
         document.getElementById('progressText').textContent = `${Math.round((processedProducts / totalProducts) * 100)}%`;
@@ -219,6 +248,7 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
+
   // === MODUŁ 16 ===
   const drawSection16 = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
@@ -235,18 +265,23 @@ async function buildPDF(jsPDF, save = true) {
           backgroundTexture: null, backgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
+
         if (finalEdit.backgroundTexture) {
           doc.saveGraphicsState();
           doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
           doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
           doc.restoreGraphicsState();
         }
+
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
         let imgSrc = uploadedImages[p.indeks] || p.img;
         const hasEan = showEan && p.ean && p.barcode;
+
         const imgMaxW = 80, imgMaxH = 60;
         const textAreaX = x + 90;
         let currentY = y + 14;
+
         if (imgSrc) {
           const img = new Image(); img.src = imgSrc;
           await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
@@ -255,6 +290,7 @@ async function buildPDF(jsPDF, save = true) {
           const imgX = x + 6, imgY = y + (boxHeight - h) / 2;
           doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
         }
+
         doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
         doc.setFontSize(6.5);
         doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
@@ -269,11 +305,13 @@ async function buildPDF(jsPDF, save = true) {
           }
         });
         currentY += 2;
+
         doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
         doc.setFontSize(6.5);
         doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
         doc.text(`Indeks: ${p.indeks || 'Brak'}`, textAreaX, currentY);
         currentY += 7;
+
         if (showRanking && p.ranking) {
           doc.setFont(finalEdit.rankingFont || 'Arial', "normal");
           doc.setFontSize(6.5);
@@ -281,6 +319,7 @@ async function buildPDF(jsPDF, save = true) {
           doc.text(`RANKING: ${p.ranking}`, textAreaX, currentY);
           currentY += 7;
         }
+
         if (showCena && p.cena) {
           const priceY = currentY + 8;
           doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
@@ -294,12 +333,14 @@ async function buildPDF(jsPDF, save = true) {
             : `${p.cena} ${currencySymbol}`;
           doc.text(priceText, textAreaX, priceY);
         }
+
         if (hasEan) {
           const bw = 90, bh = 33;
           const bx = x + boxWidth - bw - 6;
           const by = y + boxHeight - bh - 5;
           doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
         }
+
         processedProducts++;
         document.getElementById('progressBar').style.width = `${(processedProducts / totalProducts) * 100}%`;
         document.getElementById('progressText').textContent = `${Math.round((processedProducts / totalProducts) * 100)}%`;
@@ -311,7 +352,8 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
-  // === MODUŁ UNIWERSALNY (NAPRAWIONY – ZDJĘCIA W 4-2-4) ===
+
+  // === MODUŁ UNIWERSALNY ===
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -327,72 +369,65 @@ async function buildPDF(jsPDF, save = true) {
           backgroundTexture: null, backgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
+
         if (finalEdit.backgroundTexture) {
           doc.saveGraphicsState();
           doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
           doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
           doc.restoreGraphicsState();
         }
+
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
+
         let imgSrc = uploadedImages[p.indeks] || p.img;
         const hasEan = showEan && p.ean && p.barcode;
 
-        // RYSUJ ZDJĘCIE – ZAWSZE, ALE INNY ROZMIAR
-        if (imgSrc) {
+        if (isLarge && imgSrc) {
           const img = new Image(); img.src = imgSrc;
           await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
-          let maxW, maxH, imgX, imgY, w, h, scale;
-          if (isLarge) {
-            maxW = 180; maxH = 140;
-            scale = Math.min(maxW / img.width, maxH / img.height);
-            w = img.width * scale; h = img.height * scale;
-            imgX = x + (boxWidth - w) / 2;
-            imgY = y + 25;
-          } else {
-            maxW = 80; maxH = 60;
-            scale = Math.min(maxW / img.width, maxH / img.height);
-            w = img.width * scale; h = img.height * scale;
-            imgX = x + 6;
-            imgY = y + (boxHeight - h) / 2;
-          }
+        
+          // ZWIĘKSZONE ZDJĘCIE: 180x140 (zamiast 150x115)
+          const maxW = 180, maxH = 140;
+          const scale = Math.min(maxW / img.width, maxH / img.height);
+          const w = img.width * scale, h = img.height * scale;
+          const imgX = x + (boxWidth - w) / 2;
+          const imgY = y + 25; // lekko niżej, by zmieścić większe zdjęcie
+        
           doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
         }
-
-        // POZYCJA TEKSTU – ZALEŻNA OD ROZMIARU ZDJĘCIA
-        let textY = isLarge ? y + 25 + 140 + 20 : y + 80;
-        const tx = isLarge ? x + boxWidth / 2 : x + 90;
+        
+        // NAZWA PRZESUNIĘTA NIŻEJ (o 20 pt więcej)
+        let textY = y + (isLarge ? 25 + 140 + 20 : 20); // 25 (góra) + 140 (zdjęcie) + 20 (odstęp)
+        const tx = x + (isLarge ? boxWidth / 2 : 90);
         const align = isLarge ? "center" : "left";
 
-        // Nazwa
         doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
         doc.setFontSize(isLarge ? 14 : 9);
         doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
         const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (isLarge ? 40 : 90));
         lines.slice(0, isLarge ? 3 : 5).forEach((line, i) => doc.text(line, tx, textY + i * (isLarge ? 18 : 10), { align }));
+
         textY += (isLarge ? Math.min(lines.length, 3) * 18 + 15 : 60);
 
-        // Indeks
         doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
         doc.setFontSize(isLarge ? 10 : 8);
         doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
         doc.text(`Indeks: ${p.indeks || '-'}`, tx, textY, { align });
-        textY += isLarge ? 36 : 10;
 
-        // Cena
         if (showCena && p.cena) {
+          textY += isLarge ? 36 : 10;
           doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
           doc.setFontSize(isLarge ? 20 : 12);
           doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
-          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? 'EUR' : 'GBP';
+          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
           const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
           const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
           const priceText = showLabel
-            ? `${labelText}: ${currencySymbol === 'GBP' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`
-            : `${currencySymbol === 'GBP' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`;
+          ? `${labelText}: ${currencySymbol === '£' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`
+          : `${currencySymbol === '£' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`;
           doc.text(priceText, tx, textY, { align });
         }
 
-        // EAN
         let bw, bh, bx, by;
         if (hasEan) {
           bw = isLarge ? 140 : 90;
@@ -402,7 +437,6 @@ async function buildPDF(jsPDF, save = true) {
           doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
         }
 
-        // Flaga (tylko w layout 4, duże moduły)
         if (pageEdits[pageNumber - 1]?.layout === "4" && p.flagImg && isLarge) {
           const flagWidth = 150, flagHeight = 100;
           const flagX = x + (boxWidth - flagWidth) / 2 + 8;
@@ -421,14 +455,18 @@ async function buildPDF(jsPDF, save = true) {
     }
     return y;
   };
+
   const drawSectionSmall = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
     return await drawSection(sectionCols, sectionRows, boxWidth, boxHeight, false);
   };
+
   // === GŁÓWNA PĘTLA ===
   while (productIndex < products.length) {
     const pageEdit = pageEdits[pageNumber - 1] || {};
     const currentLayout = pageEdit.layout || "16";
+
     let cols, rows, boxWidth, boxHeight, isLarge;
+
     if (currentLayout === "1") {
       cols = 1; rows = 1;
       boxWidth = pageWidth - marginLeftRight * 2;
@@ -463,52 +501,58 @@ async function buildPDF(jsPDF, save = true) {
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - 6) / 2;
       isLarge = false;
       y = await drawSectionSmall(cols, rows, boxWidth, boxHeight);
+
       cols = 2; rows = 1;
       boxWidth = (pageWidth - marginLeftRight * 2 - 6) / 2;
       boxHeight = (pageHeight - marginTop - marginBottom) * 0.4;
       isLarge = true;
       y = await drawSection(cols, rows, boxWidth, boxHeight, isLarge);
+
       cols = 2; rows = 2;
       boxWidth = (pageWidth - marginLeftRight * 2 - 6) / 2;
       boxHeight = ((pageHeight - marginTop - marginBottom) * 0.3 - 6) / 2;
       isLarge = false;
       y = await drawSectionSmall(cols, rows, boxWidth, boxHeight);
     }
+
     if (productIndex < products.length) {
       // === DODAJ STRONĘ A4 PO OBECNEJ STRONIE (przed przejściem do następnej) ===
       if (typeof addInsertPage === 'function') {
         addInsertPage(doc, pageNumber - 1, pageWidth, pageHeight); // po stronie (pageNumber-1)
       }
-  
+    
       doc.addPage();
       pageNumber++;
-  
+    
       const nextPageEdit = pageEdits[pageNumber - 1] || {};
-  
+    
       // TŁO I BANNER NA NOWEJ STRONIE
       addBackgroundAndBanner(pageNumber - 1);
-  
+    
       // GRADIENT INDYWIDUALNY
       if (nextPageEdit.pageBackgroundGradient && nextPageEdit.pageBackgroundGradient !== "none") {
         applyGradient(nextPageEdit.pageBackgroundGradient, nextPageEdit.pageBackgroundOpacity);
       }
-  
+    
       doc.setFont("Arial", "bold");
       doc.setFontSize(12);
       doc.text(`${pageNumber}`, pageWidth - 20, pageHeight - 10, { align: "right" });
-  
+    
       x = marginLeftRight;
       y = marginTop;
     }
   }
+
   // === DODAJ OSTATNIĄ STRONĘ (BACK COVER) ===
   if (typeof addBackCover === 'function') {
     addBackCover(doc, pageWidth, pageHeight);
   }
+
   hideProgressModal();
   if (save) doc.save("katalog.pdf");
   return doc;
 }
+
 async function generatePDF() {
   try {
     const { jsPDF } = window.jspdf;
@@ -518,6 +562,7 @@ async function generatePDF() {
     hideProgressModal();
   }
 }
+
 async function previewPDF() {
   try {
     showProgressModal();
@@ -531,11 +576,13 @@ async function previewPDF() {
     hideProgressModal();
   }
 }
+
 // === SIDEBAR – TYLKO DOMYŚLNY LAYOUT ===
 document.getElementById('layoutSelect')?.addEventListener('change', function() {
   renderCatalog();
   previewPDF();
 });
+
 function getItemsPerPage(layout) {
   if (layout === "1") return 1;
   if (layout === "2") return 2;
@@ -545,23 +592,28 @@ function getItemsPerPage(layout) {
   if (layout === "4-2-4") return 10;
   return 16;
 }
+
 // === FUNKCJA OBLICZAJĄCA RZECZYWISTĄ LICZBĘ STRON ===
 function calculateTotalPages() {
   let totalProducts = products.length;
   let currentProduct = 0;
   let calculatedPages = 0;
+
   while (currentProduct < totalProducts) {
     const pageEdit = pageEdits[calculatedPages] || {};
     const layout = pageEdit.layout || "16";
     const itemsPerPage = getItemsPerPage(layout);
     currentProduct += itemsPerPage;
     calculatedPages++;
+
     if (!pageEdits[calculatedPages]) {
       pageEdits[calculatedPages] = { layout: "16" };
     }
   }
+
   return calculatedPages;
 }
+
 // === EDYCJA PRODUKTU ===
 function showEditModal(productIndex) {
   const product = products[productIndex];
@@ -686,6 +738,7 @@ function showEditModal(productIndex) {
   `;
   document.getElementById('editModal').style.display = 'block';
 }
+
 function saveEdit(productIndex) {
   const product = products[productIndex];
   const editImage = document.getElementById('editImage').files[0];
@@ -756,8 +809,10 @@ function saveEdit(productIndex) {
   renderCatalog();
   hideEditModal();
 }
+
 function showPageEditModal(pageIndex) {
   const totalPages = calculateTotalPages();
+
   const edit = pageEdits[pageIndex] || {
     nazwaFont: 'Arial', nazwaFontColor: '#000000',
     indeksFont: 'Arial', indeksFontColor: '#000000',
@@ -767,7 +822,9 @@ function showPageEditModal(pageIndex) {
     pageBackgroundGradient: 'none', pageBackgroundOpacity: 1.0,
     layout: '16'
   };
+
   const editForm = document.getElementById('editForm');
+
   editForm.innerHTML = `
     <div class="edit-field">
       <label>Wybierz stronę:</label>
@@ -851,10 +908,12 @@ function showPageEditModal(pageIndex) {
     <button onclick="savePageEdit(${pageIndex})" class="btn-primary">Zapisz</button>
   `;
   document.getElementById('editModal').style.display = 'block';
+
   // === DODAJ OPCJE BANNERA OD RAZU ===
   if (typeof updatePageEnhancements === 'function') {
     setTimeout(updatePageEnhancements, 50);
   }
+
   // === REAGUJ NA ZMIANĘ STRONY ===
   const select = document.getElementById('editPageSelect');
   select.onchange = () => {
@@ -863,10 +922,12 @@ function showPageEditModal(pageIndex) {
     }
   };
 }
+
 function savePageEdit(pageIndex) {
   try {
     const newPageIndex = parseInt(document.getElementById('editPageSelect').value);
     const newLayout = document.getElementById('editPageLayout').value;
+
     pageEdits[newPageIndex] = {
       nazwaFont: document.getElementById('editNazwaFont').value,
       nazwaFontColor: document.getElementById('editNazwaColor').value,
@@ -882,7 +943,9 @@ function savePageEdit(pageIndex) {
       pageBackgroundOpacity: parseFloat(document.getElementById('editPageBackgroundOpacity').value) || 1.0,
       layout: newLayout
     };
+
     calculateTotalPages();
+
     console.log('Saved Page Edit for Page Index:', newPageIndex, pageEdits[newPageIndex]);
     renderCatalog();
     hideEditModal();
@@ -892,85 +955,106 @@ function savePageEdit(pageIndex) {
     document.getElementById('debug').innerText = "Błąd zapisywania edycji strony";
   }
 }
+
 function showVirtualEditModal(productIndex) {
   // ... (bez zmian)
 }
+
 function hideEditModal() {
   document.getElementById('editModal').style.display = 'none';
   document.getElementById('virtualEditModal').style.display = 'none';
 }
+
 // === FUNKCJA DODAJĄCA BANNER + STRONĘ A4 (z kreator2.1.js) ===
 function updatePageEnhancements() {
   const modal = document.getElementById('editModal');
   const select = document.getElementById('editPageSelect');
   if (!modal || !select || modal.style.display !== 'block') return;
+
   const pageIndex = parseInt(select.value);
   const totalPages = typeof calculateTotalPages === 'function' ? calculateTotalPages() : 1;
+
   document.querySelectorAll('.edit-field[data-page-enhance]').forEach(el => el.remove());
+
   // === BANNER ===
   const bannerDiv = document.createElement('div');
   bannerDiv.className = 'edit-field';
   bannerDiv.dataset.pageEnhance = 'true';
+
   const bannerLabel = document.createElement('label');
   bannerLabel.textContent = `Banner strony ${pageIndex + 1}:`;
   bannerDiv.appendChild(bannerLabel);
+
   const bannerButton = document.createElement('button');
   bannerButton.type = 'button';
   bannerButton.className = 'btn-small';
   bannerButton.textContent = 'Zmień';
   bannerButton.onclick = () => importPageBanner(pageIndex);
   bannerDiv.appendChild(bannerButton);
+
   if (pageBanners[pageIndex]) {
     const img = document.createElement('img');
     img.src = pageBanners[pageIndex].data;
     img.style = 'max-width:150px; margin-top:5px; display:block;';
     bannerDiv.appendChild(img);
   }
+
   const lastField = modal.querySelector('.edit-field:last-of-type');
   if (lastField) lastField.insertAdjacentElement('afterend', bannerDiv);
+
   // === STRONA A4 ===
   const insertDiv = document.createElement('div');
   insertDiv.className = 'edit-field';
   insertDiv.dataset.pageEnhance = 'true';
+
   const insertLabel = document.createElement('label');
   insertLabel.textContent = `Strona A4 po stronie ${pageIndex + 1}:`;
   insertDiv.appendChild(insertLabel);
+
   const insertButton = document.createElement('button');
   insertButton.type = 'button';
   insertButton.className = 'btn-small';
   insertButton.textContent = 'Dodaj grafikę';
   insertButton.onclick = () => importInsertPage(pageIndex);
   insertDiv.appendChild(insertButton);
+
   if (pageInserts[pageIndex]) {
     const img = document.createElement('img');
     img.src = pageInserts[pageIndex].data;
     img.style = 'max-width:150px; margin-top:5px; display:block;';
     insertDiv.appendChild(img);
   }
+
   modal.appendChild(insertDiv);
+
   // === BACK COVER ===
   if (pageIndex === totalPages - 1) {
     const backDiv = document.createElement('div');
     backDiv.className = 'edit-field';
     backDiv.dataset.pageEnhance = 'true';
+
     const backLabel = document.createElement('label');
     backLabel.textContent = 'Ostatnia strona (back cover):';
     backDiv.appendChild(backLabel);
+
     const backButton = document.createElement('button');
     backButton.type = 'button';
     backButton.className = 'btn-small';
     backButton.textContent = 'Importuj';
     backButton.onclick = importBackCover;
     backDiv.appendChild(backButton);
+
     if (selectedBackCover) {
       const img = document.createElement('img');
       img.src = selectedBackCover.data;
       img.style = 'max-width:150px; margin-top:5px; display:block;';
       backDiv.appendChild(img);
     }
+
     modal.appendChild(backDiv);
   }
 }
+
 // === EKSPORT FUNKCJI ===
 window.importExcel = importExcel;
 window.generatePDF = generatePDF;
@@ -980,6 +1064,7 @@ window.showVirtualEditModal = showVirtualEditModal;
 window.hideEditModal = hideEditModal;
 window.showPageEditModal = showPageEditModal;
 window.savePageEdit = savePageEdit;
+
 // === URUCHOMIENIE – TYLKO W KREATOR1.JS! ===
 window.addEventListener('load', () => {
   loadProducts();
