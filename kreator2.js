@@ -405,7 +405,7 @@ if (imgSrc) {
 }
         
         // NAZWA PRZESUNIĘTA NIŻEJ (o 20 pt więcej)
-        let textY = y + (isLarge ? 25 + 140 + 20 : 20); // 25 (góra) + 140 (zdjęcie) + 20 (odstęp)
+        let textY = isLarge ? y + 25 + 140 + 20 : y + 14; // 14 = start jak w module 16
         const tx = x + (isLarge ? boxWidth / 2 : 90);
         const align = isLarge ? "center" : "left";
 
