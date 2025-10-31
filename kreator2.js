@@ -353,7 +353,7 @@ async function buildPDF(jsPDF, save = true) {
     return y;
   };
 
-  // === MODUŁ UNIWERSALNY ===
+    // === MODUŁ UNIWERSALNY ===
   const drawSection = async (sectionCols, sectionRows, boxWidth, boxHeight, isLarge) => {
     for (let row = 0; row < sectionRows && productIndex < products.length; row++) {
       for (let col = 0; col < sectionCols && productIndex < products.length; col++) {
@@ -369,61 +369,63 @@ async function buildPDF(jsPDF, save = true) {
           backgroundTexture: null, backgroundOpacity: 1.0
         };
         const finalEdit = { ...pageEdit, ...edit };
-
         if (finalEdit.backgroundTexture) {
           doc.saveGraphicsState();
           doc.setGState(new doc.GState({ opacity: finalEdit.backgroundOpacity || 1.0 }));
           doc.addImage(finalEdit.backgroundTexture, finalEdit.backgroundTexture.includes('image/png') ? "PNG" : "JPEG", x, y, boxWidth, boxHeight);
           doc.restoreGraphicsState();
         }
-
         drawBox(doc, x, y, boxWidth, boxHeight, finalEdit.borderStyle || 'solid', finalEdit.borderColor || '#000000');
-
         let imgSrc = uploadedImages[p.indeks] || p.img;
         const hasEan = showEan && p.ean && p.barcode;
-
         // RYSUJ ZDJĘCIE – ZAWSZE, DLA MAŁYCH I DUŻYCH MODUŁÓW
-if (imgSrc) {
-  const img = new Image(); img.src = imgSrc;
-  await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
-  let maxW, maxH, imgX, imgY, w, h, scale;
-
-  if (isLarge) {
-    maxW = 180; maxH = 140;
-    scale = Math.min(maxW / img.width, maxH / img.height);
-    w = img.width * scale; h = img.height * scale;
-    imgX = x + (boxWidth - w) / 2;
-    imgY = y + 25;
-  } else {
-    maxW = 80; maxH = 60;
-    scale = Math.min(maxW / img.width, maxH / img.height);
-    w = img.width * scale; h = img.height * scale;
-    imgX = x + 6;
-    imgY = y + (boxHeight - h) / 2;
-  }
-  doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
-}
-        
-        // NAZWA PRZESUNIĘTA NIŻEJ (o 20 pt więcej)
-        let textY = isLarge ? y + 25 + 140 + 20 : y + 14; // 14 = start jak w module 16
+        if (imgSrc) {
+          const img = new Image(); img.src = imgSrc;
+          await Promise.race([new Promise(res => img.onload = res), new Promise((_, rej) => setTimeout(() => rej(), 5000))]).catch(() => {});
+          let maxW, maxH, imgX, imgY, w, h, scale;
+          if (isLarge) {
+            maxW = 180; maxH = 140;
+            scale = Math.min(maxW / img.width, maxH / img.height);
+            w = img.width * scale; h = img.height * scale;
+            imgX = x + (boxWidth - w) / 2;
+            imgY = y + 25;
+          } else {
+            maxW = 80; maxH = 60;
+            scale = Math.min(maxW / img.width, maxH / img.height);
+            w = img.width * scale; h = img.height * scale;
+            imgX = x + 6;
+            imgY = y + (boxHeight - h) / 2;
+          }
+          doc.addImage(imgSrc, imgSrc.includes('image/png') ? "PNG" : "JPEG", imgX, imgY, w, h, undefined, save ? "SLOW" : "FAST");
+        }
+       
+        // POZYCJA TEKSTU – JAK W MODULE 16
+        let textY = isLarge ? y + 25 + 140 + 20 : y + 14;
         const tx = x + (isLarge ? boxWidth / 2 : 90);
         const align = isLarge ? "center" : "left";
 
+        // NAZWA – TYLKO 2 LINIE W MAŁYCH MODUŁACH
         doc.setFont(finalEdit.nazwaFont || 'Arial', "bold");
         doc.setFontSize(isLarge ? 14 : 9);
         doc.setTextColor(...hexToRgb(finalEdit.nazwaFontColor || '#000000'));
         const lines = doc.splitTextToSize(p.nazwa || "Brak nazwy", boxWidth - (isLarge ? 40 : 90));
-        lines.slice(0, isLarge ? 3 : 5).forEach((line, i) => doc.text(line, tx, textY + i * (isLarge ? 18 : 10), { align }));
+        const maxNameLines = isLarge ? 3 : 2;
+        lines.slice(0, maxNameLines).forEach((line, i) => {
+          doc.text(line, tx, textY + i * (isLarge ? 18 : 10), { align });
+        });
+        textY += (isLarge ? maxNameLines * 18 + 10 : maxNameLines * 10 + 6);
 
-        textY += (isLarge ? Math.min(lines.length, 3) * 18 + 15 : 60);
-
+        // INDEKS
         doc.setFont(finalEdit.indeksFont || 'Arial', "normal");
         doc.setFontSize(isLarge ? 10 : 8);
         doc.setTextColor(...hexToRgb(finalEdit.indeksFontColor || '#000000'));
         doc.text(`Indeks: ${p.indeks || '-'}`, tx, textY, { align });
 
+        // WIĘKSZY ODSTĘP MIĘDZY INDEKSEM A CENĄ
+        textY += isLarge ? 20 : 12; // ← POPRAWKA: 12pt w małych modułach
+
+        // CENA
         if (showCena && p.cena) {
-          textY += isLarge ? 20 : 8;
           doc.setFont(finalEdit.cenaFont || 'Arial', "bold");
           doc.setFontSize(isLarge ? 20 : 12);
           doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
@@ -431,8 +433,8 @@ if (imgSrc) {
           const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
           const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
           const priceText = showLabel
-          ? `${labelText}: ${currencySymbol === '£' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`
-          : `${currencySymbol === '£' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`;
+            ? `${labelText}: ${currencySymbol === '£' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`
+            : `${currencySymbol === '£' ? `${currencySymbol} ${p.cena}` : `${p.cena} ${currencySymbol}`}`;
           doc.text(priceText, tx, textY, { align });
         }
 
@@ -444,14 +446,12 @@ if (imgSrc) {
           by = y + boxHeight - bh - 5;
           doc.addImage(p.barcode, "PNG", bx, by, bw, bh, undefined, save ? "SLOW" : "FAST");
         }
-
         if (pageEdits[pageNumber - 1]?.layout === "4" && p.flagImg && isLarge) {
           const flagWidth = 150, flagHeight = 100;
           const flagX = x + (boxWidth - flagWidth) / 2 + 8;
           const flagY = hasEan ? (y + boxHeight - bh - 5 - flagHeight) : textY + 10;
           doc.addImage(p.flagImg, "PNG", flagX, flagY, flagWidth, flagHeight, undefined, save ? "SLOW" : "FAST");
         }
-
         processedProducts++;
         document.getElementById('progressBar').style.width = `${(processedProducts / totalProducts) * 100}%`;
         document.getElementById('progressText').textContent = `${Math.round((processedProducts / totalProducts) * 100)}%`;
@@ -463,7 +463,6 @@ if (imgSrc) {
     }
     return y;
   };
-
   const drawSectionSmall = async (sectionCols, sectionRows, boxWidth, boxHeight) => {
     return await drawSection(sectionCols, sectionRows, boxWidth, boxHeight, false);
   };
