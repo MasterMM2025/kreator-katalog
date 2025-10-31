@@ -201,7 +201,7 @@ async function buildPDF(jsPDF, save = true) {
           doc.setFontSize(priceFontSize);
           doc.setTextColor(...hexToRgb(finalEdit.cenaFontColor || '#000000'));
 
-          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? 'EUR' : 'GBP';
+          const currencySymbol = (finalEdit.priceCurrency || globalCurrency) === 'EUR' ? '€' : '£';
           const showLabel = finalEdit.showPriceLabel !== undefined ? finalEdit.showPriceLabel : true;
           const labelText = globalLanguage === 'en' ? 'PRICE' : 'CENA';
           const priceText = (finalEdit.priceCurrency || globalCurrency) === 'GBP'
