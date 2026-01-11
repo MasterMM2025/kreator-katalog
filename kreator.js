@@ -7,6 +7,18 @@ let uploadedImages = {};
 let productEdits = {};
 let globalCurrency = 'EUR';
 let globalLanguage = 'pl';
+function formatPriceParts(price, currency) {
+  if (!price) return null;
+
+  const symbol = currency === 'GBP' ? '£' : '€';
+
+  return {
+    value: price,      // np. 0.30
+    symbol: symbol,    // £ albo €
+    unit: '/szt.'
+  };
+}
+
 let pendingProducts = null; // Tymczasowe przechowywanie produktów z Excela
 
 async function toBase64(url) {
@@ -134,7 +146,6 @@ function showEditModal(productIndex) {
   const showRanking = document.getElementById('showRanking')?.checked || false;
   const showCena = document.getElementById('showCena')?.checked || false;
   const showLogo = document.getElementById('showLogo')?.checked || false;
-  const priceLabel = globalLanguage === 'en' ? 'Price' : 'Cena';
   const editForm = document.getElementById('editForm');
   editForm.innerHTML = `
     <div class="edit-field">
@@ -496,9 +507,17 @@ function renderCatalog() {
     if (showCena && p.cena) {
       const edit = productEdits[i] || {};
       const currency = edit.priceCurrency || globalCurrency;
-      const currencySymbol = currency === 'EUR' ? 'EUR' : 'GBP';
-      details.innerHTML += `<br>${priceLabel}: ${p.cena} ${currencySymbol}`;
+      const price = formatPriceParts(p.cena, currency);
+    
+      details.innerHTML += `
+        <div class="price-box">
+          <span class="price-value">${price.value}</span>
+          <span class="price-currency">${price.symbol}</span>
+          <span class="price-unit">${price.unit}</span>
+        </div>
+      `;
     }
+    
     const editButton = document.createElement('button');
     editButton.className = 'btn-primary edit-button';
     editButton.innerHTML = '<i class="fas fa-edit"></i> Edytuj';
@@ -816,13 +835,38 @@ async function buildPDF(jsPDF, save = true) {
             textY += sectionCols === 1 ? 22 : 18;
           }
           if (showCena && p.cena) {
+            const price = formatPriceParts(p.cena, edit.priceCurrency);
+          
             doc.setFont(edit.cenaFont, "bold");
-            const priceFontSize = sectionCols === 1 ? (edit.priceFontSize === 'small' ? 16 : edit.priceFontSize === 'medium' ? 20 : 24) : (edit.priceFontSize === 'small' ? 12 : edit.priceFontSize === 'medium' ? 14 : 16);
             doc.setFontSize(priceFontSize);
-            doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = edit.priceCurrency === 'EUR' ? 'EUR' : 'GBP';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + boxWidth / 2, textY, { align: "center" });
+          
+            // DUŻA CENA
+            doc.text(
+              price.value,
+              x + boxWidth / 2 - 10,
+              textY,
+              { align: "right" }
+            );
+          
+            // WALUTA
+            doc.setFontSize(priceFontSize * 0.6);
+            doc.text(
+              price.symbol,
+              x + boxWidth / 2 - 6,
+              textY - 4,
+              { align: "left" }
+            );
+          
+            // /szt.
+            doc.setFontSize(priceFontSize * 0.45);
+            doc.text(
+              price.unit,
+              x + boxWidth / 2 + 14,
+              textY - 4,
+              { align: "left" }
+            );
           }
+          
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = sectionCols === 1 ? 180 : 140;
@@ -870,14 +914,28 @@ async function buildPDF(jsPDF, save = true) {
             textY += 12;
           }
           if (showCena && p.cena) {
+            const price = formatPriceParts(p.cena, edit.priceCurrency);
+          
             doc.setFont(edit.cenaFont, "bold");
-            const priceFontSize = edit.priceFontSize === 'small' ? 10 : edit.priceFontSize === 'medium' ? 12 : 14;
             doc.setFontSize(priceFontSize);
-            doc.setTextColor(parseInt(edit.cenaFontColor.substring(1, 3), 16), parseInt(edit.cenaFontColor.substring(3, 5), 16), parseInt(edit.cenaFontColor.substring(5, 7), 16));
-            const currencySymbol = edit.priceCurrency === 'EUR' ? 'EUR' : 'GBP';
-            doc.text(`${priceLabel}: ${p.cena} ${currencySymbol}`, x + 105, textY, { maxWidth: 150 });
-            textY += 16;
+          
+            doc.text(price.value, x + 105, textY);
+          
+            doc.setFontSize(priceFontSize * 0.6);
+            doc.text(
+              price.symbol,
+              x + 105 + doc.getTextWidth(price.value) + 2,
+              textY - 3
+            );
+          
+            doc.setFontSize(priceFontSize * 0.45);
+            doc.text(
+              price.unit,
+              x + 105 + doc.getTextWidth(price.value) + 16,
+              textY - 3
+            );
           }
+          
           if (showEan && p.ean && p.barcode) {
             try {
               const bw = 85;
