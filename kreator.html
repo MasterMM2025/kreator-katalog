@@ -1,352 +1,265 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Katalog produktów</title>
-<link rel="icon" href="data:;base64,iVBORw0KGgo=">
-<link rel="stylesheet" href="kreator.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-#editModal {
-width: 95vw;
-max-width: 500px;
-max-height: 85vh;
-padding: 20px;
-border-radius: 8px;
-}
-#editModal .modal-content {
-gap: 15px;
-}
-.edit-field {
-display: flex;
-flex-direction: column;
-gap: 10px;
-margin-bottom: 12px;
-}
-.edit-field label {
-font-size: 0.95rem;
-font-weight: 600;
-}
-.edit-field input[type="text"],
-.edit-field select,
-.edit-field input[type="color"] {
-padding: 8px;
-font-size: 0.95rem;
-border-radius: 6px;
-}
-.edit-field input[type="color"] {
-height: 36px;
-}
-.modal-content button {
-padding: 10px 16px;
-font-size: 0.95rem;
-border-radius: 6px;
-min-width: 100px;
-}
-.modal-content .close {
-font-size: 20px;
-}
-#pageNav {
-display: flex;
-justify-content: center;
-align-items: center;
-gap: 12px;
-margin-bottom: 15px;
-}
-#pageNav button {
-padding: 10px 16px;
-font-size: 0.95rem;
-border-radius: 6px;
-background-color: #3182ce;
-color: #ffffff;
-border: none;
-cursor: pointer;
-transition: all 0.3s ease;
-}
-#pageNav button:hover:not(:disabled) {
-background-color: #2b6cb0;
-transform: translateY(-1px);
-}
-#pageNav button:disabled {
-background-color: #a0aec0;
-cursor: not-allowed;
-}
-#pageInfo {
-font-size: 0.95rem;
-color: #2d3748;
-font-weight: 500;
-}
-#htmlPreview {
-width: 100%;
-margin: 0;
-padding: 0;
-box-sizing: border-box;
-display: flex;
-justify-content: center;
-background: transparent;
-margin-top: 12px;
-display: none;
-}
-#pagePreview {
-width: 210mm;
-min-height: 297mm;
-margin: 0 auto;
-padding: 0;
-box-sizing: border-box;
-overflow: hidden;
-}
-#progressModal {
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background: rgba(0,0,0,0.5);
-display: none;
-justify-content: center;
-align-items: center;
-z-index: 1000;
-}
-#progressModal .modal-content {
-background: #fff;
-padding: 15px;
-border-radius: 8px;
-box-shadow: 0 0 8px rgba(0,0,0,0.2);
-text-align: center;
-width: 90%;
-max-width: 350px;
-}
-#progressBarContainer {
-width: 80%;
-margin: 15px auto;
-background: #e2e8f0;
-border-radius: 6px;
-overflow: hidden;
-}
-#progressBar {
-height: 18px;
-background: #3182ce;
-width: 0%;
-transition: width 0.3s ease;
-}
-#progressText {
-font-size: 0.9rem;
-color: #2d3748;
-font-weight: 500;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Katalog produktów</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="stylesheet" href="kreator.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<!-- Sidebar -->
-<div class="sidebar">
-<h3>Opcje PDF</h3>
-<label><input type="checkbox" id="showEan" checked> Kod EAN</label>
-<label><input type="checkbox" id="showRanking" checked> Ranking</label>
-<label><input type="checkbox" id="showCena" checked> Cena</label>
-<label><input type="checkbox" id="showIndeks" checked> Indeks</label>
-<label><input type="checkbox" id="showLogo" checked> Logo</label>
-<label>
-Waluta:
-<select id="currencySelect">
-<option value="EUR" selected>€ (EUR)</option>
-<option value="GBP">£ (GBP)</option>
-<option value="PLN">zł (PLN)</option>
-</select>
-</label>
-<label>
-Język:
-<select id="languageSelect">
-<option value="pl" selected>Polski</option>
-<option value="en">Angielski</option>
-</select>
-</label>
-<h3>Układ modułów</h3>
-<select id="layoutSelect">
-<option value="1">1 moduł</option>
-<option value="2">2 moduły</option>
-<option value="4">4 moduły</option>
-<option value="8">8 moduły</option>
-<option value="16" selected>16 modułów</option>
-<option value="4-2-4">4-2-4 moduły</option>
-<option value="4-1-4">4-1-4 moduły</option>
-</select>
-<h3>Wygląd ramek</h3>
-<label><input type="radio" name="frameStyle" value="3d" checked onclick="window.renderCatalog(); window.previewHTML();"> Z ramką 3D</label>
-<label><input type="radio" name="frameStyle" value="none" onclick="window.renderCatalog(); window.previewHTML();"> Bez efektu 3D</label>
-<label><input type="radio" name="frameStyle" value="no-border" onclick="window.renderCatalog(); window.previewHTML();"> Bez ramki</label>
-<button onclick="window.showPageEditModal(window.currentPage)" class="btn-primary" style="margin-top: 8px; padding: 8px; font-size: 0.9rem; border-radius: 6px;">Edytuj stronę</button>
-</div>
-<!-- Main Content -->
-<div class="main-content">
-<!-- Panel importu -->
-<div class="panel improved-panel">
-<h2><i class="fas fa-file-import"></i> Import</h2>
-<!-- Import pliku Excel -->
-<div class="import-row">
-<div class="file-section">
-<label for="excelFile" class="file-label-wrapper">
-<span id="fileLabel">Nie wybrano pliku</span>
-</label>
-<input type="file" id="excelFile" accept=".xls,.xlsx,.csv" style="display:none;">
-</div>
-<button class="btn-primary" onclick="window.importExcel()"><i class="fas fa-file-import"></i> Importuj Excel</button>
-</div>
-<!-- Import zdjęć -->
-<div class="upload-block">
-<div id="uploadArea" class="upload-zone">
-<p>Przeciągnij zdjęcia tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
-</div>
-<button class="btn-primary" onclick="window.handleFiles(document.getElementById('imageInput').files, window.loadCustomImages)"><i class="fas fa-upload"></i> Załaduj</button>
-</div>
-<!-- Import okładki -->
-<div class="upload-block">
-<div id="coverUpload" class="upload-zone">
-<p>Przeciągnij okładkę tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="coverFileInput" accept="image/*" style="display:none;">
-</div>
-</div>
-<!-- Import tła -->
-<div class="upload-block">
-<div id="backgroundUpload" class="upload-zone">
-<p>Przeciągnij tło tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="backgroundFileInput" accept="image/*" style="display:none;">
-</div>
-</div>
-<!-- Import banera -->
-<div class="upload-block">
-<div class="banner-wrapper">
-<div id="bannerUpload" class="upload-zone">
-<p>Przeciągnij baner tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
-<input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
-</div>
-</div>
-</div>
-</div>
-<!-- Panel ustawień -->
-<div class="panel improved-panel">
-<h2><i class="fas fa-cogs"></i> Ustawienia</h2>
-<div class="edit-field">
-<label>Układ modułów:</label>
-<select id="layoutSettingsSelect">
-<option value="1">1 moduł</option>
-<option value="2">2 moduły</option>
-<option value="4">4 moduły</option>
-<option value="8">8 moduły</option>
-<option value="16" selected>16 modułów</option>
-<option value="4-2-4">4-2-4 moduły</option>
-<option value="4-1-4">4-1-4 moduły</option>
-</select>
-</div>
-<div class="edit-field">
-<label>Pokaż elementy:</label>
-<label><input type="checkbox" id="showEanSettings" checked> Kod EAN</label>
-<label><input type="checkbox" id="showRankingSettings" checked> Ranking</label>
-<label><input type="checkbox" id="showCenaSettings" checked> Cena</label>
-<label><input type="checkbox" id="showIndeksSettings" checked> Indeks</label>
-<label><input type="checkbox" id="showLogoSettings" checked> Logo</label>
-</div>
-<div class="edit-field">
-<label>Język:</label>
-<select id="languageSettingsSelect">
-<option value="pl" selected>Polski</option>
-<option value="en">Angielski</option>
-</select>
-</div>
-<div class="edit-field">
-<label>Waluta:</label>
-<select id="currencySettingsSelect">
-<option value="EUR" selected>€ (EUR)</option>
-<option value="GBP">£ (GBP)</option>
-<option value="PLN">zł (PLN)</option>
-</select>
-</div>
-<div class="edit-field">
-<label>Styl ramki:</label>
-<select id="frameStyleSettingsSelect">
-<option value="3d" selected>Z ramką 3D</option>
-<option value="none">Bez efektu 3D</option>
-<option value="no-border">Bez ramki</option>
-</select>
-</div>
-</div>
-<!-- Przyciski PDF -->
-<div class="pdf-buttons">
-<button id="previewButton" class="btn-primary" onclick="window.previewPDF()" disabled><i class="fas fa-eye"></i> Podgląd PDF</button>
-<button id="pdfButton" class="btn-primary" onclick="window.generatePDF()" disabled><i class="fas fa-download"></i> Zapisz katalog</button>
-</div>
-<!-- Podgląd PDF -->
-<div id="pdfPreview">
-<h3><i class="fas fa-file-pdf"></i> Podgląd PDF</h3>
-<iframe id="pdfIframe" width="100%" height="600px"></iframe>
-</div>
-<!-- Podgląd HTML -->
-<div id="htmlPreview">
-<div id="pagePreview"></div>
-</div>
-<!-- Nawigacja stron -->
-<div id="pageNav">
-<button id="prevPage" disabled onclick="window.showPage(window.currentPage - 1)">Poprzednia strona</button>
-<span id="pageInfo">Strona 0/0</span>
-<button id="nextPage" disabled onclick="window.showPage(window.currentPage + 1)">Następna strona</button>
-</div>
-<!-- Katalog produktów -->
-<h1>Katalog produktów</h1>
-<div id="debug"></div>
-<div id="catalog"></div>
-<!-- Modal wyboru banera -->
-<div id="bannerModal" class="modal">
-<div class="modal-content">
-<span class="close" onclick="window.hideBannerModal()">&times;</span>
-<h3>Wybierz baner</h3>
-<div class="banner-options" id="bannerOptions"></div>
-</div>
-</div>
-<!-- Modal edycji produktu -->
-<div id="editModal" class="modal">
-<div class="modal-content">
-<span class="close" onclick="window.hideEditModal()">&times;</span>
-<h3>Edytuj produkt</h3>
-<div id="editForm"></div>
-</div>
-</div>
-<!-- Modal paska postępu -->
-<div id="progressModal" class="modal" style="display:none;">
-<div class="modal-content">
-<span class="close" onclick="window.hideProgressModal()" style="display:none;">&times;</span>
-<h3>Generowanie podglądu...</h3>
-<div id="progressBarContainer">
-<div id="progressBar"></div>
-</div>
-<span id="progressText">0%</span>
-</div>
-</div>
-<!-- Skrypty -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-<script src="modul2.js"></script>
-<script src="modul4.js"></script>
-<script src="modul4-1-4.js"></script>
-<script src="config.js"></script>
-<script src="kreator1-2.js"></script>
-<script src="kreator1-3.js"></script>
-<script src="kreator2-2.js"></script>
-<script src="kreator3.js"></script>
-<script>
-// Inicjalizacja zmiennych globalnych
-window.manufacturerLogos = {};
-window.uploadedImages = {};
-window.products = [];
-window.jsonProducts = [];
-window.productEdits = {};
-window.pageEdits = {};
-window.globalCurrency = 'EUR';
-window.globalLanguage = 'pl';
-window.currentPage = 0;
-</script>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h3>Opcje PDF</h3>
+    <label><input type="checkbox" id="showEan" checked> Kod EAN</label>
+    <label><input type="checkbox" id="showRanking" checked> Ranking</label>
+    <label><input type="checkbox" id="showCena" checked> Cena</label>
+    <label><input type="checkbox" id="showLogo" checked> Logo</label>
+    <label>
+      Waluta:
+      <select id="currencySelect">
+        <option value="EUR" selected>EUR (EUR)</option>
+        <option value="GBP">GBP (GBP)</option>
+      </select>
+    </label>
+    <label>
+      Język:
+      <select id="languageSelect">
+        <option value="pl" selected>Polski</option>
+        <option value="en">Angielski</option>
+      </select>
+    </label>
+    <h3>Układ modułów</h3>
+    <select id="layoutSelect">
+      <option value="1">1 moduł</option>
+      <option value="2">2 moduły</option>
+      <option value="4">4 moduły</option>
+      <option value="8">8 modułów</option>
+      <option value="16" selected>16 modułów</option>
+      <option value="4-2-4">4-2-4 moduły</option>
+      <option value="5">5 modułów (4+1 duży)</option>
+      <option value="6">6 dużych modułów (2×3)</option>
+    </select>
+
+    <button class="btn-primary" onclick="openPageSettings()" style="margin-top:10px; width:100%;">
+      Ustawienia stron
+    </button>
+
+    <h3>Wygląd ramek</h3>
+    <label><input type="radio" name="frameStyle" value="3d" checked> Z ramką 3D</label>
+    <label><input type="radio" name="frameStyle" value="none"> Bez ramek</label>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="panel improved-panel">
+      <h2>Import i ustawienia</h2>
+      <div class="import-row">
+        <div class="file-section">
+          <label for="excelFile" class="file-label-wrapper">
+            <span id="fileLabel">Nie wybrano pliku</span>
+          </label>
+          <input type="file" id="excelFile" accept=".xls,.xlsx,.csv" style="display:none;">
+        </div>
+        <button class="btn-primary" onclick="importExcel()">Importuj Excel</button>
+      </div>
+
+      <div class="upload-block">
+        <div class="banner-wrapper">
+          <button id="chooseBannerBtn" onclick="showBannerModal()" class="btn-banner">
+            Wybierz baner
+          </button>
+          <div id="bannerUpload" class="upload-zone">
+            <p>Przeciągnij baner tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+            <input type="file" id="bannerFileInput" accept="image/*" style="display:none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-block">
+        <div id="backgroundUpload" class="upload-zone">
+          <p>Przeciągnij tło tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="backgroundFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <div class="upload-block">
+        <div id="coverUpload" class="upload-zone">
+          <p>Przeciągnij okładkę tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="coverFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <div class="upload-block">
+        <div id="uploadArea" class="upload-zone">
+          <p>Przeciągnij zdjęcia tutaj lub <span class="file-label">kliknij, aby wybrać</span></p>
+          <input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
+        </div>
+      </div>
+
+      <div class="pdf-buttons">
+        <button onclick="generatePDF()" disabled id="pdfButton" class="btn-primary">
+          Generuj PDF
+        </button>
+        <button onclick="previewPDF()" disabled id="previewButton" class="btn-secondary">
+          Podgląd PDF
+        </button>
+      </div>
+    </div>
+
+    <div id="pdfPreview" style="margin-top:15px; display:none;">
+      <h3>Podgląd PDF</h3>
+      <iframe id="pdfIframe" width="100%" height="600px" style="border:1px solid #ccc;"></iframe>
+    </div>
+
+    <h1>Katalog produktów</h1>
+    <div id="debug"></div>
+    <div id="catalog"></div>
+
+    <!-- Modal wyboru banera -->
+    <div id="bannerModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideBannerModal()">×</span>
+        <h3>Wybierz baner</h3>
+        <div class="banner-options" id="bannerOptions"></div>
+      </div>
+    </div>
+
+    <!-- Modal edycji produktu -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideEditModal()">×</span>
+        <h3>Edytuj produkt</h3>
+        <div id="editForm"></div>
+      </div>
+    </div>
+
+    <!-- Modal ustawień stron -->
+    <div id="pageSettingsModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="closePageSettings()">×</span>
+        <h3>Ustawienia stron</h3>
+        <div id="pageSettingsContainer"></div>
+        <div style="margin-top:15px; text-align:right;">
+          <button class="btn-secondary" onclick="applyLayoutToAll()">Zastosuj do wszystkich</button>
+          <button class="btn-primary" onclick="closePageSettings()">Zamknij</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal postępu -->
+    <div id="progressModal" class="modal" style="display:none;">
+      <div class="modal-content" style="text-align:center;">
+        <h3>Generowanie podglądu...</h3>
+        <div id="progressBarContainer" style="width:80%; margin:20px auto;">
+          <div id="progressBar" style="height:20px; background:#3182ce; width:0%; transition:width 0.1s;"></div>
+        </div>
+        <span id="progressText">0%</span>
+      </div>
+    </div>
+
+    <!-- Modal edycji wirtualnej -->
+    <div id="virtualEditModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="hideEditModal()">×</span>
+        <h3>Edytuj produkt wizualnie</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skrypty -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-gradient@latest/dist/jspdf-gradient.min.js"></script>
+
+  <!-- ŁADUJ KOLEJNO: 1 → 2 → 2.1 -->
+  <script src="kreator1.js" defer></script>
+  <script src="kreator2.js" defer></script>
+  <script src="kreator2.1.js" defer></script>
+
+  <!-- INICJALIZACJA I NAPRAWA KONFLIKTU -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicjalizuj pageEdits
+      window.pageEdits = window.pageEdits || {};
+
+      // Napraw konflikt: kreator2.js ma być nadrzędny
+      if (typeof buildPDF === 'function' && buildPDF.toString().includes('currentPageIndex')) {
+        console.log('kreator2.js załadowany poprawnie');
+      }
+
+      // === GLOBALNA FUNKCJA getItemsPerPage ===
+      window.getItemsPerPage = function(layout) {
+        const map = { 
+          "1":1, "2":2, "4":4, "8":8, "16":16, 
+          "4-2-4":10, "5":5, "6":6 
+        };
+        return map[layout] || 16;
+      };
+
+      // Funkcje modalu
+      window.openPageSettings = function() {
+        const modal = document.getElementById('pageSettingsModal');
+        if (!modal || !products || products.length === 0) return;
+
+        const defaultLayout = document.getElementById('layoutSelect').value;
+        const itemsPerPage = window.getItemsPerPage(defaultLayout);
+        const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
+
+        let html = '';
+        for (let i = 0; i < totalPages; i++) {
+          const edit = pageEdits[i] || {};
+          const currentLayout = edit.layout || defaultLayout;
+          html += `
+            <div style="margin:8px 0; padding:8px; border:1px solid #ddd; border-radius:4px;">
+              <strong>Strona ${i + 1}</strong>
+              <select onchange="setPageLayout(${i}, this.value)" style="margin-left:10px;">
+                <option value="1" ${currentLayout==='1'?'selected':''}>1 moduł</option>
+                <option value="2" ${currentLayout==='2'?'selected':''}>2 moduły</option>
+                <option value="4" ${currentLayout==='4'?'selected':''}>4 moduły</option>
+                <option value="8" ${currentLayout==='8'?'selected':''}>8 modułów</option>
+                <option value="16" ${currentLayout==='16'?'selected':''}>16 modułów</option>
+                <option value="4-2-4" ${currentLayout==='4-2-4'?'selected':''}>4-2-4 moduły</option>
+                <option value="5" ${currentLayout==='5'?'selected':''}>5 modułów (4+1 duży)</option>
+                <option value="6" ${currentLayout==='6'?'selected':''}>6 dużych modułów (2×3)</option>
+              </select>
+            </div>`;
+        }
+        document.getElementById('pageSettingsContainer').innerHTML = html;
+        modal.style.display = 'block';
+      };
+
+      window.setPageLayout = function(pageIndex, layout) {
+        pageEdits[pageIndex] = pageEdits[pageIndex] || {};
+        pageEdits[pageIndex].layout = layout;
+        renderCatalog();
+        fastPreview(); // SZYBKI PODGLĄD
+      };
+
+      window.applyLayoutToAll = function() {
+        const layout = document.getElementById('layoutSelect').value;
+        if (!confirm(`Czy zastosować układ "${layout}" do wszystkich stron?`)) return;
+
+        const itemsPerPage = window.getItemsPerPage(layout);
+        const totalPages = Math.ceil(products.length / itemsPerPage) || 1;
+
+        for (let i = 0; i < totalPages; i++) {
+          pageEdits[i] = pageEdits[i] || {};
+          pageEdits[i].layout = layout;
+        }
+        renderCatalog();
+        fastPreview(); // SZYBKI PODGLĄD
+        openPageSettings();
+      };
+
+      window.closePageSettings = function() {
+        document.getElementById('pageSettingsModal').style.display = 'none';
+      };
+    });
+  </script>
 </body>
 </html>
